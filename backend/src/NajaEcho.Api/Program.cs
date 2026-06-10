@@ -4,6 +4,8 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using NajaEcho.Api.Common;
 using NajaEcho.Api.Features.Auth;
+using NajaEcho.Application.Features.Auth.SignInWithDiscord;
+using NajaEcho.Domain.Users;
 using NajaEcho.Infrastructure;
 using Serilog;
 using Serilog.Events;
@@ -89,9 +91,49 @@ try
             opts.Scope.Add("email");
             opts.SaveTokens = true;
             opts.CallbackPath = "/api/auth/discord/callback";
+            opts.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+
+            var frontendOrigin = builder.Configuration["Frontend:Origin"] ?? "";
+
+            opts.Events.OnTicketReceived = async ctx =>
+            {
+                var claims = ctx.Principal?.Claims.ToList() ?? [];
+                var discordId = claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
+                var username = claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+                if (discordId is null || username is null)
+                {
+                    ctx.Response.Redirect($"{frontendOrigin}/auth/error?reason=profile_unavailable");
+                    ctx.HandleResponse();
+                    return;
+                }
+
+                var profile = new DiscordProfile
+                {
+                    Id = discordId,
+                    Username = username,
+                    GlobalName = claims.FirstOrDefault(c => c.Type == "urn:discord:user:global_name")?.Value,
+                    Avatar = claims.FirstOrDefault(c => c.Type == "urn:discord:user:avatar")?.Value,
+                    Email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value,
+                    Verified = claims.FirstOrDefault(c => c.Type == "urn:discord:user:verified")?.Value == "true",
+                };
+
+                var handler = ctx.HttpContext.RequestServices.GetRequiredService<SignInWithDiscordHandler>();
+                var result = await handler.HandleAsync(new SignInWithDiscordCommand(profile), ctx.HttpContext.RequestAborted);
+
+                var identity = new ClaimsIdentity(
+                [
+                    new Claim(ClaimTypes.NameIdentifier, result.UserId.ToString()),
+                    new Claim(ClaimTypes.Name, result.DisplayName),
+                ], CookieAuthenticationDefaults.AuthenticationScheme);
+
+                ctx.Principal = new ClaimsPrincipal(identity);
+                ctx.Properties!.IsPersistent = true;
+                ctx.Properties.ExpiresUtc = DateTimeOffset.UtcNow.AddDays(14);
+            };
+
             opts.Events.OnRemoteFailure = ctx =>
             {
-                ctx.Response.Redirect("/auth/error?reason=remote_failure");
+                ctx.Response.Redirect($"{frontendOrigin}/auth/error?reason=remote_failure");
                 ctx.HandleResponse();
                 return Task.CompletedTask;
             };
