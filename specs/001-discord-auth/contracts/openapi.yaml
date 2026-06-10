@@ -1,0 +1,176 @@
+openapi: 3.0.3
+info:
+  title: NajaEchoPortal Auth API
+  version: 0.1.0
+  description: |
+    REST endpoints for Discord-based authentication in the NajaEchoPortal MVP.
+    The frontend never sees Discord tokens. The browser session is a server-managed
+    HTTP-only cookie. All endpoints in this contract are part of the feature
+    `001-discord-auth`.
+
+servers:
+  - url: http://localhost:5080
+    description: Local development
+  - url: https://api.example.invalid
+    description: Production (placeholder)
+
+tags:
+  - name: auth
+    description: Discord authentication and session lifecycle.
+  - name: meta
+    description: Health and metadata.
+
+paths:
+  /api/auth/discord/login:
+    get:
+      tags: [auth]
+      summary: Begin Discord OAuth2 authorization-code flow.
+      description: |
+        Initiates the Discord sign-in flow. The server stores a correlation cookie
+        carrying the OAuth state value, then issues a 302 redirect to Discord's
+        authorization URL with scopes `identify email`.
+      parameters:
+        - in: query
+          name: returnUrl
+          schema:
+            type: string
+            format: uri-reference
+          required: false
+          description: Optional client-side route to return to after sign-in. Must be same-origin.
+      responses:
+        '302':
+          description: Redirect to Discord's authorization endpoint.
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+
+  /api/auth/discord/callback:
+    get:
+      tags: [auth]
+      summary: Discord OAuth callback.
+      description: |
+        Discord redirects the browser here with either `code` + `state` (success)
+        or `error` + `state` (denied/cancelled). On success: exchange code for an
+        access token (server-side only), fetch `/users/@me`, upsert UserProfile,
+        sign in the cookie session, redirect to the dashboard. On error: redirect
+        to the auth error page with a short `reason` query string.
+      parameters:
+        - in: query
+          name: code
+          schema: { type: string }
+          required: false
+        - in: query
+          name: state
+          schema: { type: string }
+          required: false
+        - in: query
+          name: error
+          schema: { type: string }
+          required: false
+        - in: query
+          name: error_description
+          schema: { type: string }
+          required: false
+      responses:
+        '302':
+          description: Redirect to dashboard on success, or to the auth-error page on failure.
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+            Set-Cookie:
+              schema: { type: string }
+              description: Sets the HTTP-only session cookie on success; clears correlation cookie on failure.
+
+  /api/auth/signout:
+    post:
+      tags: [auth]
+      summary: Sign the current user out.
+      description: |
+        Clears the server-managed session cookie. Idempotent — calling without an
+        active session returns 204.
+      security:
+        - cookieAuth: []
+      responses:
+        '204':
+          description: Session cleared.
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+              description: Expired session cookie.
+
+  /api/auth/me:
+    get:
+      tags: [auth]
+      summary: Get the currently signed-in user.
+      description: |
+        Returns the local user profile for the active session. The frontend uses this
+        as the canonical signed-in state for `ProtectedRoute` and the dashboard.
+      security:
+        - cookieAuth: []
+      responses:
+        '200':
+          description: Authenticated user.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CurrentUser' }
+        '401':
+          description: No active session.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+
+  /api/health:
+    get:
+      tags: [meta]
+      summary: Liveness probe.
+      responses:
+        '200':
+          description: Healthy.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, enum: [ok] }
+                required: [status]
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: najaecho.auth
+
+  schemas:
+    CurrentUser:
+      type: object
+      required: [id, displayName]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Internal user id (UserProfile.Id).
+        displayName:
+          type: string
+          maxLength: 64
+        avatarUrl:
+          type: string
+          format: uri
+          nullable: true
+          description: |
+            Resolved Discord avatar URL constructed server-side. Null when the
+            user has no avatar set; the frontend renders a fallback initial.
+
+    ProblemDetails:
+      type: object
+      description: RFC 7807 Problem Details. User-facing messages never include internal error details.
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }

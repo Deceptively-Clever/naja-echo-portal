@@ -1,0 +1,27 @@
+# .NET
+backend/**/bin/
+backend/**/obj/
+backend/**/*.user
+backend/**/*.suo
+backend/**/secrets.json
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env*
+
+# Environment files (all locations)
+.env
+.env.*
+!.env.example
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/settings.json
+
+# Logs
+*.log

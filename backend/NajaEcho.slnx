@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/NajaEcho.Api/NajaEcho.Api.csproj" />
+    <Project Path="src/NajaEcho.Application/NajaEcho.Application.csproj" />
+    <Project Path="src/NajaEcho.Domain/NajaEcho.Domain.csproj" />
+    <Project Path="src/NajaEcho.Infrastructure/NajaEcho.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/NajaEcho.Api.Tests/NajaEcho.Api.Tests.csproj" />
+    <Project Path="tests/NajaEcho.Application.Tests/NajaEcho.Application.Tests.csproj" />
+    <Project Path="tests/NajaEcho.Domain.Tests/NajaEcho.Domain.Tests.csproj" />
+    <Project Path="tests/NajaEcho.Infrastructure.Tests/NajaEcho.Infrastructure.Tests.csproj" />
+  </Folder>
+</Solution>
