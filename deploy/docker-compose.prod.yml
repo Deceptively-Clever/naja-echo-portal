@@ -1,0 +1,16 @@
+services:
+  api:
+    image: ghcr.io/<owner>/najaecho-api:${IMAGE_TAG:-latest}
+    container_name: najaecho-api
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:5180:5180"
+    env_file:
+      - /etc/najaecho/najaecho.env
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:5180/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

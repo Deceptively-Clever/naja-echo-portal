@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using AspNet.Security.OAuth.Discord;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using NajaEcho.Api.Common;
 using NajaEcho.Api.Features.Auth;
@@ -33,6 +34,15 @@ try
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
     builder.Services.AddProblemDetails();
+
+    // Trust X-Forwarded-* from the local nginx reverse proxy so Request.Scheme
+    // reflects HTTPS and Secure cookies are issued correctly.
+    builder.Services.Configure<ForwardedHeadersOptions>(opts =>
+    {
+        opts.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        opts.KnownIPNetworks.Clear();
+        opts.KnownProxies.Clear();
+    });
 
     var frontendOrigin = builder.Configuration["Frontend:Origin"] ?? "http://localhost:5173";
 
@@ -142,6 +152,8 @@ try
     builder.Services.AddAuthorization();
 
     var app = builder.Build();
+
+    app.UseForwardedHeaders();
 
     app.UseSerilogRequestLogging(opts =>
     {
