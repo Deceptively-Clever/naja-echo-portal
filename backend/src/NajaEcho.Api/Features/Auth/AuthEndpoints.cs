@@ -1,21 +1,20 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Identity;
 using NajaEcho.Api.Features.Auth.Contracts;
 using NajaEcho.Application.Features.Auth.GetCurrentUser;
 using AspNet.Security.OAuth.Discord;
+using Serilog;
 
 namespace NajaEcho.Api.Features.Auth;
 
 public static class AuthEndpoints
 {
-    private const string DiscordAvatarBase = "https://cdn.discordapp.com/avatars";
-
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/auth/discord/login", Login);
-        app.MapPost("/api/auth/signout", SignOut).RequireAuthorization();
-        app.MapGet("/api/auth/me", Me).RequireAuthorization();
+        app.MapGet("/api/auth/discord/login", Login).AllowAnonymous();
+        app.MapPost("/api/auth/signout", (Delegate)SignOut).AllowAnonymous();
+        app.MapGet("/api/auth/me", Me).AllowAnonymous();
 
         return app;
     }
@@ -23,6 +22,7 @@ public static class AuthEndpoints
     private static IResult Login(HttpContext ctx, IConfiguration config)
     {
         var frontendOrigin = config["Frontend:Origin"] ?? "";
+        Log.Information("Discord login started");
         return Results.Challenge(
             new AuthenticationProperties { RedirectUri = $"{frontendOrigin}/dashboard" },
             [DiscordAuthenticationDefaults.AuthenticationScheme]);
@@ -30,7 +30,8 @@ public static class AuthEndpoints
 
     private static async Task<IResult> SignOut(HttpContext ctx)
     {
-        await ctx.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+        await ctx.SignOutAsync(IdentityConstants.ApplicationScheme);
+        Log.Information("Sign-out completed");
         return Results.NoContent();
     }
 
@@ -41,16 +42,13 @@ public static class AuthEndpoints
     {
         var sub = user.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!Guid.TryParse(sub, out var userId))
-            return Results.Unauthorized();
+            return Results.Ok(new AnonymousSessionResponse());
 
-        var dto = await handler.HandleAsync(new GetCurrentUserQuery(userId), ct);
-        if (dto is null)
-            return Results.Unauthorized();
+        var localUser = await handler.HandleAsync(new GetCurrentUserQuery(userId), ct);
+        if (localUser is null)
+            return Results.Ok(new AnonymousSessionResponse());
 
-        var avatarUrl = dto.AvatarRef is not null
-            ? $"{DiscordAvatarBase}/{userId}/{dto.AvatarRef}.png"
-            : null;
-
-        return Results.Ok(new CurrentUserResponse(dto.Id, dto.DisplayName, avatarUrl));
+        return Results.Ok(new AuthenticatedSessionResponse(
+            new CurrentUserResponse(localUser.Id, localUser.DisplayName, localUser.DiscordUsername)));
     }
 }

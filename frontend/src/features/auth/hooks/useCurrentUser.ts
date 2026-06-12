@@ -1,9 +1,10 @@
 import { useQuery } from '@tanstack/react-query'
-import { getCurrentUser } from '../api/authApi'
+import { getSessionState } from '../api/authApi'
+import { authKeys } from './authKeys'
 
 export function useCurrentUser() {
   return useQuery({
-    queryKey: ['auth', 'me'],
-    queryFn: getCurrentUser,
+    queryKey: authKeys.me(),
+    queryFn: getSessionState,
   })
 }

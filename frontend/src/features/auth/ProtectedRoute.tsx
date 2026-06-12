@@ -2,7 +2,7 @@ import { Navigate, Outlet } from 'react-router-dom'
 import { useCurrentUser } from './hooks/useCurrentUser'
 
 export function ProtectedRoute() {
-  const { data: user, isLoading } = useCurrentUser()
+  const { data: session, isLoading } = useCurrentUser()
 
   if (isLoading) {
     return (
@@ -12,7 +12,7 @@ export function ProtectedRoute() {
     )
   }
 
-  if (!user) {
+  if (!session?.authenticated) {
     return <Navigate to="/" replace />
   }
 

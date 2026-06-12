@@ -5,6 +5,7 @@ import { server } from '@/tests/server'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ProtectedRoute } from './ProtectedRoute'
+import { anonymousSession } from '@/tests/handlers'
 
 function renderWithRouter(initialEntry = '/dashboard') {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -23,16 +24,18 @@ function renderWithRouter(initialEntry = '/dashboard') {
 }
 
 describe('ProtectedRoute', () => {
-  it('renders children when user is authenticated', async () => {
+  // T041: renders protected content when session is authenticated
+  it('renders children when session is authenticated', async () => {
     renderWithRouter('/dashboard')
     await waitFor(() => {
       expect(screen.getByText('Protected Content')).toBeDefined()
     })
   })
 
-  it('redirects to / when user is not authenticated', async () => {
+  // T042: redirects when session is anonymous (always-200 response)
+  it('redirects to / when session is anonymous', async () => {
     server.use(
-      http.get('/api/auth/me', () => new HttpResponse(null, { status: 401 }))
+      http.get('/api/auth/me', () => HttpResponse.json(anonymousSession))
     )
     renderWithRouter('/dashboard')
     await waitFor(() => {

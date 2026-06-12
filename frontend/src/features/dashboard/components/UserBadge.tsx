@@ -1,8 +1,8 @@
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import type { CurrentUser } from '@/features/auth/schemas/currentUserSchema'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import type { AuthenticatedSession } from '@/features/auth/schemas/sessionStateSchema'
 
 interface UserBadgeProps {
-  user: CurrentUser
+  user: AuthenticatedSession['user']
 }
 
 export function UserBadge({ user }: UserBadgeProps) {
@@ -11,9 +11,6 @@ export function UserBadge({ user }: UserBadgeProps) {
   return (
     <div className="flex items-center gap-3" aria-label={`Signed in as ${user.displayName}`}>
       <Avatar>
-        {user.avatarUrl && (
-          <AvatarImage src={user.avatarUrl} alt={user.displayName} />
-        )}
         <AvatarFallback aria-hidden>{initial}</AvatarFallback>
       </Avatar>
       <span className="font-medium">{user.displayName}</span>

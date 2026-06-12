@@ -1,0 +1,225 @@
+openapi: 3.0.3
+info:
+  title: NajaEchoPortal Auth API
+  version: 0.2.0
+  description: |
+    REST endpoints for Discord-based authentication in NajaEchoPortal. Feature
+    `002-identity-refactor` migrates the local user store to ASP.NET Core Identity while keeping
+    Discord as the only external login provider.
+
+    Contract invariants (Constitution I, III; spec security requirements):
+      - The frontend never receives Discord access tokens, refresh tokens, OAuth codes, or state
+        values in any response body, claim, or cookie payload.
+      - The browser session is a server-managed, HTTP-only cookie issued by Identity.
+      - `/api/auth/me` is the canonical signed-in-state probe and ALWAYS returns 200 (see below).
+      - `401` is reserved for protected ACTION endpoints, never for the session probe.
+
+    Endpoint kinds:
+      - `/api/auth/discord/login` and `/api/auth/discord/callback` are BROWSER REDIRECT endpoints
+        (top-level navigations, not JSON/XHR). They are documented here for completeness but are
+        not called via fetch by the SPA — the SPA navigates the browser to the login URL.
+      - `/api/auth/me` and `/api/auth/signout` are JSON/XHR endpoints called by the SPA with
+        `credentials: 'include'`.
+
+servers:
+  - url: http://localhost:5080
+    description: Local development
+  - url: https://api.example.invalid
+    description: Production (placeholder)
+
+tags:
+  - name: auth
+    description: Discord authentication and session lifecycle.
+  - name: meta
+    description: Health and metadata.
+
+paths:
+  /api/auth/discord/login:
+    get:
+      tags: [auth]
+      summary: Begin Discord OAuth2 authorization-code flow (browser redirect endpoint).
+      description: |
+        BROWSER REDIRECT ENDPOINT — not called via fetch. The SPA points the browser at this URL.
+        The server issues an OAuth correlation/state cookie and a 302 redirect to Discord's
+        authorization URL with the minimized scope `identify`. No request body, no JSON response.
+      responses:
+        '302':
+          description: Redirect to Discord's authorization endpoint.
+          headers:
+            Location:
+              schema: { type: string, format: uri }
+            Set-Cookie:
+              schema: { type: string }
+              description: Short-lived OAuth correlation cookie (opaque; no client-readable secrets).
+
+  /api/auth/discord/callback:
+    get:
+      tags: [auth]
+      summary: Discord OAuth callback (browser redirect endpoint).
+      description: |
+        BROWSER REDIRECT ENDPOINT — Discord redirects the browser here. On success the server:
+        validates OAuth state/correlation, reads the external login, finds or creates the local
+        Identity user, links the Discord login (AspNetUserLogins), issues the Identity application
+        cookie, and 302-redirects to the dashboard root. On failure it 302-redirects to the
+        frontend auth-error page with a short, non-sensitive `reason`. No tokens, codes, or state
+        appear in any response visible to client scripts.
+      parameters:
+        - in: query
+          name: code
+          schema: { type: string }
+          required: false
+          description: Authorization code (consumed server-side only; never returned to the client).
+        - in: query
+          name: state
+          schema: { type: string }
+          required: false
+          description: Correlation value validated server-side; never echoed to the client.
+        - in: query
+          name: error
+          schema: { type: string }
+          required: false
+        - in: query
+          name: error_description
+          schema: { type: string }
+          required: false
+      responses:
+        '302':
+          description: |
+            On success: 302 to the frontend dashboard root (`/dashboard`).
+            On failure: 302 to `/auth/error?reason=<value>` where `reason` is one of:
+              - `oauth_error` — Discord returned an error response (user denied, app misconfigured)
+              - `state_mismatch` — OAuth correlation/CSRF validation failed
+              - `server_error` — Unexpected internal failure during callback processing
+            The `reason` value is a safe, non-sensitive label. No OAuth codes, state values,
+            or internal details are included.
+          headers:
+            Location:
+              schema: { type: string, format: uri }
+            Set-Cookie:
+              schema: { type: string }
+              description: |
+                Sets the HTTP-only Identity application session cookie on success; clears the
+                external/correlation cookie. Cookie value is opaque to client scripts.
+
+  /api/auth/me:
+    get:
+      tags: [auth]
+      summary: Get current session state (canonical signed-in probe).
+      description: |
+        ALWAYS returns 200. The body is a discriminated union on `authenticated`. This endpoint is
+        anonymous-accessible by design: an unauthenticated caller receives `{ authenticated: false }`,
+        NOT a 401. The SPA uses this as the single source of truth for the auth guard. The response
+        never contains Discord tokens.
+      responses:
+        '200':
+          description: Session state (authenticated or not).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SessionState' }
+              examples:
+                authenticated:
+                  value:
+                    authenticated: true
+                    user:
+                      id: "3f1a7b2e-9c4d-4e8a-bb10-2a6f5d8c1e90"
+                      displayName: "Vanguard"
+                      discordUsername: "vanguard"
+                anonymous:
+                  value:
+                    authenticated: false
+
+  /api/auth/signout:
+    post:
+      tags: [auth]
+      summary: Sign the current user out.
+      description: |
+        Clears the Identity application session cookie (and any external cookie). Idempotent —
+        calling without an active session still returns 204 and is a no-op.
+      security:
+        - cookieAuth: []
+      responses:
+        '204':
+          description: Session cleared (or already absent).
+          headers:
+            Set-Cookie:
+              schema: { type: string }
+              description: Expired session cookie.
+
+  /api/health:
+    get:
+      tags: [meta]
+      summary: Liveness probe.
+      responses:
+        '200':
+          description: Healthy.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, enum: [ok] }
+                required: [status]
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: najaecho.auth
+      description: |
+        Server-managed HTTP-only Identity session cookie. Named `najaecho.auth` in development and
+        `__Host-najaecho.auth` in production. Not readable by client scripts.
+
+  schemas:
+    SessionState:
+      oneOf:
+        - $ref: '#/components/schemas/AuthenticatedSession'
+        - $ref: '#/components/schemas/AnonymousSession'
+      discriminator:
+        propertyName: authenticated
+      description: Discriminated union returned by `/api/auth/me`; always 200.
+
+    AuthenticatedSession:
+      type: object
+      required: [authenticated, user]
+      properties:
+        authenticated:
+          type: boolean
+          enum: [true]
+        user:
+          $ref: '#/components/schemas/CurrentUser'
+
+    AnonymousSession:
+      type: object
+      required: [authenticated]
+      properties:
+        authenticated:
+          type: boolean
+          enum: [false]
+
+    CurrentUser:
+      type: object
+      required: [id, displayName, discordUsername]
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Local application user id (ApplicationUser.Id).
+        displayName:
+          type: string
+          maxLength: 64
+          description: Discord global_name, falling back to username.
+        discordUsername:
+          type: string
+          maxLength: 32
+          description: Discord unique handle. No Discord tokens are ever included.
+
+    ProblemDetails:
+      type: object
+      description: RFC 7807 Problem Details for protected ACTION endpoints. Never includes internal details.
+      properties:
+        type: { type: string, format: uri }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }

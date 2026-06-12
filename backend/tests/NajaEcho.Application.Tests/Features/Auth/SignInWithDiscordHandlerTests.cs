@@ -8,102 +8,74 @@ namespace NajaEcho.Application.Tests.Features.Auth;
 
 public class SignInWithDiscordHandlerTests
 {
-    private static readonly DateTimeOffset Now = new(2026, 6, 8, 12, 0, 0, TimeSpan.Zero);
-
     private static DiscordProfile SampleProfile(string id = "disc123") => new()
     {
         Id = id,
         Username = "testuser",
         GlobalName = "Test User",
-        Avatar = "avhash",
-        Email = "test@example.com",
-        Verified = true,
     };
 
-    private sealed class FakeClock : IClock
+    private sealed class FakeExternalLoginService : IExternalLoginService
     {
-        public DateTimeOffset UtcNow => Now;
-    }
+        private readonly Dictionary<Guid, LocalUser> _store = [];
 
-    private sealed class FakeUserRepository : IUserRepository
-    {
-        private readonly List<UserProfile> _store = [];
+        public LocalUser? Preset { get; set; }
+        public LocalUser? LastCreated { get; private set; }
 
-        public UserProfile? Preset { get; set; }
-        public UserProfile? Added { get; private set; }
-        public bool SaveCalled { get; private set; }
-
-        public Task<UserProfile?> FindByDiscordUserIdAsync(string discordUserId, CancellationToken ct) =>
-            Task.FromResult(Preset);
-
-        public Task<UserProfile?> FindByIdAsync(Guid id, CancellationToken ct) =>
-            Task.FromResult(_store.FirstOrDefault(u => u.Id == id));
-
-        public Task AddAsync(UserProfile user, CancellationToken ct)
+        public Task<LocalUser> FindOrCreateAsync(DiscordProfile profile, CancellationToken ct = default)
         {
-            Added = user;
-            _store.Add(user);
-            return Task.CompletedTask;
+            var user = Preset ?? new LocalUser(Guid.NewGuid(), profile.DisplayName, profile.Username);
+            LastCreated = user;
+            _store[user.Id] = user;
+            return Task.FromResult(user);
         }
-    }
 
-    private sealed class FakeUoW : IUnitOfWork
-    {
-        public bool SaveCalled { get; private set; }
-        public Task SaveChangesAsync(CancellationToken ct)
+        public Task<LocalUser?> GetByIdAsync(Guid userId, CancellationToken ct = default)
         {
-            SaveCalled = true;
-            return Task.CompletedTask;
+            _store.TryGetValue(userId, out var user);
+            return Task.FromResult(user);
         }
     }
 
     [Fact]
-    public async Task Handle_CreatesNewUser_WhenDiscordIdNotFound()
+    public async Task Handle_DelegatesToExternalLoginService()
     {
-        var repo = new FakeUserRepository { Preset = null };
-        var uow = new FakeUoW();
-        var handler = new SignInWithDiscordHandler(repo, uow, new FakeClock());
+        var service = new FakeExternalLoginService();
+        var handler = new SignInWithDiscordHandler(service);
 
         var result = await handler.HandleAsync(new SignInWithDiscordCommand(SampleProfile()));
 
         result.Should().NotBeNull();
         result.DisplayName.Should().Be("Test User");
-        repo.Added.Should().NotBeNull();
-        repo.Added!.DiscordUserId.Should().Be("disc123");
-        uow.SaveCalled.Should().BeTrue();
+        result.DiscordUsername.Should().Be("testuser");
+        service.LastCreated.Should().NotBeNull();
     }
 
     [Fact]
-    public async Task Handle_UpdatesExistingUser_WhenDiscordIdFound()
+    public async Task Handle_ReturnsPresetUser_WhenProvided()
     {
-        var existing = UserProfile.CreateFromDiscord(
-            SampleProfile(id: "disc123"), Now.AddDays(-1));
-        var repo = new FakeUserRepository { Preset = existing };
-        var uow = new FakeUoW();
-        var handler = new SignInWithDiscordHandler(repo, uow, new FakeClock());
+        var preset = new LocalUser(Guid.NewGuid(), "Preset Name", "presetuser");
+        var service = new FakeExternalLoginService { Preset = preset };
+        var handler = new SignInWithDiscordHandler(service);
 
         var result = await handler.HandleAsync(new SignInWithDiscordCommand(SampleProfile()));
 
-        result.UserId.Should().Be(existing.Id);
-        repo.Added.Should().BeNull(); // no new user created
-        uow.SaveCalled.Should().BeTrue();
+        result.UserId.Should().Be(preset.Id);
+        result.DisplayName.Should().Be("Preset Name");
+        result.DiscordUsername.Should().Be("presetuser");
     }
 
     [Fact]
     public async Task Handle_ReturnsUpdatedDisplayName_AfterProfileChange()
     {
-        var profile = SampleProfile();
-        var existing = UserProfile.CreateFromDiscord(profile, Now.AddDays(-1));
-        var repo = new FakeUserRepository { Preset = existing };
-        var uow = new FakeUoW();
-        var handler = new SignInWithDiscordHandler(repo, uow, new FakeClock());
+        var service = new FakeExternalLoginService();
+        var handler = new SignInWithDiscordHandler(service);
 
         var changedProfile = new DiscordProfile
         {
             Id = "disc123",
             Username = "testuser",
             GlobalName = "New Display Name",
-            Avatar = "avhash",
         };
 
         var result = await handler.HandleAsync(new SignInWithDiscordCommand(changedProfile));

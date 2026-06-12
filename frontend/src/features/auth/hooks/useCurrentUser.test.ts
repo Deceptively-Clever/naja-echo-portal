@@ -2,30 +2,34 @@ import { renderHook, waitFor } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { server } from '@/tests/server'
+import { anonymousSession } from '@/tests/handlers'
 import { useCurrentUser } from './useCurrentUser'
 import { createWrapper } from '@/tests/testUtils'
 
 describe('useCurrentUser', () => {
-  it('returns user data when /api/auth/me responds 200', async () => {
+  // T027: authenticated session state
+  it('returns authenticated session when signed in', async () => {
     const { result } = renderHook(() => useCurrentUser(), { wrapper: createWrapper() })
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-    expect(result.current.data).toMatchObject({
-      displayName: 'Test User',
-    })
+    expect(result.current.data?.authenticated).toBe(true)
+    if (result.current.data?.authenticated) {
+      expect(result.current.data.user.displayName).toBe('Test User')
+      expect(result.current.data.user.discordUsername).toBe('testuser')
+    }
   })
 
-  it('returns undefined and does not retry on 401', async () => {
+  // T028: unauthenticated session state — /api/auth/me always returns 200
+  it('returns anonymous session when not signed in', async () => {
     server.use(
-      http.get('/api/auth/me', () => new HttpResponse(null, { status: 401 }))
+      http.get('/api/auth/me', () => HttpResponse.json(anonymousSession))
     )
 
     const { result } = renderHook(() => useCurrentUser(), { wrapper: createWrapper() })
 
-    await waitFor(() => expect(result.current.isError).toBe(true))
+    await waitFor(() => expect(result.current.isSuccess).toBe(true))
 
-    expect(result.current.data).toBeUndefined()
-    expect(result.current.failureCount).toBe(1)
+    expect(result.current.data?.authenticated).toBe(false)
   })
 })

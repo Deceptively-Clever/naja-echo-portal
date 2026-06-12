@@ -4,9 +4,9 @@ import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 export function DashboardPage() {
-  const { data: user } = useCurrentUser()
+  const { data: session } = useCurrentUser()
 
-  if (!user) return null
+  if (!session?.authenticated) return null
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center bg-gray-50 px-4">
@@ -16,7 +16,7 @@ export function DashboardPage() {
           <SignOutButton />
         </CardHeader>
         <CardContent>
-          <UserBadge user={user} />
+          <UserBadge user={session.user} />
           <p className="mt-4 text-sm text-gray-500">
             Welcome to NajaEchoPortal. More org tools coming soon.
           </p>

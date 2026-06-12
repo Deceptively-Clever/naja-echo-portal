@@ -1,7 +1,9 @@
 using System.Security.Claims;
 using AspNet.Security.OAuth.Discord;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using NajaEcho.Api.Common;
 using NajaEcho.Api.Features.Auth;
@@ -19,24 +21,23 @@ try
 {
     var builder = WebApplication.CreateBuilder(args);
 
-    builder.Host.UseSerilog((ctx, lc) => lc
-        .MinimumLevel.Information()
-        .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
-        .Enrich.FromLogContext()
-        .Enrich.WithProperty("Application", "NajaEchoPortal")
-        .Destructure.ByTransforming<object>(o =>
-        {
-            // Scrub sensitive fields from structured log objects
-            return o;
-        })
-        .WriteTo.Console(new Serilog.Formatting.Json.JsonFormatter()));
+    builder.Host.UseSerilog((ctx, lc) =>
+    {
+        lc.MinimumLevel.Information()
+          .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+          .Enrich.FromLogContext()
+          .Enrich.WithProperty("Application", "NajaEchoPortal");
+
+        if (ctx.HostingEnvironment.IsDevelopment())
+            lc.WriteTo.Console();
+        else
+            lc.WriteTo.Console(new Serilog.Formatting.Json.JsonFormatter());
+    });
 
     builder.Services.AddInfrastructure(builder.Configuration);
     builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
     builder.Services.AddProblemDetails();
 
-    // Trust X-Forwarded-* from the local nginx reverse proxy so Request.Scheme
-    // reflects HTTPS and Secure cookies are issued correctly.
     builder.Services.Configure<ForwardedHeadersOptions>(opts =>
     {
         opts.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
@@ -53,26 +54,36 @@ try
             .AllowAnyMethod()
             .AllowCredentials()));
 
+    var isProduction = builder.Environment.IsProduction();
+
     builder.Services
         .AddAuthentication(opts =>
         {
-            // Cookie is both the default authenticate AND challenge scheme.
-            // The Discord challenge is invoked explicitly in the /login endpoint.
-            // This ensures unauthenticated API requests get 401, not a redirect to Discord.
-            opts.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
-            opts.DefaultChallengeScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+            opts.DefaultScheme = IdentityConstants.ApplicationScheme;
+            opts.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
         })
-        .AddCookie(CookieAuthenticationDefaults.AuthenticationScheme, opts =>
+        .AddCookie(IdentityConstants.ApplicationScheme, opts =>
         {
-            opts.Cookie.Name = "najaecho.auth";
+            opts.Cookie.Name = isProduction ? "__Host-najaecho.auth" : "najaecho.auth";
             opts.Cookie.HttpOnly = true;
             opts.Cookie.SameSite = SameSiteMode.Lax;
-            opts.Cookie.SecurePolicy = builder.Environment.IsProduction()
+            opts.Cookie.SecurePolicy = isProduction
                 ? CookieSecurePolicy.Always
                 : CookieSecurePolicy.None;
             opts.SlidingExpiration = true;
-            opts.ExpireTimeSpan = TimeSpan.FromDays(14);
-            // Return 401 JSON for API routes instead of a redirect
+            opts.ExpireTimeSpan = TimeSpan.FromHours(24);
+
+            opts.Events.OnValidatePrincipal = async ctx =>
+            {
+                // 7-day absolute cap — reject sessions older than 7 days regardless of sliding renewal
+                if (ctx.Properties.IssuedUtc.HasValue &&
+                    (DateTimeOffset.UtcNow - ctx.Properties.IssuedUtc.Value).TotalDays >= 7)
+                {
+                    ctx.RejectPrincipal();
+                    await ctx.HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
+                }
+            };
+
             opts.Events.OnRedirectToLogin = async ctx =>
             {
                 if (ctx.Request.Path.StartsWithSegments("/api"))
@@ -97,53 +108,87 @@ try
                 ?? throw new InvalidOperationException("Discord:ClientId not configured.");
             opts.ClientSecret = builder.Configuration["Discord:ClientSecret"]
                 ?? throw new InvalidOperationException("Discord:ClientSecret not configured.");
-            opts.Scope.Add("identify");
-            opts.Scope.Add("email");
-            opts.SaveTokens = true;
-            opts.CallbackPath = "/api/auth/discord/callback";
-            opts.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
 
-            var frontendOrigin = builder.Configuration["Frontend:Origin"] ?? "";
+            // Minimized scope — only identify (no email)
+            opts.Scope.Clear();
+            opts.Scope.Add("identify");
+            opts.SaveTokens = false;
+            opts.CallbackPath = "/api/auth/discord/callback";
+            opts.SignInScheme = IdentityConstants.ApplicationScheme;
 
             opts.Events.OnTicketReceived = async ctx =>
             {
+                var cfg = ctx.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+                var origin = cfg["Frontend:Origin"] ?? "";
+
                 var claims = ctx.Principal?.Claims.ToList() ?? [];
                 var discordId = claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                 var username = claims.FirstOrDefault(c => c.Type == ClaimTypes.Name)?.Value;
+
                 if (discordId is null || username is null)
                 {
-                    ctx.Response.Redirect($"{frontendOrigin}/auth/error?reason=profile_unavailable");
+                    // Safe milestone — no sensitive values logged
+                    Log.Warning("Discord OAuth callback: missing required identity claims");
+                    ctx.Response.Redirect($"{origin}/auth/error?reason=oauth_error");
                     ctx.HandleResponse();
                     return;
                 }
+
+                // Safe milestone: provider key only (Discord user ID is not sensitive)
+                Log.Information("Discord external login succeeded {ProviderKey}", discordId);
 
                 var profile = new DiscordProfile
                 {
                     Id = discordId,
                     Username = username,
                     GlobalName = claims.FirstOrDefault(c => c.Type == "urn:discord:user:global_name")?.Value,
-                    Avatar = claims.FirstOrDefault(c => c.Type == "urn:discord:user:avatar")?.Value,
-                    Email = claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value,
-                    Verified = claims.FirstOrDefault(c => c.Type == "urn:discord:user:verified")?.Value == "true",
                 };
 
                 var handler = ctx.HttpContext.RequestServices.GetRequiredService<SignInWithDiscordHandler>();
-                var result = await handler.HandleAsync(new SignInWithDiscordCommand(profile), ctx.HttpContext.RequestAborted);
+
+                SignInWithDiscordResult result;
+                try
+                {
+                    result = await handler.HandleAsync(
+                        new SignInWithDiscordCommand(profile), ctx.HttpContext.RequestAborted);
+                }
+                catch (Exception ex)
+                {
+                    Log.Error(ex, "Error during Discord login callback — user not created");
+                    ctx.Response.Redirect($"{origin}/auth/error?reason=server_error");
+                    ctx.HandleResponse();
+                    return;
+                }
+
+                Log.Information("Local user linked {UserId}", result.UserId);
 
                 var identity = new ClaimsIdentity(
                 [
                     new Claim(ClaimTypes.NameIdentifier, result.UserId.ToString()),
                     new Claim(ClaimTypes.Name, result.DisplayName),
-                ], CookieAuthenticationDefaults.AuthenticationScheme);
+                ], IdentityConstants.ApplicationScheme);
 
                 ctx.Principal = new ClaimsPrincipal(identity);
                 ctx.Properties!.IsPersistent = true;
-                ctx.Properties.ExpiresUtc = DateTimeOffset.UtcNow.AddDays(14);
+                ctx.Properties.IssuedUtc = DateTimeOffset.UtcNow;
+                ctx.Properties.ExpiresUtc = DateTimeOffset.UtcNow.AddHours(24);
+
+                Log.Information("Local sign-in succeeded {UserId}", result.UserId);
             };
 
             opts.Events.OnRemoteFailure = ctx =>
             {
-                ctx.Response.Redirect($"{frontendOrigin}/auth/error?reason=remote_failure");
+                var cfg = ctx.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+                var origin = cfg["Frontend:Origin"] ?? "";
+
+                var reason = ctx.Failure?.Message?.Contains("Correlation",
+                    StringComparison.OrdinalIgnoreCase) == true
+                    ? "state_mismatch"
+                    : "oauth_error";
+
+                // Safe milestone — failure message is generic, no tokens
+                Log.Warning("Discord OAuth remote failure {Reason}", reason);
+                ctx.Response.Redirect($"{origin}/auth/error?reason={reason}");
                 ctx.HandleResponse();
                 return Task.CompletedTask;
             };
@@ -161,6 +206,11 @@ try
         {
             diag.Set("RequestPath", ctx.Request.Path);
         };
+        // Scrub sensitive auth paths from request logging
+        opts.GetLevel = (ctx, _, _) =>
+            ctx.Request.Path.StartsWithSegments("/api/auth/discord/callback")
+                ? LogEventLevel.Debug  // suppress detailed logging for callback path
+                : LogEventLevel.Information;
     });
 
     app.UseExceptionHandler();

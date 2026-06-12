@@ -13,29 +13,30 @@ describe('DashboardPage', () => {
     })
   })
 
-  it('renders avatar container when avatarUrl is provided', async () => {
+  it('renders user badge with accessible label', async () => {
     render(<DashboardPage />, { wrapper: createWrapper(['/dashboard']) })
     await waitFor(() => {
-      // Radix Avatar lazy-loads images; in jsdom the AvatarFallback renders.
-      // Verify the avatar container is present using the accessible label.
       const badge = screen.getByLabelText('Signed in as Test User')
       expect(badge).not.toBeNull()
     })
   })
 
-  it('shows fallback initial when avatarUrl is null', async () => {
+  it('shows display name initial in fallback avatar', async () => {
     server.use(
       http.get('/api/auth/me', () =>
         HttpResponse.json({
-          id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-          displayName: 'No Avatar User',
-          avatarUrl: null,
+          authenticated: true,
+          user: {
+            id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+            displayName: 'No Avatar User',
+            discordUsername: 'noavatar',
+          },
         })
       )
     )
     render(<DashboardPage />, { wrapper: createWrapper(['/dashboard']) })
     await waitFor(() => {
-      expect(screen.getByText('N')).toBeDefined() // fallback initial
+      expect(screen.getByText('N')).toBeDefined()
     })
   })
 

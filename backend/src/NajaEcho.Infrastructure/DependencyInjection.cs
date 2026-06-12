@@ -1,12 +1,12 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using NajaEcho.Application.Abstractions;
 using NajaEcho.Application.Features.Auth.GetCurrentUser;
 using NajaEcho.Application.Features.Auth.SignInWithDiscord;
-using NajaEcho.Infrastructure.Discord;
+using NajaEcho.Infrastructure.Identity;
 using NajaEcho.Infrastructure.Persistence;
-using NajaEcho.Infrastructure.Persistence.Repositories;
 
 namespace NajaEcho.Infrastructure;
 
@@ -20,11 +20,12 @@ public static class DependencyInjection
             opts.UseNpgsql(configuration.GetConnectionString("Default"))
                 .UseSnakeCaseNamingConvention());
 
-        services.AddScoped<IUserRepository, UserRepository>();
-        services.AddScoped<IUnitOfWork, EfUnitOfWork>();
-        services.AddSingleton<IClock, SystemClock>();
+        services.AddIdentityCore<ApplicationUser>()
+            .AddRoles<IdentityRole<Guid>>()
+            .AddEntityFrameworkStores<AppDbContext>();
 
-        services.AddHttpClient<IDiscordOAuthClient, DiscordOAuthClient>();
+        services.AddSingleton<IClock, SystemClock>();
+        services.AddScoped<IExternalLoginService, DiscordExternalLoginService>();
 
         services.AddScoped<SignInWithDiscordHandler>();
         services.AddScoped<GetCurrentUserHandler>();

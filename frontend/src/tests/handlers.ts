@@ -1,13 +1,20 @@
 import { http, HttpResponse } from 'msw'
 
-export const authenticatedUser = {
-  id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-  displayName: 'Test User',
-  avatarUrl: 'https://cdn.discordapp.com/avatars/123/abc.png',
+export const authenticatedSession = {
+  authenticated: true as const,
+  user: {
+    id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
+    displayName: 'Test User',
+    discordUsername: 'testuser',
+  },
+}
+
+export const anonymousSession = {
+  authenticated: false as const,
 }
 
 export const handlers = [
-  http.get('/api/auth/me', () => HttpResponse.json(authenticatedUser)),
+  http.get('/api/auth/me', () => HttpResponse.json(authenticatedSession)),
   http.post('/api/auth/signout', () => new HttpResponse(null, { status: 204 })),
   http.get('/api/auth/discord/login', () =>
     new HttpResponse(null, {
