@@ -23,5 +23,8 @@ Thumbs.db
 .idea/
 .vscode/settings.json
 
+# Claude Code local settings
+**/.claude/settings.local.json
+
 # Logs
 *.log
