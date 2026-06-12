@@ -1,29 +1,42 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.0.1 → 1.1.0  [MINOR: added Principle VI, resolved deferred tech stack decisions]
+Version change: 1.1.0 → 1.2.0  [MINOR: materially expanded frontend architecture and workflow
+guidance; new Frontend Conventions section; UI-only contract clarification]
 
 Modified principles:
-  - V. Observability — expanded to mandate sensitive-data scrubbing and structured request logging
+  - I. API-Contract-First — clarified that UI-only features (no new or changed backend HTTP
+    behaviour) do not require artificial OpenAPI contract changes; such features must record
+    "No API contract changes required" in their implementation plan.
+  - VI. Modular Monolith + Clean Architecture — frontend portion expanded with explicit rules for
+    thin route components, feature-owned logic, shared-component criteria, and the split between
+    `components/ui/`, `components/shared/`, and feature folders.
 
-Added principles:
-  - VI. Modular Monolith + Clean Architecture (NON-NEGOTIABLE)
+Added sections:
+  - Frontend Conventions — new top-level section covering shadcn/ui ownership, API client and
+    type generation from the OpenAPI contract, TanStack Query server-state conventions, form
+    conventions (React Hook Form + Zod), and dashboard shell + navigation architecture.
 
-Materially expanded sections:
-  - Technology Stack — resolved NEEDS CLARIFICATION for database and auth; locked in concrete
-    frontend + backend stack including EF Core, Npgsql, Tailwind, shadcn/ui, TanStack Query,
-    React Hook Form, Zod, Serilog, Testcontainers, MSW.
-  - Development Workflow — added cookie/session security rules, OAuth token handling rules,
-    EF Core migration discipline, dependency direction enforcement.
+Materially changed sections:
+  - Technology Stack (Frontend) — replaced pinned major versions (React 18, Vite 5, Tailwind
+    CSS 3, TanStack Query 5, React Router 6) with a version policy: use the current stable major
+    version at project initialization time unless a compatibility issue is documented in the
+    implementation plan. Concrete stack choices unchanged.
+  - Development Workflow — added the UI-only feature rule: features that do not add or change
+    backend endpoints must explicitly record "No API contract changes required" in the plan.
+
+Removed sections:
+  - None.
 
 Templates requiring updates:
-  - .specify/templates/plan-template.md  ✅ Generic Constitution Check section accommodates the new
-                                            principle without edits.
+  - .specify/templates/plan-template.md  ✅ Generic Constitution Check section accommodates the
+                                            expanded guidance without edits.
   - .specify/templates/spec-template.md  ✅ No change required (principle-agnostic).
   - .specify/templates/tasks-template.md ✅ No change required (structure-only template).
 
-Deferred TODOs:
-  - None — both prior NEEDS CLARIFICATION items resolved.
+Follow-up TODOs:
+  - ⚠ README.md tech-stack table says "React 18 + TypeScript + Vite"; consider dropping the
+    pinned major to match the new version policy (manual, non-blocking).
 -->
 
 # NajaEchoPortal Constitution
@@ -41,8 +54,15 @@ written. The contract is the single source of truth; implementation MUST conform
 reverse. Breaking contract changes MUST be versioned. No endpoint ships without a corresponding
 contract definition reviewed and approved.
 
+This rule governs all backend HTTP behaviour. Features that introduce no new or changed backend
+HTTP behaviour — frontend-only work such as the dashboard shell, navigation, layout, theming,
+empty states, and other UI composition — do not require artificial OpenAPI contract changes.
+Such features MUST explicitly record "No API contract changes required" in their implementation
+plan so the omission is a reviewed decision, not an oversight.
+
 **Rationale**: Decouples frontend and backend work, enables parallel development, and prevents
-contract drift between teams.
+contract drift between teams — without forcing contract churn on work that never touches the
+API boundary.
 
 ### II. Test-First / TDD (NON-NEGOTIABLE)
 
@@ -105,13 +125,23 @@ convention alone. Code within each layer is organized by feature folders (e.g.,
 DTOs, and endpoint mappings co-located.
 
 The frontend MUST be organized by feature folders (e.g., `features/auth/`, `features/dashboard/`),
-each containing its pages, components, hooks, schemas, API clients, and tests. Cross-cutting UI
-primitives live separately under `components/ui/`. Page-level route components MUST stay thin and
-delegate behaviour to feature components and hooks.
+each containing its pages, components, hooks, schemas, API clients, and tests. Feature folders are
+the default home for application-specific UI. The following rules apply:
+
+- Route components MUST stay thin. They compose layouts, route params, guards, and feature
+  components — nothing more.
+- Business logic, data fetching, validation, and transformation logic MUST live in feature-owned
+  hooks, schemas, services, or components, never in route components.
+- Shared components are allowed only when at least two features need the same behaviour. Until
+  then, the component belongs to the feature that uses it.
+- Generic shadcn/ui primitives live under `components/ui/` and MUST remain application-agnostic.
+- Application-specific compositions built from shadcn/ui primitives belong in `components/shared/`
+  or the relevant feature folder, never in `components/ui/`.
 
 **Rationale**: Clean Architecture's enforced dependency direction keeps business logic isolated
 from frameworks and persistence, making it testable and replaceable. Feature folders keep related
-code physically near, reducing cognitive load and merge conflict surface. A monolith is the right
+code physically near, reducing cognitive load and merge conflict surface. Thin routes and
+feature-owned logic keep behaviour testable without router scaffolding. A monolith is the right
 default at this scale; splitting prematurely is a known anti-pattern.
 
 ## Technology Stack
@@ -133,13 +163,18 @@ default at this scale; splitting prematurely is a known anti-pattern.
 
 **Frontend**
 
-- Language: TypeScript 5.x. Strict mode required (`strict: true` in tsconfig).
-- Framework: React 18 SPA built with Vite 5.
-- Routing: React Router 6 (data router APIs).
-- Styling: Tailwind CSS 3.
-- Component system: shadcn/ui (in-repo, generated via CLI) built on Radix UI primitives.
+Version policy: for each frontend dependency, use the current stable major version at project
+initialization time unless a compatibility issue is documented in the implementation plan.
+Subsequent major-version upgrades MUST be verified and intentionally selected — never blind bumps.
+
+- Language: TypeScript. Strict mode required (`strict: true` in tsconfig).
+- Framework: React SPA built with Vite.
+- Routing: React Router (data router APIs).
+- Styling: Tailwind CSS.
+- Component system: shadcn/ui (in-repo, generated via CLI) built on Radix UI primitives where
+  applicable.
 - Icons: Lucide React.
-- Data fetching / cache: TanStack Query 5.
+- Data fetching / cache: TanStack Query.
 - Forms / validation: React Hook Form + Zod schemas.
 - Testing: Vitest + React Testing Library; MSW for API mocking.
 
@@ -162,6 +197,51 @@ default at this scale; splitting prematurely is a known anti-pattern.
 
 All dependency additions MUST be reviewed for licence compatibility and security posture.
 
+## Frontend Conventions
+
+**shadcn/ui ownership**
+
+shadcn/ui components are owned source code once generated into the repository. They MAY be
+customized for accessibility, bug fixes, or project-wide styling consistency. Feature-specific
+behaviour MUST NOT be embedded directly into `components/ui/` primitives — build a composition in
+`components/shared/` or the owning feature folder instead (Principle VI).
+
+**API client and type generation**
+
+Frontend API request and response types MUST be generated from the OpenAPI contract (enforces
+Principles I and III). Hand-written duplicate DTO types are forbidden unless the type is purely
+frontend view-model state and not part of the API boundary. Feature-level API clients MAY wrap
+generated clients to provide ergonomic hooks or feature-specific data shaping, but they MUST NOT
+redefine the backend contract.
+
+**Server state (TanStack Query)**
+
+Server state MUST be managed through TanStack Query — not hand-rolled effects or ad-hoc global
+stores. Query keys MUST be centralized per feature and SHOULD use stable, typed key factories.
+Components SHOULD consume feature hooks rather than calling generated API clients directly.
+Mutation success, error, cache invalidation, and optimistic update behaviour MUST be explicit in
+the feature plan when relevant.
+
+**Forms**
+
+Forms MUST use React Hook Form for form state and Zod for validation schemas. Validation schemas
+live with the feature that owns the form. API DTO schemas and UI form schemas MUST be kept
+separate when their shapes differ — do not contort one to serve both. Form components MUST
+provide accessible labels, validation messages, disabled/loading states, and submit error
+handling.
+
+**Dashboard shell and navigation**
+
+- Authenticated routes MUST render inside the dashboard shell.
+- The dashboard shell owns shared layout regions: header, sidebar/navigation, mobile navigation,
+  account menu area, and the main content outlet. Features render into the outlet; they do not
+  re-implement shell regions.
+- Navigation MUST be data-driven from a single source of truth.
+- Navigation items SHOULD support label, path, icon, grouping, active matching, and optional
+  access rules.
+- Desktop navigation and mobile navigation MUST use the same navigation model whenever practical;
+  divergence requires a documented reason in the feature plan.
+
 ## Development Workflow
 
 - Feature branches follow the Spec Kit naming convention (`###-feature-name`).
@@ -172,6 +252,9 @@ All dependency additions MUST be reviewed for licence compatibility and security
   explicit approval recorded in the PR description.
 - The OpenAPI contract for any feature MUST be committed before implementation tasks begin
   (enforces Principle I).
+- Features that do not add or change backend endpoints MUST explicitly record "No API contract
+  changes required" in the plan. UI-only features still require specs, plans, tasks, and frontend
+  tests, but do not require artificial OpenAPI changes.
 - Backend project references MUST preserve the dependency direction defined in Principle VI.
   Adding a reference from Domain → Infrastructure (or any other inward-pointing violation) MUST
   fail review.
@@ -193,7 +276,7 @@ This constitution supersedes all other stated practices. Amendments require:
 3. Updates to all affected templates and this Sync Impact Report.
 4. Approval recorded in the commit message.
 
-All code reviews MUST verify compliance with Principles I–VI. Violations require documented
-justification in the PR description before approval.
+All code reviews MUST verify compliance with Principles I–VI and the Frontend Conventions.
+Violations require documented justification in the PR description before approval.
 
-**Version**: 1.1.0 | **Ratified**: 2026-06-08 | **Last Amended**: 2026-06-08
+**Version**: 1.2.0 | **Ratified**: 2026-06-08 | **Last Amended**: 2026-06-12
