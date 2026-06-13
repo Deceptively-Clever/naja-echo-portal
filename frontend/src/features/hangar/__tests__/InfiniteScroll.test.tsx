@@ -27,7 +27,9 @@ describe('ShipCardGallery infinite scroll', () => {
     originalIO = window.IntersectionObserver
 
     class MockIntersectionObserver {
-      constructor(private cb: IOCallback) {
+      private cb: IOCallback
+      constructor(cb: IOCallback) {
+        this.cb = cb
         triggerIntersection = (isIntersecting) =>
           this.cb([{ isIntersecting } as IntersectionObserverEntry])
       }

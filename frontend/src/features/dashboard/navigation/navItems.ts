@@ -1,5 +1,5 @@
 import type { LucideIcon } from 'lucide-react'
-import { Database, LayoutDashboard, Ship, Users, Warehouse } from 'lucide-react'
+import { Database, LayoutDashboard, Ship, Users } from 'lucide-react'
 
 export interface NavItem {
   label: string
