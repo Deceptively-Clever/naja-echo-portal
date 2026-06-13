@@ -1,1 +1,94 @@
 @import "tailwindcss";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Light theme (default :root — activated when .dark is absent) */
+:root {
+  --background: #F7F4EA;
+  --foreground: #102A30;
+  --card: #FFFFFF;
+  --card-foreground: #102A30;
+  --popover: #FFFFFF;
+  --popover-foreground: #102A30;
+  --primary: #204F59;
+  --primary-foreground: #FFFFFF;
+  --secondary: #ECE7D8;
+  --secondary-foreground: #102A30;
+  --accent: #265D73;
+  --accent-foreground: #FFFFFF;
+  --muted: #ECE7D8;
+  --muted-foreground: #5C6870;
+  --border: #D9D1B8;
+  --input: #CFC6AC;
+  --ring: #265D73;
+  --destructive: #B42318;
+  --destructive-foreground: #FFFFFF;
+  --brand: #CCAC31;
+  --brand-foreground: #102A30;
+  --brand-muted: #8C7326;
+  --brand-muted-foreground: #FFFFFF;
+}
+
+/* Dark theme (flagship default — activated by class="dark" on <html>) */
+.dark {
+  --background: #0E2226;
+  --foreground: #F4F0E3;
+  --card: #1A3D47;
+  --card-foreground: #F4F0E3;
+  --popover: #1A3D47;
+  --popover-foreground: #F4F0E3;
+  --primary: #CCAC31;
+  --primary-foreground: #0E2226;
+  --secondary: #204F59;
+  --secondary-foreground: #FFFFFF;
+  --accent: #265D73;
+  --accent-foreground: #FFFFFF;
+  --muted: #193840;
+  --muted-foreground: #A9B6B8;
+  --border: #2B4A52;
+  --input: #2B4A52;
+  --ring: #CCAC31;
+  --destructive: #F97066;
+  --destructive-foreground: #0E2226;
+  --brand: #CCAC31;
+  --brand-foreground: #0E2226;
+  --brand-muted: #8C7326;
+  --brand-muted-foreground: #F4F0E3;
+}
+
+/* Register all tokens as Tailwind color utilities */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-muted: var(--brand-muted);
+  --color-brand-muted-foreground: var(--brand-muted-foreground);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+  }
+}

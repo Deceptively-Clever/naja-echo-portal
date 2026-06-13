@@ -15,7 +15,7 @@ export function AuthErrorPage() {
   const detail = reasonMessages[reason] ?? reasonMessages['server_error']
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-gray-50 px-4">
+    <main className="flex min-h-screen items-center justify-center bg-background px-4">
       <div className="w-full max-w-md space-y-4">
         <Alert variant="destructive">
           <AlertTitle>Sign-in could not be completed</AlertTitle>
