@@ -8,11 +8,14 @@ namespace NajaEcho.Application.Abstractions;
 
 public interface IHangarRepository
 {
+    Task ReplaceFromImportAsync(Guid userId, IReadOnlyList<Guid> shipIds, CancellationToken ct);
+
+    Task<Dictionary<string, Guid>> GetShipIdsByNamesAsync(IReadOnlyList<string> names, CancellationToken ct);
     Task<PagedResult<ShipCard>> GetMyHangarAsync(
         Guid userId, string? search, int page, int pageSize, CancellationToken ct);
 
     Task<PagedResult<OrgShipCard>> GetOrgHangarAsync(
-        Guid currentUserId, string? search, bool mine, Guid? memberId, int page, int pageSize, CancellationToken ct);
+        Guid currentUserId, string? search, bool mine, Guid? memberId, int page, int pageSize, string sortBy, CancellationToken ct);
 
     Task<IReadOnlyList<OwningMember>> GetOwningMembersAsync(CancellationToken ct);
 

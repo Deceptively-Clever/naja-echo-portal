@@ -3,13 +3,15 @@ import { useMyHangar } from '../hooks/useMyHangar'
 import { ShipCardGallery } from '../components/ShipCardGallery'
 import { RemoveShipButton } from '../components/RemoveShipButton'
 import { AddShipDialog } from '../components/AddShipDialog'
+import { ImportHangarDialog } from '../components/ImportHangarDialog'
 import { Button } from '@/components/ui/button'
-import { Plus } from 'lucide-react'
+import { Plus, Upload } from 'lucide-react'
 import type { HangarShipCard } from '../schemas/hangarShipCard'
 
 export function MyHangarView() {
   const [search, setSearch] = useState('')
   const [addOpen, setAddOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
 
   const { data, isLoading, fetchNextPage, hasNextPage } = useMyHangar(search || undefined)
 
@@ -23,10 +25,16 @@ export function MyHangarView() {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">My Hangar</h1>
-        <Button size="sm" onClick={() => setAddOpen(true)}>
-          <Plus className="h-4 w-4 mr-1" aria-hidden />
-          Add Ship
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
+            <Upload className="h-4 w-4 mr-1" aria-hidden />
+            Import
+          </Button>
+          <Button size="sm" onClick={() => setAddOpen(true)}>
+            <Plus className="h-4 w-4 mr-1" aria-hidden />
+            Add Ship
+          </Button>
+        </div>
       </div>
 
       <ShipCardGallery
@@ -43,6 +51,7 @@ export function MyHangarView() {
       />
 
       <AddShipDialog open={addOpen} onClose={() => setAddOpen(false)} />
+      <ImportHangarDialog open={importOpen} onClose={() => setImportOpen(false)} />
     </div>
   )
 }

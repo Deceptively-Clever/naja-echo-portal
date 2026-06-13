@@ -164,7 +164,7 @@ internal sealed class AddRemoveFakeHangarRepo : NajaEcho.Application.Abstraction
         => Task.FromResult(new NajaEcho.Application.Features.Hangar.PagedResult<NajaEcho.Application.Features.Hangar.GetMyHangar.ShipCard>([], page, pageSize, 0, 0));
 
     public Task<NajaEcho.Application.Features.Hangar.PagedResult<NajaEcho.Application.Features.Hangar.GetOrgHangar.OrgShipCard>> GetOrgHangarAsync(
-        Guid currentUserId, string? search, bool mine, Guid? memberId, int page, int pageSize, CancellationToken ct)
+        Guid currentUserId, string? search, bool mine, Guid? memberId, int page, int pageSize, string sortBy, CancellationToken ct)
         => Task.FromResult(new NajaEcho.Application.Features.Hangar.PagedResult<NajaEcho.Application.Features.Hangar.GetOrgHangar.OrgShipCard>([], page, pageSize, 0, 0));
 
     public Task<IReadOnlyList<NajaEcho.Application.Features.Hangar.GetOwningMembers.OwningMember>> GetOwningMembersAsync(CancellationToken ct)
@@ -189,6 +189,12 @@ internal sealed class AddRemoveFakeHangarRepo : NajaEcho.Application.Abstraction
 
     public Task RemoveAsync(Guid userId, Guid shipId, CancellationToken ct)
         => Task.CompletedTask;
+
+    public Task ReplaceFromImportAsync(Guid userId, IReadOnlyList<Guid> shipIds, CancellationToken ct)
+        => Task.CompletedTask;
+
+    public Task<Dictionary<string, Guid>> GetShipIdsByNamesAsync(IReadOnlyList<string> names, CancellationToken ct)
+        => Task.FromResult(new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase));
 }
 
 /// <summary>

@@ -150,6 +150,26 @@ describe('OrgHangarView', () => {
     expect(screen.getByRole('button', { name: /my ships/i }).getAttribute('aria-pressed')).toBe('false')
   })
 
+  it('shows sort dropdown defaulting to Most Owners', async () => {
+    render(<OrgHangarView />, { wrapper: createWrapper(['/hangar']) })
+    const sortSelect = screen.getByRole('combobox', { name: /sort by/i }) as HTMLSelectElement
+    expect(sortSelect.value).toBe('ownerCount')
+  })
+
+  it('sort dropdown contains Most Owners and Ship Name options', async () => {
+    render(<OrgHangarView />, { wrapper: createWrapper(['/hangar']) })
+    expect(screen.getByRole('option', { name: 'Most Owners' })).toBeDefined()
+    expect(screen.getByRole('option', { name: 'Ship Name' })).toBeDefined()
+  })
+
+  it('changing sort updates the dropdown value', async () => {
+    const user = userEvent.setup()
+    render(<OrgHangarView />, { wrapper: createWrapper(['/hangar']) })
+    const sortSelect = screen.getByRole('combobox', { name: /sort by/i }) as HTMLSelectElement
+    await user.selectOptions(sortSelect, 'name')
+    expect(sortSelect.value).toBe('name')
+  })
+
   it('shows empty state when org has no ships', async () => {
     server.use(
       http.get('/api/hangar/org', () =>

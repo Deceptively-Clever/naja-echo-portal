@@ -4,6 +4,7 @@ using NajaEcho.Application.Features.Hangar.AddShipToHangar;
 using NajaEcho.Application.Features.Hangar.GetMyHangar;
 using NajaEcho.Application.Features.Hangar.GetOrgHangar;
 using NajaEcho.Application.Features.Hangar.GetOwningMembers;
+using NajaEcho.Application.Features.Hangar.ImportHangar;
 using NajaEcho.Application.Features.Hangar.RemoveShipFromHangar;
 using NajaEcho.Application.Features.Hangar.SearchCatalogShips;
 using Serilog;
@@ -22,6 +23,7 @@ public static class HangarEndpoints
         group.MapGet("/org", GetOrgHangar);
         group.MapGet("/org/members", GetOwningMembers);
         group.MapGet("/catalog/search", SearchCatalogShips);
+        group.MapPost("/mine/import", ImportHangar);
 
         return app;
     }
@@ -108,15 +110,18 @@ public static class HangarEndpoints
         Guid? memberId = null,
         int page = 1,
         int pageSize = 25,
+        string sortBy = "ownerCount",
         CancellationToken ct = default)
     {
         if (!TryGetUserId(user, out var userId)) return Results.Unauthorized();
 
-        Log.Information("GetOrgHangar {UserId} search={Search} mine={Mine} memberId={MemberId} page={Page}",
-            userId, search, mine, memberId, page);
+        var validatedSortBy = sortBy == "name" ? "name" : "ownerCount";
+
+        Log.Information("GetOrgHangar {UserId} search={Search} mine={Mine} memberId={MemberId} page={Page} sortBy={SortBy}",
+            userId, search, mine, memberId, page, validatedSortBy);
 
         var result = await handler.HandleAsync(
-            new GetOrgHangarQuery(userId, search, mine, memberId, page, pageSize), ct);
+            new GetOrgHangarQuery(userId, search, mine, memberId, page, pageSize, validatedSortBy), ct);
 
         var dto = new PagedOrgHangarShipCardsResponse(
             result.Items.Select(MapOrg).ToList(),
@@ -162,6 +167,32 @@ public static class HangarEndpoints
             result.Page, result.PageSize, result.TotalCount, result.TotalPages);
 
         return Results.Ok(dto);
+    }
+
+    private static async Task<IResult> ImportHangar(
+        ClaimsPrincipal user,
+        ImportHangarRequestDto? body,
+        ImportHangarHandler handler,
+        CancellationToken ct)
+    {
+        if (!TryGetUserId(user, out var userId)) return Results.Unauthorized();
+
+        if (body?.Items is null)
+            return Results.Problem(detail: "items is required.", statusCode: StatusCodes.Status400BadRequest, title: "Bad request.");
+
+        Log.Information("ImportHangar {UserId} items={Count}", userId, body.Items.Count);
+
+        var command = new ImportHangarCommand(
+            userId,
+            body.Items.Select(i => new ImportShipRecord(i.Name, i.ShipName, i.Unidentified)).ToList());
+
+        var result = await handler.HandleAsync(command, ct);
+
+        Log.Information("ImportHangar {UserId} imported={Imported} unmatched={Unmatched}",
+            userId, result.ImportedShips, result.UnmatchedRecords);
+
+        return Results.Ok(new ImportHangarResultDto(
+            result.TotalRecords, result.ImportedShips, result.UnmatchedRecords, result.UnmatchedShipNames));
     }
 
     // ── Helpers ──────────────────────────────────────────────────

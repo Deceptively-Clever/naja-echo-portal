@@ -193,7 +193,7 @@ internal sealed class OrgTestHangarRepo : IHangarRepository
         => Task.FromResult(new PagedResult<ShipCard>([], page, pageSize, 0, 0));
 
     public Task<PagedResult<OrgShipCard>> GetOrgHangarAsync(
-        Guid currentUserId, string? search, bool mine, Guid? memberId, int page, int pageSize, CancellationToken ct)
+        Guid currentUserId, string? search, bool mine, Guid? memberId, int page, int pageSize, string sortBy, CancellationToken ct)
     {
         var cards = new List<OrgShipCard>
         {
@@ -227,6 +227,12 @@ internal sealed class OrgTestHangarRepo : IHangarRepository
 
     public Task RemoveAsync(Guid userId, Guid shipId, CancellationToken ct)
         => Task.CompletedTask;
+
+    public Task ReplaceFromImportAsync(Guid userId, IReadOnlyList<Guid> shipIds, CancellationToken ct)
+        => Task.CompletedTask;
+
+    public Task<Dictionary<string, Guid>> GetShipIdsByNamesAsync(IReadOnlyList<string> names, CancellationToken ct)
+        => Task.FromResult(new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase));
 }
 
 internal sealed class EmptyOrgHangarRepo : IHangarRepository
@@ -236,7 +242,7 @@ internal sealed class EmptyOrgHangarRepo : IHangarRepository
         => Task.FromResult(new PagedResult<ShipCard>([], page, pageSize, 0, 0));
 
     public Task<PagedResult<OrgShipCard>> GetOrgHangarAsync(
-        Guid currentUserId, string? search, bool mine, Guid? memberId, int page, int pageSize, CancellationToken ct)
+        Guid currentUserId, string? search, bool mine, Guid? memberId, int page, int pageSize, string sortBy, CancellationToken ct)
         => Task.FromResult(new PagedResult<OrgShipCard>([], page, pageSize, 0, 0));
 
     public Task<IReadOnlyList<OwningMember>> GetOwningMembersAsync(CancellationToken ct)
@@ -254,4 +260,10 @@ internal sealed class EmptyOrgHangarRepo : IHangarRepository
 
     public Task RemoveAsync(Guid userId, Guid shipId, CancellationToken ct)
         => Task.CompletedTask;
+
+    public Task ReplaceFromImportAsync(Guid userId, IReadOnlyList<Guid> shipIds, CancellationToken ct)
+        => Task.CompletedTask;
+
+    public Task<Dictionary<string, Guid>> GetShipIdsByNamesAsync(IReadOnlyList<string> names, CancellationToken ct)
+        => Task.FromResult(new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase));
 }

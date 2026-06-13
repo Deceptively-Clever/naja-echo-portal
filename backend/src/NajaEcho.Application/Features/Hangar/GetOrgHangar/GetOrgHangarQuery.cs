@@ -6,4 +6,5 @@ public sealed record GetOrgHangarQuery(
     bool Mine,
     Guid? MemberId,
     int Page,
-    int PageSize);
+    int PageSize,
+    string SortBy = "ownerCount");

@@ -8,5 +8,5 @@ public sealed class GetOrgHangarHandler(IHangarRepository repository)
     public Task<PagedResult<OrgShipCard>> HandleAsync(GetOrgHangarQuery query, CancellationToken ct) =>
         repository.GetOrgHangarAsync(
             query.CurrentUserId, query.Search, query.Mine, query.MemberId,
-            query.Page, query.PageSize, ct);
+            query.Page, query.PageSize, query.SortBy, ct);
 }

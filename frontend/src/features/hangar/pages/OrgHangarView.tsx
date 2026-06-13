@@ -9,8 +9,9 @@ export function OrgHangarView() {
   const [search, setSearch] = useState('')
   const [mine, setMine] = useState(false)
   const [memberId, setMemberId] = useState<string | undefined>(undefined)
+  const [sortBy, setSortBy] = useState<'ownerCount' | 'name'>('ownerCount')
 
-  const { data, isLoading, fetchNextPage, hasNextPage } = useOrgHangar(search || undefined, mine, memberId)
+  const { data, isLoading, fetchNextPage, hasNextPage } = useOrgHangar(search || undefined, mine, memberId, sortBy)
   const { data: members } = useOwningMembers()
 
   const ships = data?.pages.flatMap((p) => p.items) ?? []
@@ -83,6 +84,17 @@ export function OrgHangarView() {
                   {m.displayName}
                 </option>
               ))}
+            </select>
+
+            {/* Sort control */}
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as 'ownerCount' | 'name')}
+              className="h-7 rounded-md border border-input bg-background px-2 text-xs text-foreground"
+              aria-label="Sort by"
+            >
+              <option value="ownerCount">Most Owners</option>
+              <option value="name">Ship Name</option>
             </select>
           </div>
         }

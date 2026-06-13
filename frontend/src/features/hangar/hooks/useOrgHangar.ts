@@ -2,11 +2,11 @@ import { useInfiniteQuery } from '@tanstack/react-query'
 import { getOrgHangar } from '../api/hangarApi'
 import { hangarKeys } from './hangarQueryKeys'
 
-export function useOrgHangar(search?: string, mine?: boolean, memberId?: string, pageSize = 25) {
+export function useOrgHangar(search?: string, mine?: boolean, memberId?: string, sortBy = 'ownerCount', pageSize = 25) {
   return useInfiniteQuery({
-    queryKey: hangarKeys.orgList(search, mine, memberId),
+    queryKey: hangarKeys.orgList(search, mine, memberId, sortBy),
     queryFn: ({ pageParam = 1 }) =>
-      getOrgHangar({ search, mine, memberId, page: pageParam as number, pageSize }),
+      getOrgHangar({ search, mine, memberId, sortBy, page: pageParam as number, pageSize }),
     initialPageParam: 1,
     getNextPageParam: (last) =>
       last.page < last.totalPages ? last.page + 1 : undefined,

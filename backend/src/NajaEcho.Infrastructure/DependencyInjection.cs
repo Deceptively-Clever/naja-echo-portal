@@ -9,6 +9,7 @@ using NajaEcho.Application.Features.Hangar.AddShipToHangar;
 using NajaEcho.Application.Features.Hangar.GetMyHangar;
 using NajaEcho.Application.Features.Hangar.GetOrgHangar;
 using NajaEcho.Application.Features.Hangar.GetOwningMembers;
+using NajaEcho.Application.Features.Hangar.ImportHangar;
 using NajaEcho.Application.Features.Hangar.RemoveShipFromHangar;
 using NajaEcho.Application.Features.Hangar.SearchCatalogShips;
 using NajaEcho.Application.Features.Ships.GetShipById;
@@ -61,6 +62,7 @@ public static class DependencyInjection
         services.AddScoped<SearchCatalogShipsHandler>();
         services.AddScoped<AddShipToHangarHandler>();
         services.AddScoped<RemoveShipFromHangarHandler>();
+        services.AddScoped<ImportHangarHandler>();
 
         // Admin role seeder
         services.AddScoped<AdminRoleSeeder>();

@@ -12,7 +12,8 @@
     "test:run": "vitest run",
     "gen:api": "openapi-typescript ../specs/002-identity-refactor/contracts/openapi.yaml -o src/lib/api/schema.d.ts",
     "gen:api:ships": "openapi-typescript ../specs/006-ship-data-import/contracts/openapi.yaml -o src/lib/api/ships.d.ts",
-    "gen:api:hangar": "openapi-typescript ../specs/007-hangar-fleet-view/contracts/openapi.yaml -o src/lib/api/hangar.d.ts"
+    "gen:api:hangar": "openapi-typescript ../specs/007-hangar-fleet-view/contracts/openapi.yaml -o src/lib/api/hangar.d.ts",
+    "gen:api:hangar-import": "openapi-typescript ../specs/008-hangar-json-import/contracts/openapi.yaml -o src/lib/api/hangar-import.d.ts"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.16",

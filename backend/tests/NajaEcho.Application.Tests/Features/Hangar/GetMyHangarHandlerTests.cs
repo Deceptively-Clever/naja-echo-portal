@@ -30,7 +30,7 @@ public sealed class GetMyHangarHandlerTests
         }
 
         public Task<PagedResult<OrgShipCard>> GetOrgHangarAsync(
-            Guid currentUserId, string? search, bool mine, Guid? memberId, int page, int pageSize, CancellationToken ct)
+            Guid currentUserId, string? search, bool mine, Guid? memberId, int page, int pageSize, string sortBy, CancellationToken ct)
             => throw new NotImplementedException();
 
         public Task<IReadOnlyList<OwningMember>> GetOwningMembersAsync(CancellationToken ct)
@@ -47,6 +47,12 @@ public sealed class GetMyHangarHandlerTests
             => throw new NotImplementedException();
 
         public Task RemoveAsync(Guid userId, Guid shipId, CancellationToken ct)
+            => throw new NotImplementedException();
+
+        public Task ReplaceFromImportAsync(Guid userId, IReadOnlyList<Guid> shipIds, CancellationToken ct)
+            => throw new NotImplementedException();
+
+        public Task<Dictionary<string, Guid>> GetShipIdsByNamesAsync(IReadOnlyList<string> names, CancellationToken ct)
             => throw new NotImplementedException();
     }
 

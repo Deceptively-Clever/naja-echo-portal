@@ -8,7 +8,7 @@ public sealed class HangarEntryConfiguration : IEntityTypeConfiguration<HangarEn
 {
     public void Configure(EntityTypeBuilder<HangarEntry> builder)
     {
-        builder.ToTable("hangar_entries", schema: "sc");
+        builder.ToTable("hangar_entries");
         builder.HasKey(h => h.Id);
 
         builder.Property(h => h.Id).HasColumnName("id");

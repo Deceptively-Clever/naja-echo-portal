@@ -11,6 +11,11 @@ import {
   pagedCatalogSearchItemsSchema,
   type PagedCatalogSearchItems,
 } from '../schemas/catalogSearchItem'
+import {
+  importHangarResultSchema,
+  type ImportShipRecord,
+  type ImportHangarResult,
+} from '../schemas/hangarImport'
 import { owningMemberSchema, type OwningMember } from '../schemas/owningMember'
 import { z } from 'zod'
 
@@ -31,6 +36,7 @@ export async function getOrgHangar(params: {
   search?: string
   mine?: boolean
   memberId?: string
+  sortBy?: string
   page?: number
   pageSize?: number
 }): Promise<PagedOrgHangarShipCards> {
@@ -38,6 +44,7 @@ export async function getOrgHangar(params: {
   if (params.search) qs.set('search', params.search)
   if (params.mine) qs.set('mine', 'true')
   if (params.memberId) qs.set('memberId', params.memberId)
+  if (params.sortBy) qs.set('sortBy', params.sortBy)
   if (params.page != null) qs.set('page', String(params.page))
   if (params.pageSize != null) qs.set('pageSize', String(params.pageSize))
   const data = await apiFetch<unknown>(`/api/hangar/org?${qs}`)
@@ -72,4 +79,12 @@ export async function addShip(body: { shipId: string }): Promise<HangarShipCard>
 
 export async function removeShip(shipId: string): Promise<void> {
   await apiFetch<void>(`/api/hangar/mine/${shipId}`, { method: 'DELETE' })
+}
+
+export async function importHangar(items: ImportShipRecord[]): Promise<ImportHangarResult> {
+  const data = await apiFetch<unknown>('/api/hangar/mine/import', {
+    method: 'POST',
+    body: JSON.stringify({ items }),
+  })
+  return importHangarResultSchema.parse(data)
 }

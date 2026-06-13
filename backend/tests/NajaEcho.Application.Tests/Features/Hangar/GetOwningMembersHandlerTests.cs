@@ -25,7 +25,7 @@ public sealed class GetOwningMembersHandlerTests
             => Task.FromResult(new PagedResult<ShipCard>([], page, pageSize, 0, 0));
 
         public Task<PagedResult<OrgShipCard>> GetOrgHangarAsync(
-            Guid currentUserId, string? search, bool mine, Guid? memberId, int page, int pageSize, CancellationToken ct)
+            Guid currentUserId, string? search, bool mine, Guid? memberId, int page, int pageSize, string sortBy, CancellationToken ct)
             => Task.FromResult(new PagedResult<OrgShipCard>([], page, pageSize, 0, 0));
 
         public Task<IReadOnlyList<OwningMember>> GetOwningMembersAsync(CancellationToken ct)
@@ -43,6 +43,12 @@ public sealed class GetOwningMembersHandlerTests
 
         public Task RemoveAsync(Guid userId, Guid shipId, CancellationToken ct)
             => Task.CompletedTask;
+
+        public Task ReplaceFromImportAsync(Guid userId, IReadOnlyList<Guid> shipIds, CancellationToken ct)
+            => throw new NotImplementedException();
+
+        public Task<Dictionary<string, Guid>> GetShipIdsByNamesAsync(IReadOnlyList<string> names, CancellationToken ct)
+            => throw new NotImplementedException();
     }
 
     [Fact]

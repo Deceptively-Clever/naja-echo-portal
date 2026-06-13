@@ -33,6 +33,16 @@ public sealed record OwningMemberDto(Guid UserId, string DisplayName);
 
 public sealed record AddShipRequestDto(Guid ShipId);
 
+public sealed record ImportShipRecordDto(string Name, string? ShipName, string? Unidentified);
+
+public sealed record ImportHangarRequestDto(IReadOnlyList<ImportShipRecordDto> Items);
+
+public sealed record ImportHangarResultDto(
+    int TotalRecords,
+    int ImportedShips,
+    int UnmatchedRecords,
+    IReadOnlyList<string> UnmatchedShipNames);
+
 public sealed record PagedHangarShipCardsResponse(
     IReadOnlyList<HangarShipCardDto> Items,
     int Page,

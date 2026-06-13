@@ -1,0 +1,124 @@
+openapi: 3.0.3
+info:
+  title: NajaEchoPortal — Hangar Import API
+  version: 1.0.0
+  description: >
+    Hangar JSON import endpoint (feature 008). Replaces the authenticated member's entire hangar
+    (sc.hangar_entries) from a HangarXPLOR JSON export. Each record is matched to the existing
+    sc.ships catalog by name (ship_name preferred, falling back to name; case-insensitive; Active
+    ships only). Records flagged "unidentified" or with no catalog match are skipped. Matched
+    catalog ships are de-duplicated (a member owns each catalog ship at most once, enforced by the
+    existing ux_hangar_entries_user_ship constraint). The replace is atomic. This endpoint extends
+    the Hangar API defined in 007-hangar-fleet-view/contracts/openapi.yaml and shares its
+    authentication model (cookie auth; all endpoints require an authenticated session).
+
+servers:
+  - url: /
+
+tags:
+  - name: Hangar
+
+paths:
+  /api/hangar/mine/import:
+    post:
+      tags: [Hangar]
+      summary: Replace the current member's hangar from a HangarXPLOR JSON export
+      operationId: importHangar
+      description: >
+        Atomically removes all of the current member's hangar entries and inserts one entry per
+        distinct Active catalog ship whose name matches a non-"unidentified" import record. An
+        empty items array clears the hangar. Returns a summary of imported and skipped records.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ImportHangarRequest' }
+      responses:
+        '200':
+          description: Import completed; returns a summary of the outcome.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportHangarResult' }
+        '400':
+          description: >
+            Malformed request body (missing/invalid items array or record shape). The hangar is
+            left unchanged.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+components:
+  responses:
+    Unauthorized:
+      description: No authenticated session.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+
+  schemas:
+    ImportShipRecord:
+      type: object
+      description: >
+        One element of the HangarXPLOR export array. Extra/unknown fields (ship_code,
+        manufacturer_code, manufacturer_name, lti, warbond, entity_type, pledge_*, lookup, …) are
+        accepted and ignored. The effective match key is shipName when non-blank, else name.
+      additionalProperties: true
+      required: [name]
+      properties:
+        name:
+          type: string
+          description: Display/fallback name; present on every export record.
+          example: F8C Lightning
+        shipName:
+          type: string
+          nullable: true
+          description: The export's ship_name field. Preferred match key when present and non-blank.
+          example: F8C Lightning
+        unidentified:
+          type: string
+          nullable: true
+          description: >
+            Present only on records the export tool could not identify. When present, the record
+            is skipped before matching and counted as unmatched.
+
+    ImportHangarRequest:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          description: The parsed export array. May be empty (clears the hangar).
+          items: { $ref: '#/components/schemas/ImportShipRecord' }
+
+    ImportHangarResult:
+      type: object
+      required: [totalRecords, importedShips, unmatchedRecords, unmatchedShipNames]
+      properties:
+        totalRecords:
+          type: integer
+          description: Number of records received in items.
+          example: 39
+        importedShips:
+          type: integer
+          description: Distinct Active catalog ships matched and now in the hangar (final size).
+          example: 36
+        unmatchedRecords:
+          type: integer
+          description: Records skipped because they were "unidentified" or matched no Active catalog ship.
+          example: 3
+        unmatchedShipNames:
+          type: array
+          description: Distinct effective names that did not match, for user display.
+          items: { type: string }
+          example: ["A.T.L.S.", "Some Unknown Ship"]
+
+    ProblemDetails:
+      type: object
+      description: RFC 7807 problem details.
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+        instance: { type: string }
