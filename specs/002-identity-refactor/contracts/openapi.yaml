@@ -213,6 +213,10 @@ components:
           type: string
           maxLength: 32
           description: Discord unique handle. No Discord tokens are ever included.
+        roles:
+          type: array
+          items: { type: string }
+          description: Application roles assigned to this user (e.g. ["Admin"]). Empty for regular users.
 
     ProblemDetails:
       type: object

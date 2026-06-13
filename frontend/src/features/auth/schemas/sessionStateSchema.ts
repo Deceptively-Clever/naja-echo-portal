@@ -4,6 +4,7 @@ const authenticatedUserSchema = z.object({
   id: z.string().uuid(),
   displayName: z.string(),
   discordUsername: z.string(),
+  roles: z.array(z.string()).default([]),
 })
 
 const authenticatedSessionSchema = z.object({

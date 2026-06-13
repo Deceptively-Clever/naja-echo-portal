@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:run": "vitest run",
-    "gen:api": "openapi-typescript ../specs/002-identity-refactor/contracts/openapi.yaml -o src/lib/api/schema.d.ts"
+    "gen:api": "openapi-typescript ../specs/002-identity-refactor/contracts/openapi.yaml -o src/lib/api/schema.d.ts",
+    "gen:api:ships": "openapi-typescript ../specs/006-ship-data-import/contracts/openapi.yaml -o src/lib/api/ships.d.ts"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.16",
@@ -18,6 +19,7 @@
     "@radix-ui/react-dialog": "^1.1.16",
     "@radix-ui/react-dropdown-menu": "^2.1.17",
     "@radix-ui/react-separator": "^1.1.9",
+    "@radix-ui/react-tabs": "^1.1.14",
     "@radix-ui/react-toggle": "^1.1.11",
     "@tanstack/react-query": "^5.101.0",
     "@testing-library/dom": "^10.4.1",

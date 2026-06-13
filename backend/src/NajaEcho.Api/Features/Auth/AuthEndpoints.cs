@@ -48,7 +48,9 @@ public static class AuthEndpoints
         if (localUser is null)
             return Results.Ok(new AnonymousSessionResponse());
 
+        var roles = user.FindAll(ClaimTypes.Role).Select(c => c.Value).ToArray();
+
         return Results.Ok(new AuthenticatedSessionResponse(
-            new CurrentUserResponse(localUser.Id, localUser.DisplayName, localUser.DiscordUsername)));
+            new CurrentUserResponse(localUser.Id, localUser.DisplayName, localUser.DiscordUsername, roles)));
     }
 }

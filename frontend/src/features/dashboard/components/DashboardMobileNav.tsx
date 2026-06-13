@@ -4,11 +4,12 @@ import type { NavItem } from '../navigation/navItems'
 
 interface DashboardMobileNavProps {
   items: NavItem[]
+  roles?: string[]
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
-export function DashboardMobileNav({ items, open, onOpenChange }: DashboardMobileNavProps) {
+export function DashboardMobileNav({ items, roles = [], open, onOpenChange }: DashboardMobileNavProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="left" className="p-0">
@@ -16,7 +17,7 @@ export function DashboardMobileNav({ items, open, onOpenChange }: DashboardMobil
           <SheetTitle>Navigation</SheetTitle>
         </SheetHeader>
         <nav aria-label="Mobile navigation" className="p-3">
-          <DashboardNav items={items} onNavigate={() => onOpenChange(false)} />
+          <DashboardNav items={items} roles={roles} onNavigate={() => onOpenChange(false)} />
         </nav>
       </SheetContent>
     </Sheet>

@@ -1,14 +1,17 @@
+import { useState } from 'react'
 import { Menu } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
+import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser'
 import { AccountMenu } from './AccountMenu'
 import { DashboardMobileNav } from './DashboardMobileNav'
 import { navItems } from '../navigation/navItems'
 import { ThemeToggle } from '@/features/theme/ThemeToggle'
-import { useState } from 'react'
 
 export function DashboardHeader() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const { data: session } = useCurrentUser()
+  const roles = session?.authenticated ? session.user.roles : []
 
   return (
     <header className="sticky top-0 z-40 flex h-14 items-center border-b border-border bg-card px-4">
@@ -39,6 +42,7 @@ export function DashboardHeader() {
 
       <DashboardMobileNav
         items={navItems}
+        roles={roles}
         open={mobileNavOpen}
         onOpenChange={setMobileNavOpen}
       />

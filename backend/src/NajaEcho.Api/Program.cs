@@ -5,11 +5,14 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using NajaEcho.Api.Authorization;
 using NajaEcho.Api.Common;
 using NajaEcho.Api.Features.Auth;
+using NajaEcho.Api.Features.Admin.Ships;
 using NajaEcho.Application.Features.Auth.SignInWithDiscord;
 using NajaEcho.Domain.Users;
 using NajaEcho.Infrastructure;
+using NajaEcho.Infrastructure.Identity;
 using Serilog;
 using Serilog.Events;
 
@@ -162,10 +165,20 @@ try
 
                 Log.Information("Local user linked {UserId}", result.UserId);
 
+                var userManager = ctx.HttpContext.RequestServices
+                    .GetRequiredService<UserManager<ApplicationUser>>();
+                var appUser = await userManager.FindByIdAsync(result.UserId.ToString());
+                var userRoles = appUser is not null
+                    ? await userManager.GetRolesAsync(appUser)
+                    : [];
+
+                var roleClaims = userRoles.Select(r => new Claim(ClaimTypes.Role, r));
+
                 var identity = new ClaimsIdentity(
                 [
                     new Claim(ClaimTypes.NameIdentifier, result.UserId.ToString()),
                     new Claim(ClaimTypes.Name, result.DisplayName),
+                    ..roleClaims,
                 ], IdentityConstants.ApplicationScheme);
 
                 ctx.Principal = new ClaimsPrincipal(identity);
@@ -194,9 +207,21 @@ try
             };
         });
 
-    builder.Services.AddAuthorization();
+    builder.Services.AddAuthorization(opts => opts.AddAdminPolicy());
 
     var app = builder.Build();
+
+    // Seed the Admin role at startup (non-fatal if it fails in test environments)
+    try
+    {
+        using var scope = app.Services.CreateScope();
+        var seeder = scope.ServiceProvider.GetRequiredService<AdminRoleSeeder>();
+        await seeder.SeedAsync();
+    }
+    catch (Exception ex)
+    {
+        Log.Warning(ex, "Admin role seeding failed (non-fatal)");
+    }
 
     app.UseForwardedHeaders();
 
@@ -222,6 +247,7 @@ try
         .AllowAnonymous();
 
     app.MapAuthEndpoints();
+    app.MapShipAdminEndpoints();
 
     app.Run();
 }
