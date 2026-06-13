@@ -68,6 +68,10 @@ jobs:
       - name: Install dotnet-ef
         run: dotnet tool install --global dotnet-ef
 
+      - name: Restore NuGet packages
+        working-directory: backend
+        run: dotnet restore src/NajaEcho.Api/NajaEcho.Api.csproj
+
       - name: Build EF migration bundle
         working-directory: backend
         run: |
