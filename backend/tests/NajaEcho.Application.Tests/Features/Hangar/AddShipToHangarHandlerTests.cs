@@ -44,6 +44,9 @@ public sealed class AddShipToHangarHandlerTests
             return Task.FromResult(new PagedResult<CatalogSearchRow>(rows, page, pageSize, rows.Count, 1));
         }
 
+        public Task<bool> ExistsAsync(Guid userId, Guid shipId, CancellationToken ct)
+            => Task.FromResult(_owned.Contains(shipId));
+
         public Task<ShipCard> AddAsync(Guid userId, Guid shipId, CancellationToken ct)
             => Task.FromResult(new ShipCard(shipId, "Gladius", "Aegis", null, null, null));
 

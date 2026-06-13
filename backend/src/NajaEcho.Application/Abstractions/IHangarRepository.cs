@@ -19,6 +19,8 @@ public interface IHangarRepository
     Task<PagedResult<CatalogSearchRow>> SearchCatalogAsync(
         Guid userId, string? search, int page, int pageSize, CancellationToken ct);
 
+    Task<bool> ExistsAsync(Guid userId, Guid shipId, CancellationToken ct);
+
     Task<ShipCard> AddAsync(Guid userId, Guid shipId, CancellationToken ct);
 
     Task RemoveAsync(Guid userId, Guid shipId, CancellationToken ct);

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { X, Plus, Check } from 'lucide-react'
 import { useCatalogSearch } from '../hooks/useCatalogSearch'
 import { useAddShip } from '../hooks/useAddShip'
@@ -11,9 +11,16 @@ interface AddShipDialogProps {
 
 export function AddShipDialog({ open, onClose }: AddShipDialogProps) {
   const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  const { data, isLoading } = useCatalogSearch(search)
+  // Debounce keystrokes so we issue one catalog request per pause, not per character
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search), 300)
+    return () => clearTimeout(id)
+  }, [search])
+
+  const { data, isLoading } = useCatalogSearch(debouncedSearch)
   const { mutate: addShip, isPending } = useAddShip()
 
   if (!open) return null

@@ -153,6 +153,9 @@ internal sealed class FakeHangarRepository : IHangarRepository
         return Task.FromResult(result);
     }
 
+    public Task<bool> ExistsAsync(Guid userId, Guid shipId, CancellationToken ct) =>
+        Task.FromResult(false);
+
     public Task<ShipCard> AddAsync(Guid userId, Guid shipId, CancellationToken ct) =>
         Task.FromResult(new ShipCard(shipId, "Test", null, null, null, null));
 

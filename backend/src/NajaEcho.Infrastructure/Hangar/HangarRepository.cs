@@ -24,6 +24,12 @@ public sealed class HangarRepository(AppDbContext db) : IHangarRepository
 
     private sealed record OwningMemberRow(Guid UserId, string DisplayName);
 
+    // Guard against crafted query strings: a negative/zero page yields a negative OFFSET
+    // (Postgres rejects it) and a non-positive pageSize yields an empty FETCH.
+    private const int MaxPageSize = 100;
+    private static (int Page, int PageSize) Normalize(int page, int pageSize) =>
+        (Math.Max(page, 1), Math.Clamp(pageSize, 1, MaxPageSize));
+
     // ──────────────────────────────────────────────────────────────
     // My Hangar
     // ──────────────────────────────────────────────────────────────
@@ -31,6 +37,7 @@ public sealed class HangarRepository(AppDbContext db) : IHangarRepository
     public async Task<PagedResult<ShipCard>> GetMyHangarAsync(
         Guid userId, string? search, int page, int pageSize, CancellationToken ct)
     {
+        (page, pageSize) = Normalize(page, pageSize);
         var searchPattern = string.IsNullOrWhiteSpace(search) ? null : $"%{search}%";
 
         var countQuery = db.Database.SqlQuery<int>($"""
@@ -50,7 +57,8 @@ public sealed class HangarRepository(AppDbContext db) : IHangarRepository
               s.name                                     AS name,
               s.company_name                             AS company_name,
               NULLIF(TRIM(s.raw_data->>'url_photo'), '') AS url_photo,
-              NULLIF(TRIM(s.raw_data->>'scu'), '')::numeric AS scu,
+              CASE WHEN TRIM(s.raw_data->>'scu') ~ '^-?[0-9]+(\.[0-9]+)?$'
+                   THEN TRIM(s.raw_data->>'scu')::numeric END AS scu,
               NULLIF(TRIM(s.raw_data->>'crew'), '')      AS crew
             FROM sc.hangar_entries he
             JOIN sc.ships s ON s.id = he.ship_id
@@ -74,6 +82,7 @@ public sealed class HangarRepository(AppDbContext db) : IHangarRepository
     public async Task<PagedResult<OrgShipCard>> GetOrgHangarAsync(
         Guid currentUserId, string? search, bool mine, Guid? memberId, int page, int pageSize, CancellationToken ct)
     {
+        (page, pageSize) = Normalize(page, pageSize);
         var searchPattern = string.IsNullOrWhiteSpace(search) ? null : $"%{search}%";
         var filterUserId = memberId ?? (mine ? currentUserId : (Guid?)null);
 
@@ -94,7 +103,8 @@ public sealed class HangarRepository(AppDbContext db) : IHangarRepository
               s.name                                     AS name,
               s.company_name                             AS company_name,
               NULLIF(TRIM(s.raw_data->>'url_photo'), '') AS url_photo,
-              NULLIF(TRIM(s.raw_data->>'scu'), '')::numeric AS scu,
+              CASE WHEN TRIM(s.raw_data->>'scu') ~ '^-?[0-9]+(\.[0-9]+)?$'
+                   THEN TRIM(s.raw_data->>'scu')::numeric END AS scu,
               NULLIF(TRIM(s.raw_data->>'crew'), '')      AS crew,
               COUNT(DISTINCT he.user_id)::int            AS owner_count,
               json_agg(json_build_object('UserId', u.id, 'DisplayName', u.display_name)
@@ -149,6 +159,7 @@ public sealed class HangarRepository(AppDbContext db) : IHangarRepository
     public async Task<PagedResult<CatalogSearchRow>> SearchCatalogAsync(
         Guid userId, string? search, int page, int pageSize, CancellationToken ct)
     {
+        (page, pageSize) = Normalize(page, pageSize);
         var searchPattern = string.IsNullOrWhiteSpace(search) ? null : $"%{search}%";
 
         var countQuery = db.Database.SqlQuery<int>($"""
@@ -168,7 +179,8 @@ public sealed class HangarRepository(AppDbContext db) : IHangarRepository
               s.name                                     AS name,
               s.company_name                             AS company_name,
               NULLIF(TRIM(s.raw_data->>'url_photo'), '') AS url_photo,
-              NULLIF(TRIM(s.raw_data->>'scu'), '')::numeric AS scu,
+              CASE WHEN TRIM(s.raw_data->>'scu') ~ '^-?[0-9]+(\.[0-9]+)?$'
+                   THEN TRIM(s.raw_data->>'scu')::numeric END AS scu,
               NULLIF(TRIM(s.raw_data->>'crew'), '')      AS crew,
               EXISTS(
                 SELECT 1 FROM sc.hangar_entries he
@@ -195,6 +207,9 @@ public sealed class HangarRepository(AppDbContext db) : IHangarRepository
     // Add / Remove
     // ──────────────────────────────────────────────────────────────
 
+    public Task<bool> ExistsAsync(Guid userId, Guid shipId, CancellationToken ct) =>
+        db.HangarEntries.AnyAsync(h => h.UserId == userId && h.ShipId == shipId, ct);
+
     public async Task<ShipCard> AddAsync(Guid userId, Guid shipId, CancellationToken ct)
     {
         var entry = new HangarEntry
@@ -220,7 +235,8 @@ public sealed class HangarRepository(AppDbContext db) : IHangarRepository
               s.name                                     AS name,
               s.company_name                             AS company_name,
               NULLIF(TRIM(s.raw_data->>'url_photo'), '') AS url_photo,
-              NULLIF(TRIM(s.raw_data->>'scu'), '')::numeric AS scu,
+              CASE WHEN TRIM(s.raw_data->>'scu') ~ '^-?[0-9]+(\.[0-9]+)?$'
+                   THEN TRIM(s.raw_data->>'scu')::numeric END AS scu,
               NULLIF(TRIM(s.raw_data->>'crew'), '')      AS crew
             FROM sc.ships s
             WHERE s.id = {shipId}

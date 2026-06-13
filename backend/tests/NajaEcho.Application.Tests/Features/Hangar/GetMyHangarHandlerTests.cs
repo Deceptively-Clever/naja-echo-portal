@@ -40,6 +40,9 @@ public sealed class GetMyHangarHandlerTests
             Guid userId, string? search, int page, int pageSize, CancellationToken ct)
             => throw new NotImplementedException();
 
+        public Task<bool> ExistsAsync(Guid userId, Guid shipId, CancellationToken ct)
+            => Task.FromResult(false);
+
         public Task<ShipCard> AddAsync(Guid userId, Guid shipId, CancellationToken ct)
             => throw new NotImplementedException();
 

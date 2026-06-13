@@ -12,9 +12,8 @@ public sealed class AddShipToHangarHandler(IHangarRepository repository, IShipRe
         if (ship is null || ship.Status != ShipStatus.Active)
             throw new ShipNotFoundException(command.ShipId);
 
-        // Repository pre-checks via alreadyOwned flag; DB unique constraint is the final guard
-        var searchResult = await repository.SearchCatalogAsync(command.UserId, null, 1, 9999, ct);
-        if (searchResult.Items.Any(r => r.ShipId == command.ShipId && r.AlreadyOwned))
+        // Cheap pre-check; DB unique constraint (handled in AddAsync) is the final guard against races
+        if (await repository.ExistsAsync(command.UserId, command.ShipId, ct))
             throw new ShipAlreadyOwnedException(command.ShipId);
 
         // Repository.AddAsync throws ShipAlreadyOwnedException on unique constraint violation

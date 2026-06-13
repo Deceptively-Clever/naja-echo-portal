@@ -181,6 +181,9 @@ internal sealed class AddRemoveFakeHangarRepo : NajaEcho.Application.Abstraction
             items, page, pageSize, items.Count, 1));
     }
 
+    public Task<bool> ExistsAsync(Guid userId, Guid shipId, CancellationToken ct)
+        => Task.FromResult(_preOwned.Contains(shipId));
+
     public Task<NajaEcho.Application.Features.Hangar.GetMyHangar.ShipCard> AddAsync(Guid userId, Guid shipId, CancellationToken ct)
         => Task.FromResult(new NajaEcho.Application.Features.Hangar.GetMyHangar.ShipCard(shipId, "Test", null, null, null, null));
 

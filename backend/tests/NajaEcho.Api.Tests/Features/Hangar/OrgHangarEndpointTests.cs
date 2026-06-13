@@ -219,6 +219,9 @@ internal sealed class OrgTestHangarRepo : IHangarRepository
         Guid userId, string? search, int page, int pageSize, CancellationToken ct)
         => Task.FromResult(new PagedResult<CatalogSearchRow>([], page, pageSize, 0, 0));
 
+    public Task<bool> ExistsAsync(Guid userId, Guid shipId, CancellationToken ct)
+        => Task.FromResult(false);
+
     public Task<ShipCard> AddAsync(Guid userId, Guid shipId, CancellationToken ct)
         => throw new NotImplementedException();
 
@@ -242,6 +245,9 @@ internal sealed class EmptyOrgHangarRepo : IHangarRepository
     public Task<PagedResult<CatalogSearchRow>> SearchCatalogAsync(
         Guid userId, string? search, int page, int pageSize, CancellationToken ct)
         => Task.FromResult(new PagedResult<CatalogSearchRow>([], page, pageSize, 0, 0));
+
+    public Task<bool> ExistsAsync(Guid userId, Guid shipId, CancellationToken ct)
+        => Task.FromResult(false);
 
     public Task<ShipCard> AddAsync(Guid userId, Guid shipId, CancellationToken ct)
         => throw new NotImplementedException();
