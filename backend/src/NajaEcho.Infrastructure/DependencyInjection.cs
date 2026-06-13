@@ -5,9 +5,16 @@ using Microsoft.Extensions.DependencyInjection;
 using NajaEcho.Application.Abstractions;
 using NajaEcho.Application.Features.Auth.GetCurrentUser;
 using NajaEcho.Application.Features.Auth.SignInWithDiscord;
+using NajaEcho.Application.Features.Hangar.AddShipToHangar;
+using NajaEcho.Application.Features.Hangar.GetMyHangar;
+using NajaEcho.Application.Features.Hangar.GetOrgHangar;
+using NajaEcho.Application.Features.Hangar.GetOwningMembers;
+using NajaEcho.Application.Features.Hangar.RemoveShipFromHangar;
+using NajaEcho.Application.Features.Hangar.SearchCatalogShips;
 using NajaEcho.Application.Features.Ships.GetShipById;
 using NajaEcho.Application.Features.Ships.GetShips;
 using NajaEcho.Application.Features.Ships.ImportShips;
+using NajaEcho.Infrastructure.Hangar;
 using NajaEcho.Infrastructure.Identity;
 using NajaEcho.Infrastructure.Persistence;
 using NajaEcho.Infrastructure.Ships;
@@ -45,6 +52,15 @@ public static class DependencyInjection
         services.AddScoped<ImportShipsHandler>();
         services.AddScoped<GetShipsHandler>();
         services.AddScoped<GetShipByIdHandler>();
+
+        // Hangar
+        services.AddScoped<IHangarRepository, HangarRepository>();
+        services.AddScoped<GetMyHangarHandler>();
+        services.AddScoped<GetOrgHangarHandler>();
+        services.AddScoped<GetOwningMembersHandler>();
+        services.AddScoped<SearchCatalogShipsHandler>();
+        services.AddScoped<AddShipToHangarHandler>();
+        services.AddScoped<RemoveShipFromHangarHandler>();
 
         // Admin role seeder
         services.AddScoped<AdminRoleSeeder>();

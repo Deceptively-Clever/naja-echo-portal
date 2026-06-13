@@ -9,6 +9,7 @@ using NajaEcho.Api.Authorization;
 using NajaEcho.Api.Common;
 using NajaEcho.Api.Features.Auth;
 using NajaEcho.Api.Features.Admin.Ships;
+using NajaEcho.Api.Features.Hangar;
 using NajaEcho.Application.Features.Auth.SignInWithDiscord;
 using NajaEcho.Domain.Users;
 using NajaEcho.Infrastructure;
@@ -248,6 +249,7 @@ try
 
     app.MapAuthEndpoints();
     app.MapShipAdminEndpoints();
+    app.MapHangarEndpoints();
 
     app.Run();
 }

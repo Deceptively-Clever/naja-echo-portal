@@ -23,6 +23,17 @@ const localStorageMock: Storage = {
 vi.stubGlobal('localStorage', localStorageMock)
 afterEach(() => { localStorageStore.clear() })
 
+// jsdom does not implement IntersectionObserver; provide a no-op mock.
+// Tests that need to assert scroll behavior override this in their own beforeEach.
+if (!window.IntersectionObserver) {
+  class NoopIntersectionObserver {
+    observe = vi.fn()
+    disconnect = vi.fn()
+    unobserve = vi.fn()
+  }
+  vi.stubGlobal('IntersectionObserver', NoopIntersectionObserver)
+}
+
 // jsdom does not implement matchMedia; provide a default mock (matches: false).
 // Tests that need a specific system preference can override window.matchMedia locally.
 Object.defineProperty(window, 'matchMedia', {

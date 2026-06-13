@@ -1,0 +1,292 @@
+openapi: 3.0.3
+info:
+  title: NajaEchoPortal — Hangar API
+  version: 1.0.0
+  description: >
+    Hangar feature endpoints. Ownership is stored as HangarEntry rows referencing the existing
+    catalog table sc.ships by its primary key (sc.ships.id). Card/search fields name and
+    company_name come from promoted columns; urlPhoto, scu, and crew are extracted from the
+    sc.ships.raw_data (jsonb) verbatim UEX feed object. Org Hangar is a derived aggregate of all
+    members' HangarEntry rows — there is no separate org-ship store. All endpoints require an
+    authenticated session (cookie auth).
+
+servers:
+  - url: /
+
+tags:
+  - name: Hangar
+
+paths:
+  /api/hangar/mine:
+    get:
+      tags: [Hangar]
+      summary: List the current member's hangar (My Hangar)
+      operationId: getMyHangar
+      parameters:
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Paged list of the current member's ship cards.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PagedHangarShipCards' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Hangar]
+      summary: Add a catalog ship to the current member's hangar
+      operationId: addShipToHangar
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AddShipRequest' }
+      responses:
+        '201':
+          description: Ship added; returns the created card.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/HangarShipCard' }
+        '400':
+          description: Validation error (missing/invalid shipId).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+        '404':
+          description: Catalog ship not found or not active.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+        '409':
+          description: Ship already in the member's hangar (duplicate ownership).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/hangar/mine/{shipId}:
+    delete:
+      tags: [Hangar]
+      summary: Remove a ship from the current member's hangar
+      operationId: removeShipFromHangar
+      parameters:
+        - name: shipId
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+          description: Catalog ship id (sc.ships.id) to remove from the member's hangar.
+      responses:
+        '204':
+          description: Ship removed (idempotent if it was not present).
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '500':
+          description: Removal failed; the ship remains in the member's hangar.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+
+  /api/hangar/org:
+    get:
+      tags: [Hangar]
+      summary: List the organization's aggregated hangar (Org Hangar)
+      description: >
+        Derived view: all members' HangarEntry rows grouped by unique ship model, each with an
+        owner count and the list of owners. Supports name search, a "my ships" filter, and a
+        single-member filter (memberId). Selecting memberId takes precedence over mine.
+      operationId: getOrgHangar
+      parameters:
+        - $ref: '#/components/parameters/Search'
+        - name: mine
+          in: query
+          required: false
+          schema: { type: boolean, default: false }
+          description: Limit to ships owned by the current member (My Ships filter).
+        - name: memberId
+          in: query
+          required: false
+          schema: { type: string, format: uuid }
+          description: Limit to ships owned by the given member. Overrides mine when present.
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Paged list of grouped org ship cards with owners.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PagedOrgHangarShipCards' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/hangar/org/members:
+    get:
+      tags: [Hangar]
+      summary: List members who own at least one ship (for the member filter)
+      operationId: getOwningMembers
+      responses:
+        '200':
+          description: Members owning one or more ships.
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/OwningMember' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/hangar/catalog/search:
+    get:
+      tags: [Hangar]
+      summary: Search the ship catalog (sc.ships) by name for the Add Ship dialog
+      description: >
+        Searches active catalog ships by name (case-insensitive, partial). Each result is flagged
+        alreadyOwned for the current member so the dialog can disable already-owned ships.
+      operationId: searchCatalogShips
+      parameters:
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+      responses:
+        '200':
+          description: Paged catalog search results.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PagedCatalogSearchItems' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+components:
+  parameters:
+    Search:
+      name: search
+      in: query
+      required: false
+      schema: { type: string }
+      description: Case-insensitive, partial match against sc.ships.name.
+    Page:
+      name: page
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, default: 1 }
+      description: 1-based page index (infinite scroll advances pages).
+    PageSize:
+      name: pageSize
+      in: query
+      required: false
+      schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+
+  responses:
+    Unauthorized:
+      description: No authenticated session.
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+
+  schemas:
+    HangarShipCard:
+      type: object
+      required: [shipId, name]
+      properties:
+        shipId: { type: string, format: uuid, description: sc.ships.id }
+        name: { type: string, description: sc.ships.name (card title, top-left) }
+        companyName: { type: string, nullable: true, description: sc.ships.company_name }
+        urlPhoto:
+          type: string
+          nullable: true
+          description: raw_data->>'url_photo'; null/empty => default card background.
+        scu:
+          type: number
+          nullable: true
+          description: raw_data->>'scu' (cargo capacity), cast numeric; null when absent.
+        crew:
+          type: string
+          nullable: true
+          description: raw_data->>'crew' (crew size), kept as the stored string.
+
+    OrgHangarShipCard:
+      allOf:
+        - $ref: '#/components/schemas/HangarShipCard'
+        - type: object
+          required: [ownerCount, owners]
+          properties:
+            ownerCount:
+              type: integer
+              description: Number of unique members who own this ship model.
+            owners:
+              type: array
+              description: Members who own this ship (drives the hover owner list).
+              items: { $ref: '#/components/schemas/HangarOwner' }
+
+    HangarOwner:
+      type: object
+      required: [userId, displayName]
+      properties:
+        userId: { type: string, format: uuid }
+        displayName: { type: string }
+
+    CatalogSearchItem:
+      allOf:
+        - $ref: '#/components/schemas/HangarShipCard'
+        - type: object
+          required: [alreadyOwned]
+          properties:
+            alreadyOwned:
+              type: boolean
+              description: True when the current member already owns this ship (disable Add).
+
+    OwningMember:
+      type: object
+      required: [userId, displayName]
+      properties:
+        userId: { type: string, format: uuid }
+        displayName: { type: string }
+
+    AddShipRequest:
+      type: object
+      required: [shipId]
+      properties:
+        shipId:
+          type: string
+          format: uuid
+          description: Catalog ship id (sc.ships.id) to add to the member's hangar.
+
+    PagedHangarShipCards:
+      type: object
+      required: [items, page, pageSize, totalCount, totalPages]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/HangarShipCard' }
+        page: { type: integer }
+        pageSize: { type: integer }
+        totalCount: { type: integer }
+        totalPages: { type: integer }
+
+    PagedOrgHangarShipCards:
+      type: object
+      required: [items, page, pageSize, totalCount, totalPages]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/OrgHangarShipCard' }
+        page: { type: integer }
+        pageSize: { type: integer }
+        totalCount: { type: integer }
+        totalPages: { type: integer }
+
+    PagedCatalogSearchItems:
+      type: object
+      required: [items, page, pageSize, totalCount, totalPages]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/CatalogSearchItem' }
+        page: { type: integer }
+        pageSize: { type: integer }
+        totalCount: { type: integer }
+        totalPages: { type: integer }
+
+    ProblemDetails:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }

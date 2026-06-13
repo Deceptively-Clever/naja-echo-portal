@@ -1,0 +1,48 @@
+import { useState } from 'react'
+import { useMyHangar } from '../hooks/useMyHangar'
+import { ShipCardGallery } from '../components/ShipCardGallery'
+import { RemoveShipButton } from '../components/RemoveShipButton'
+import { AddShipDialog } from '../components/AddShipDialog'
+import { Button } from '@/components/ui/button'
+import { Plus } from 'lucide-react'
+import type { HangarShipCard } from '../schemas/hangarShipCard'
+
+export function MyHangarView() {
+  const [search, setSearch] = useState('')
+  const [addOpen, setAddOpen] = useState(false)
+
+  const { data, isLoading, fetchNextPage, hasNextPage } = useMyHangar(search || undefined)
+
+  const ships = data?.pages.flatMap((p) => p.items) ?? []
+
+  const emptyMessage = search
+    ? 'No ships match your search.'
+    : 'Your hangar is empty. Add your first ship!'
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">My Hangar</h1>
+        <Button size="sm" onClick={() => setAddOpen(true)}>
+          <Plus className="h-4 w-4 mr-1" aria-hidden />
+          Add Ship
+        </Button>
+      </div>
+
+      <ShipCardGallery
+        ships={ships}
+        search={search}
+        onSearchChange={setSearch}
+        emptyStateMessage={emptyMessage}
+        isLoading={isLoading}
+        onLoadMore={fetchNextPage}
+        hasMore={hasNextPage}
+        renderOverlay={(ship) => (
+          <RemoveShipButton ship={ship as HangarShipCard} />
+        )}
+      />
+
+      <AddShipDialog open={addOpen} onClose={() => setAddOpen(false)} />
+    </div>
+  )
+}
