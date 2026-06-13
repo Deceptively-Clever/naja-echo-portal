@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { AccountMenu } from './AccountMenu'
 import { DashboardMobileNav } from './DashboardMobileNav'
 import { navItems } from '../navigation/navItems'
+import { ThemeToggle } from '@/features/theme/ThemeToggle'
 import { useState } from 'react'
 
 export function DashboardHeader() {
@@ -32,6 +33,7 @@ export function DashboardHeader() {
       </div>
 
       <div className="flex items-center gap-2">
+        <ThemeToggle />
         <AccountMenu />
       </div>
 
