@@ -9,7 +9,7 @@ describe('LandingPage', () => {
   it('renders application heading', () => {
     server.use(http.get('/api/auth/me', () => new HttpResponse(null, { status: 401 })))
     render(<LandingPage />, { wrapper: createWrapper() })
-    expect(screen.getByText('Welcome to Naja Echo!')).toBeDefined()
+    expect(screen.getByText('Welcome to Naja Echó!')).toBeDefined()
   })
 
   it('renders Sign in with Discord button linking to /api/auth/discord/login', () => {

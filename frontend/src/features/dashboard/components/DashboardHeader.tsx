@@ -25,9 +25,9 @@ export function DashboardHeader() {
         <Link
           to="/dashboard"
           className="flex items-center gap-2 font-semibold text-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-sm"
-          aria-label="Naja Echo Portal home"
+          aria-label="Naja Echó Portal home"
         >
-          <span className="text-lg tracking-tight">Naja Echo</span>
+          <span className="text-lg tracking-tight">Naja Echó</span>
         </Link>
       </div>
 

@@ -46,7 +46,7 @@ const placeholderCards: PlaceholderCardProps[] = [
   },
   {
     title: 'Getting Started',
-    description: 'Steps to get your Naja Echo org set up and running.',
+    description: 'Steps to get your Naja Echó org set up and running.',
     icon: Rocket,
   },
 ]
@@ -59,7 +59,7 @@ export function DashboardPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title={displayName ? `Welcome, ${displayName}` : 'Welcome'}
-        description="Here's an overview of your Naja Echo organization."
+        description="Here's an overview of your Naja Echó organization."
       />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
