@@ -2,20 +2,27 @@ import { render, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { server } from '@/tests/server'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, Outlet } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { ProtectedRoute } from './ProtectedRoute'
 import { anonymousSession } from '@/tests/handlers'
 
-function renderWithRouter(initialEntry = '/dashboard') {
+function renderWithRouter(initialEntry = '/dashboard', nested = false) {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const innerRoutes = nested ? (
+    <Route element={<Outlet />}>
+      <Route path="/dashboard" element={<div>Protected Content</div>} />
+    </Route>
+  ) : (
+    <Route path="/dashboard" element={<div>Protected Content</div>} />
+  )
   return render(
     <QueryClientProvider client={client}>
       <MemoryRouter initialEntries={[initialEntry]}>
         <Routes>
           <Route path="/" element={<div>Landing Page</div>} />
           <Route element={<ProtectedRoute />}>
-            <Route path="/dashboard" element={<div>Protected Content</div>} />
+            {innerRoutes}
           </Route>
         </Routes>
       </MemoryRouter>
@@ -38,6 +45,17 @@ describe('ProtectedRoute', () => {
       http.get('/api/auth/me', () => HttpResponse.json(anonymousSession))
     )
     renderWithRouter('/dashboard')
+    await waitFor(() => {
+      expect(screen.getByText('Landing Page')).toBeDefined()
+    })
+  })
+
+  // T020: redirects anonymous user when DashboardLayout is nested inside ProtectedRoute
+  it('redirects to / when session is anonymous with nested layout route', async () => {
+    server.use(
+      http.get('/api/auth/me', () => HttpResponse.json(anonymousSession))
+    )
+    renderWithRouter('/dashboard', true)
     await waitFor(() => {
       expect(screen.getByText('Landing Page')).toBeDefined()
     })

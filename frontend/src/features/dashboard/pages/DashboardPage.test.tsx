@@ -1,49 +1,31 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
-import { http, HttpResponse } from 'msw'
-import { server } from '@/tests/server'
 import { DashboardPage } from './DashboardPage'
 import { createWrapper } from '@/tests/testUtils'
 
 describe('DashboardPage', () => {
-  it('displays displayName from current user', async () => {
+  it('renders a welcome heading', async () => {
     render(<DashboardPage />, { wrapper: createWrapper(['/dashboard']) })
     await waitFor(() => {
-      expect(screen.getByText('Test User')).toBeDefined()
+      expect(screen.getByRole('heading', { name: /welcome/i })).toBeDefined()
     })
   })
 
-  it('renders user badge with accessible label', async () => {
+  it('renders placeholder summary cards', async () => {
     render(<DashboardPage />, { wrapper: createWrapper(['/dashboard']) })
     await waitFor(() => {
-      const badge = screen.getByLabelText('Signed in as Test User')
-      expect(badge).not.toBeNull()
+      expect(screen.getByText('Org Overview')).toBeDefined()
+      expect(screen.getByText('Upcoming Operations')).toBeDefined()
+      expect(screen.getByText('Member Activity')).toBeDefined()
+      expect(screen.getByText('Getting Started')).toBeDefined()
     })
   })
 
-  it('shows display name initial in fallback avatar', async () => {
-    server.use(
-      http.get('/api/auth/me', () =>
-        HttpResponse.json({
-          authenticated: true,
-          user: {
-            id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11',
-            displayName: 'No Avatar User',
-            discordUsername: 'noavatar',
-          },
-        })
-      )
-    )
+  it('marks placeholder cards as coming soon', async () => {
     render(<DashboardPage />, { wrapper: createWrapper(['/dashboard']) })
     await waitFor(() => {
-      expect(screen.getByText('N')).toBeDefined()
-    })
-  })
-
-  it('renders sign out button', async () => {
-    render(<DashboardPage />, { wrapper: createWrapper(['/dashboard']) })
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: /sign out/i })).toBeDefined()
+      const badges = screen.getAllByText('Coming soon')
+      expect(badges.length).toBeGreaterThan(0)
     })
   })
 })
