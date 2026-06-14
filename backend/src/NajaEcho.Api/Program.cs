@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 using NajaEcho.Api.Authorization;
 using NajaEcho.Api.Common;
 using NajaEcho.Api.Features.Auth;
+using NajaEcho.Api.Features.Admin.Commodities;
+using NajaEcho.Api.Features.Admin.Items;
 using NajaEcho.Api.Features.Admin.Ships;
 using NajaEcho.Api.Features.Hangar;
 using NajaEcho.Application.Features.Auth.SignInWithDiscord;
@@ -249,6 +251,8 @@ try
 
     app.MapAuthEndpoints();
     app.MapShipAdminEndpoints();
+    app.MapItemAdminEndpoints();
+    app.MapCommodityAdminEndpoints();
     app.MapHangarEndpoints();
 
     app.Run();

@@ -1,0 +1,257 @@
+openapi: 3.0.3
+info:
+  title: NajaEchoPortal Admin — Item Data Import API
+  version: 0.1.0
+  description: |
+    REST endpoints for the admin-only item data import feature (`009-item-data-import`). The backend owns
+    the integration with the external UEX Corp API (`https://api.uexcorp.uk/2.0/categories` and
+    `https://api.uexcorp.uk/2.0/items?id_category={id}`); the SPA never calls UEX directly (Constitution III).
+
+    Contract invariants:
+      - All endpoints under `/api/admin/**` require an authenticated session whose principal holds the
+        `Admin` role. Unauthenticated → 401; authenticated-but-not-admin → 403.
+      - Category refresh and item import are SEPARATE operations. Item import NEVER calls the UEX
+        categories endpoint and operates only on locally stored categories.
+      - A single-flight lock (shared with ship import) allows only one import or refresh at a time; a
+        concurrent attempt returns 409.
+      - Only local categories with `type = "item"` are eligible for item import.
+      - Item identity is `uuid`. Records with `uuid = null` are skipped and counted, never fatal.
+      - Soft-delete during item import is scoped to the imported category only; soft-deleted items that
+        reappear are restored.
+servers:
+  - url: http://localhost:5080
+    description: Local development
+  - url: https://api.example.invalid
+    description: Production (placeholder)
+
+tags:
+  - name: admin-items
+    description: Admin-only UEX category refresh and item import.
+
+paths:
+  /api/admin/items/categories:
+    get:
+      tags: [admin-items]
+      summary: List locally stored categories for the selector.
+      description: |
+        Returns all locally stored categories with the context the selector needs (section, name, type,
+        game-related and mining-related flags, source modified date, and local import state) plus the
+        page-level "categories last refreshed" aggregate. The SPA filters/searches client-side
+        (search, section, mining-related, game-related). Only `type = "item"` rows expose import actions.
+        When no categories exist, `items` is empty and `lastRefreshedAt` is null — the SPA disables import
+        actions and explains that categories must be refreshed first.
+      responses:
+        '200':
+          description: Local categories (possibly empty) plus the last-refreshed aggregate.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CategoryList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/admin/items/categories/refresh:
+    post:
+      tags: [admin-items]
+      summary: Refresh categories from the UEX categories endpoint.
+      description: |
+        Fetches the full UEX categories feed server-side and upserts into local storage by source id.
+        Atomic with respect to failure: if the fetch or response shape is invalid, no partial category
+        data is stored. Separate from item import; this is the only operation that calls the UEX
+        categories endpoint. Only one import or refresh may run at a time.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              description: No body required.
+      responses:
+        '200':
+          description: Refresh completed; category-refresh summary.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/RefreshCategoriesResult' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: An import or refresh is already in progress.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+        '502':
+          description: The UEX categories endpoint was unavailable or returned an unusable response; no changes applied.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+
+  /api/admin/items/import:
+    post:
+      tags: [admin-items]
+      summary: Import items for one category or for all eligible categories.
+      description: |
+        Imports items using locally stored categories only — never calls the UEX categories endpoint.
+        If `categoryUexId` is provided, imports that single category (must be `type = "item"`). If omitted
+        or null, imports all eligible (`type = "item"`) local categories sequentially; a failure in one
+        category is recorded and the run continues with the remaining categories. For each category:
+        fetches `GET /items?id_category={id}`, upserts items by `uuid` (insert new, update existing,
+        restore previously soft-deleted that reappear), skips and counts `uuid = null` records, and
+        soft-deletes — scoped to that category only — items absent from the response. Returns an aggregate
+        summary with per-category error details. Only one import or refresh may run at a time. Requires at
+        least one local category to exist.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ImportItemsRequest' }
+      responses:
+        '200':
+          description: |
+            Import finished. `status` is `success` (all categories succeeded), `completedWithErrors`
+            (some categories failed; see `errors`), or `failed` (all categories failed).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportItemsResult' }
+        '400':
+          description: |
+            No local categories exist, the requested category id is unknown, or it is not eligible
+            (`type != "item"`).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: An import or refresh is already in progress.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+
+components:
+  schemas:
+    CategoryListItem:
+      type: object
+      required: [uexId, name, type, isGameRelated, isMining]
+      properties:
+        uexId: { type: integer, description: UEX source id (route id). }
+        name: { type: string, example: "Weapons" }
+        section: { type: string, nullable: true, example: "Personal" }
+        type: { type: string, example: "item", description: Only "item" categories are import-eligible. }
+        isGameRelated: { type: boolean }
+        isMining: { type: boolean }
+        sourceDateModified:
+          type: string
+          format: date-time
+          nullable: true
+          description: UEX date_modified for the category.
+        localItemCount:
+          type: integer
+          description: Count of non-soft-deleted items currently stored locally for this category.
+        lastImportedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: When items for this category were last imported, if ever.
+
+    CategoryList:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/CategoryListItem' }
+        lastRefreshedAt:
+          type: string
+          format: date-time
+          nullable: true
+          description: Most recent category refresh time across all stored categories; null when none exist.
+
+    RefreshCategoriesResult:
+      type: object
+      required: [fetched, inserted, updated, unchanged, failed, startedAt, completedAt, durationMs]
+      properties:
+        fetched: { type: integer, description: Category records received from UEX. }
+        inserted: { type: integer, description: New categories stored this run. }
+        updated: { type: integer, description: Existing categories changed this run. }
+        unchanged: { type: integer, description: Categories present but unchanged this run. }
+        failed: { type: integer, description: Category records that could not be processed (if any). }
+        startedAt: { type: string, format: date-time }
+        completedAt: { type: string, format: date-time }
+        durationMs: { type: integer, description: Elapsed milliseconds. }
+
+    ImportItemsRequest:
+      type: object
+      properties:
+        categoryUexId:
+          type: integer
+          nullable: true
+          description: UEX id of the single category to import; omit or null to import all eligible categories.
+
+    CategoryImportError:
+      type: object
+      required: [categoryUexId, message]
+      properties:
+        categoryUexId: { type: integer }
+        categoryName: { type: string, nullable: true }
+        message: { type: string, description: Human-readable failure reason for this category. }
+
+    ImportItemsResult:
+      type: object
+      required:
+        - status
+        - categoriesProcessed
+        - categoriesSucceeded
+        - categoriesFailed
+        - itemsFetched
+        - itemsInserted
+        - itemsUpdated
+        - itemsUnchanged
+        - itemsSkippedNoUuid
+        - itemsSoftDeleted
+        - itemsFailed
+        - startedAt
+        - completedAt
+        - durationMs
+        - errors
+      properties:
+        status:
+          type: string
+          enum: [success, completedWithErrors, failed]
+          description: Overall outcome derived from per-category results.
+        categoriesProcessed: { type: integer }
+        categoriesSucceeded: { type: integer }
+        categoriesFailed: { type: integer }
+        itemsFetched: { type: integer, description: Item records received from UEX across succeeded categories. }
+        itemsInserted: { type: integer }
+        itemsUpdated: { type: integer, description: Existing items updated (includes restored, surfaced separately when relevant). }
+        itemsUnchanged: { type: integer, description: Items present but unchanged this run. }
+        itemsSkippedNoUuid: { type: integer, description: Records skipped because uuid was null. }
+        itemsSoftDeleted: { type: integer, description: Items soft-deleted (scoped to imported categories). }
+        itemsFailed: { type: integer, description: Item records that could not be processed individually. }
+        startedAt: { type: string, format: date-time }
+        completedAt: { type: string, format: date-time }
+        durationMs: { type: integer }
+        errors:
+          type: array
+          description: Per-category failures so the admin can retry those categories later.
+          items: { $ref: '#/components/schemas/CategoryImportError' }
+
+    ProblemDetails:
+      type: object
+      description: RFC 7807 problem document (as emitted by the API's ProblemDetails middleware).
+      properties:
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string, nullable: true }
+        instance: { type: string, nullable: true }
+
+  responses:
+    Unauthorized:
+      description: No authenticated session.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    Forbidden:
+      description: Authenticated but lacking the Admin role.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }

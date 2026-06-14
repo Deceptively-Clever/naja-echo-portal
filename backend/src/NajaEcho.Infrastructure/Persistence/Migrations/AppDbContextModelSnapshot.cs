@@ -185,6 +185,236 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("NajaEcho.Domain.Commodities.Commodity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("code");
+
+                    b.Property<int?>("IdItem")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_item");
+
+                    b.Property<int?>("IdParent")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_parent");
+
+                    b.PrimitiveCollection<int[]>("IdsMoons")
+                        .IsRequired()
+                        .HasColumnType("integer[]")
+                        .HasColumnName("ids_moons");
+
+                    b.Property<string>("IdsMoonsRaw")
+                        .HasColumnType("text")
+                        .HasColumnName("ids_moons_raw");
+
+                    b.PrimitiveCollection<int[]>("IdsOrbits")
+                        .IsRequired()
+                        .HasColumnType("integer[]")
+                        .HasColumnName("ids_orbits");
+
+                    b.Property<string>("IdsOrbitsRaw")
+                        .HasColumnType("text")
+                        .HasColumnName("ids_orbits_raw");
+
+                    b.PrimitiveCollection<int[]>("IdsPlanets")
+                        .IsRequired()
+                        .HasColumnType("integer[]")
+                        .HasColumnName("ids_planets");
+
+                    b.Property<string>("IdsPlanetsRaw")
+                        .HasColumnType("text")
+                        .HasColumnName("ids_planets_raw");
+
+                    b.PrimitiveCollection<int[]>("IdsPoi")
+                        .IsRequired()
+                        .HasColumnType("integer[]")
+                        .HasColumnName("ids_poi");
+
+                    b.Property<string>("IdsPoiRaw")
+                        .HasColumnType("text")
+                        .HasColumnName("ids_poi_raw");
+
+                    b.PrimitiveCollection<int[]>("IdsStarSystems")
+                        .IsRequired()
+                        .HasColumnType("integer[]")
+                        .HasColumnName("ids_star_systems");
+
+                    b.Property<string>("IdsStarSystemsRaw")
+                        .HasColumnType("text")
+                        .HasColumnName("ids_star_systems_raw");
+
+                    b.Property<DateTimeOffset>("ImportedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("imported_at");
+
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_available");
+
+                    b.Property<bool>("IsAvailableLive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_available_live");
+
+                    b.Property<bool>("IsBuggy")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_buggy");
+
+                    b.Property<bool>("IsBuyable")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_buyable");
+
+                    b.Property<bool>("IsExplosive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_explosive");
+
+                    b.Property<bool>("IsExtractable")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_extractable");
+
+                    b.Property<bool>("IsFuel")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_fuel");
+
+                    b.Property<bool>("IsHarvestable")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_harvestable");
+
+                    b.Property<bool>("IsIllegal")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_illegal");
+
+                    b.Property<bool>("IsInert")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_inert");
+
+                    b.Property<bool>("IsMineral")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_mineral");
+
+                    b.Property<bool>("IsPure")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_pure");
+
+                    b.Property<bool>("IsRaw")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_raw");
+
+                    b.Property<bool>("IsRefinable")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_refinable");
+
+                    b.Property<bool>("IsRefined")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_refined");
+
+                    b.Property<bool>("IsSellable")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_sellable");
+
+                    b.Property<bool>("IsTemporary")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_temporary");
+
+                    b.Property<bool>("IsVisible")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_visible");
+
+                    b.Property<bool>("IsVolatileQt")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_volatile_qt");
+
+                    b.Property<bool>("IsVolatileTime")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_volatile_time");
+
+                    b.Property<string>("Kind")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("name");
+
+                    b.Property<JsonDocument>("RawData")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("raw_data");
+
+                    b.Property<string>("Slug")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("slug");
+
+                    b.Property<DateTimeOffset?>("SoftDeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("soft_deleted_at");
+
+                    b.Property<long?>("SourceDateAdded")
+                        .HasColumnType("bigint")
+                        .HasColumnName("source_date_added");
+
+                    b.Property<DateTimeOffset?>("SourceDateAddedUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("source_date_added_utc");
+
+                    b.Property<long?>("SourceDateModified")
+                        .HasColumnType("bigint")
+                        .HasColumnName("source_date_modified");
+
+                    b.Property<DateTimeOffset?>("SourceDateModifiedUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("source_date_modified_utc");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<int>("UexId")
+                        .HasColumnType("integer")
+                        .HasColumnName("uex_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Uuid")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("uuid");
+
+                    b.Property<double?>("WeightScu")
+                        .HasColumnType("double precision")
+                        .HasColumnName("weight_scu");
+
+                    b.Property<string>("Wiki")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("wiki");
+
+                    b.HasKey("Id")
+                        .HasName("pk_commodities");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("ix_commodities_status");
+
+                    b.HasIndex("UexId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_commodities_uex_id");
+
+                    b.ToTable("commodities", "sc");
+                });
+
             modelBuilder.Entity("NajaEcho.Domain.Hangar.HangarEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -218,6 +448,253 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ux_hangar_entries_user_ship");
 
                     b.ToTable("hangar_entries", (string)null);
+                });
+
+            modelBuilder.Entity("NajaEcho.Domain.ItemCategories.ItemCategory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("ImportedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("imported_at");
+
+                    b.Property<bool>("IsGameRelated")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_game_related");
+
+                    b.Property<bool>("IsMining")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_mining");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("name");
+
+                    b.Property<JsonDocument>("RawData")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("raw_data");
+
+                    b.Property<string>("Section")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("section");
+
+                    b.Property<DateTimeOffset?>("SourceDateAdded")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("source_date_added");
+
+                    b.Property<DateTimeOffset?>("SourceDateModified")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("source_date_modified");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("type");
+
+                    b.Property<int>("UexId")
+                        .HasColumnType("integer")
+                        .HasColumnName("uex_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_item_categories");
+
+                    b.HasIndex("Section")
+                        .HasDatabaseName("ix_item_categories_section");
+
+                    b.HasIndex("Type")
+                        .HasDatabaseName("ix_item_categories_type");
+
+                    b.HasIndex("UexId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_item_categories_uex_id");
+
+                    b.ToTable("item_categories", "sc");
+                });
+
+            modelBuilder.Entity("NajaEcho.Domain.Items.Item", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("category");
+
+                    b.Property<string>("Color")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("color");
+
+                    b.Property<string>("Color2")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("color2");
+
+                    b.Property<string>("CompanyName")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("company_name");
+
+                    b.Property<string>("GameVersion")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("game_version");
+
+                    b.Property<int>("IdCategory")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_category");
+
+                    b.Property<int?>("IdCompany")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_company");
+
+                    b.Property<int?>("IdParent")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_parent");
+
+                    b.Property<int?>("IdVehicle")
+                        .HasColumnType("integer")
+                        .HasColumnName("id_vehicle");
+
+                    b.Property<DateTimeOffset>("ImportedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("imported_at");
+
+                    b.Property<bool>("IsCommodity")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_commodity");
+
+                    b.Property<bool>("IsExclusiveConcierge")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_exclusive_concierge");
+
+                    b.Property<bool>("IsExclusivePledge")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_exclusive_pledge");
+
+                    b.Property<bool>("IsExclusiveSubscriber")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_exclusive_subscriber");
+
+                    b.Property<bool>("IsHarvestable")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_harvestable");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(512)
+                        .HasColumnType("character varying(512)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Notification")
+                        .HasColumnType("text")
+                        .HasColumnName("notification");
+
+                    b.Property<string>("Quality")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("quality");
+
+                    b.Property<JsonDocument>("RawData")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("raw_data");
+
+                    b.Property<string>("Section")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("section");
+
+                    b.Property<string>("Size")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("size");
+
+                    b.Property<string>("Slug")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("slug");
+
+                    b.Property<DateTimeOffset?>("SoftDeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("soft_deleted_at");
+
+                    b.Property<DateTimeOffset?>("SourceDateAdded")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("source_date_added");
+
+                    b.Property<DateTimeOffset?>("SourceDateModified")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("source_date_modified");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<int>("UexId")
+                        .HasColumnType("integer")
+                        .HasColumnName("uex_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UrlStore")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("url_store");
+
+                    b.Property<string>("Uuid")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("uuid");
+
+                    b.Property<string>("VehicleName")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("vehicle_name");
+
+                    b.Property<string>("Wiki")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("wiki");
+
+                    b.HasKey("Id")
+                        .HasName("pk_items");
+
+                    b.HasIndex("IdCategory")
+                        .HasDatabaseName("ix_items_id_category");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("ix_items_status");
+
+                    b.HasIndex("UexId")
+                        .HasDatabaseName("ix_items_uex_id");
+
+                    b.HasIndex("Uuid")
+                        .HasDatabaseName("ix_items_uuid");
+
+                    b.HasIndex("IdCategory", "UexId")
+                        .HasDatabaseName("ix_items_id_category_uex_id");
+
+                    b.ToTable("items", "sc");
                 });
 
             modelBuilder.Entity("NajaEcho.Domain.Ships.Ship", b =>

@@ -1,5 +1,7 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ShipsImportTab } from '../components/ShipsImportTab'
+import { ItemsImportTab } from '../components/ItemsImportTab'
+import { CommoditiesImportTab } from '../components/CommoditiesImportTab'
 
 export function DataImportPage() {
   return (
@@ -12,9 +14,17 @@ export function DataImportPage() {
       <Tabs defaultValue="ships">
         <TabsList>
           <TabsTrigger value="ships">Ships</TabsTrigger>
+          <TabsTrigger value="items">Items</TabsTrigger>
+          <TabsTrigger value="commodities">Commodities</TabsTrigger>
         </TabsList>
         <TabsContent value="ships">
           <ShipsImportTab />
+        </TabsContent>
+        <TabsContent value="items">
+          <ItemsImportTab />
+        </TabsContent>
+        <TabsContent value="commodities">
+          <CommoditiesImportTab />
         </TabsContent>
       </Tabs>
     </div>

@@ -1,0 +1,120 @@
+openapi: 3.0.3
+info:
+  title: NajaEchoPortal Admin — Commodity Data Import API
+  version: 0.1.0
+  description: |
+    REST endpoint for the admin-only commodity data import feature (`010-commodity-data-import`). The
+    backend owns the integration with the external UEX Corp commodities feed
+    (`https://api.uexcorp.uk/2.0/commodities`); the SPA never calls UEX directly (Constitution III).
+
+    Contract invariants:
+      - The endpoint under `/api/admin/**` requires an authenticated session whose principal holds the
+        `Admin` role. Unauthenticated → 401; authenticated-but-not-admin → 403.
+      - Importing is server-side and transactional. The full feed is authoritative: new commodities are
+        inserted, existing ones updated, previously soft-deleted ones reactivated when they reappear, and
+        commodities absent from the feed are soft-deleted (FR-004, FR-006, FR-007).
+      - Individual source records missing the required `id` or `name` are skipped and counted; the import
+        continues (FR-005). The whole import fails — with no changes applied — only when the source is
+        unreachable or returns an unusable shape (FR-003, SC-007).
+      - A single-flight lock shared across all admin imports allows only one import/refresh at a time
+        (FR-016); a concurrent attempt returns 409.
+      - This is an import-only contract for v1: there are no browse/list/detail endpoints for commodities.
+
+servers:
+  - url: http://localhost:5080
+    description: Local development
+  - url: https://api.example.invalid
+    description: Production (placeholder)
+
+tags:
+  - name: admin-commodities
+    description: Admin-only commodity data import.
+
+paths:
+  /api/admin/commodities/import:
+    post:
+      tags: [admin-commodities]
+      summary: Trigger a commodity data import from the UEX feed.
+      description: |
+        Fetches the full UEX commodities feed server-side and performs a transactional upsert: inserts new
+        commodities, updates existing ones, reactivates previously soft-deleted commodities that reappear
+        (FR-007), and soft-deletes commodities absent from the feed (FR-006). Records missing `id` or `name`
+        are skipped and counted (FR-005). Integer flags are normalized to booleans, comma-separated location
+        ids are parsed to integer arrays, and Unix timestamps are converted to UTC, all stored alongside the
+        verbatim source object (FR-008..FR-013). Pricing fields are never imported (FR-014). Any source
+        failure rolls back / applies nothing (SC-007). Only one import may run at a time (FR-016).
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              description: No body required; reserved for future per-source options.
+      responses:
+        '200':
+          description: Import completed; counts of what changed (FR-017).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportCommoditiesResult' }
+        '202':
+          description: |
+            Feed returned zero records — no commodities inserted/updated; any previously active commodities
+            are soft-deleted. Body carries a warning message and the counts.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportCommoditiesResult' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: An import or refresh is already in progress (FR-016).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+        '502':
+          description: |
+            The external UEX feed was unavailable or returned an unusable/invalid-shape response (FR-003);
+            no changes applied (SC-007).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+
+components:
+  schemas:
+    ImportCommoditiesResult:
+      type: object
+      required: [fetched, skipped, inserted, updated, restored, softDeleted, startedAt, completedAt, durationMs]
+      properties:
+        fetched: { type: integer, description: Records returned by the source feed. }
+        skipped: { type: integer, description: Records skipped for missing id or name (FR-005). }
+        inserted: { type: integer, description: New commodities inserted this run. }
+        updated: { type: integer, description: Existing active commodities refreshed this run. }
+        restored: { type: integer, description: Previously soft-deleted commodities reactivated (FR-007). }
+        softDeleted: { type: integer, description: Commodities absent from the feed, soft-deleted this run (FR-006). }
+        startedAt: { type: string, format: date-time }
+        completedAt: { type: string, format: date-time }
+        durationMs: { type: integer, description: Wall-clock import duration in milliseconds. }
+        warning:
+          type: string
+          nullable: true
+          description: Set when the feed returned zero records.
+
+    ProblemDetails:
+      type: object
+      description: RFC 7807 problem document (as emitted by the API's ProblemDetails middleware).
+      properties:
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string, nullable: true }
+        instance: { type: string, nullable: true }
+
+  responses:
+    Unauthorized:
+      description: No authenticated session.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    Forbidden:
+      description: Authenticated but lacking the Admin role.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
