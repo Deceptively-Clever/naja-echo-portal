@@ -46,7 +46,7 @@ public sealed class ImportCommoditiesHandler(
                 logger.LogWarning("ImportCommodities: {Warning}", warning);
                 var zeroCompleted = DateTimeOffset.UtcNow;
                 return new ImportCommoditiesResult(
-                    0, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0, 0, 0, 0,
                     startedAt, zeroCompleted,
                     (long)(zeroCompleted - startedAt).TotalMilliseconds,
                     warning);
@@ -119,15 +119,15 @@ public sealed class ImportCommoditiesHandler(
 
             logger.LogInformation("ImportCommodities: mapped {Mapped} records, skipped {Skipped}", commodities.Count, skipped);
 
-            var (ins, upd, res, sd) = await repository.BulkUpsertAsync(commodities, ct);
+            var (ins, upd, unch, res, sd) = await repository.BulkUpsertAsync(commodities, ct);
 
             var completedAt = DateTimeOffset.UtcNow;
             logger.LogInformation(
-                "ImportCommodities: completed — inserted={Ins} updated={Upd} restored={Res} softDeleted={SD} skipped={Skip}",
-                ins, upd, res, sd, skipped);
+                "ImportCommodities: completed — inserted={Ins} updated={Upd} unchanged={Unch} restored={Res} softDeleted={SD} skipped={Skip}",
+                ins, upd, unch, res, sd, skipped);
 
             return new ImportCommoditiesResult(
-                records.Count, skipped, ins, upd, res, sd,
+                records.Count, skipped, ins, upd, unch, res, sd,
                 startedAt, completedAt,
                 (long)(completedAt - startedAt).TotalMilliseconds);
         }

@@ -19,7 +19,7 @@ export function ImportCommoditiesButton() {
       }
       return {
         type: 'success' as const,
-        text: `Import complete: ${data.inserted} added, ${data.updated} updated, ${data.restored} restored, ${data.softDeleted} removed, ${data.skipped} skipped. (${data.fetched} fetched, ${data.durationMs}ms)`,
+        text: `Import complete: ${data.inserted} added, ${data.updated} updated, ${data.unchanged} unchanged, ${data.restored} restored, ${data.softDeleted} removed, ${data.skipped} skipped. (${data.fetched} fetched, ${data.durationMs}ms)`,
       }
     }
     return null

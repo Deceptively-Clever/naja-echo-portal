@@ -13,6 +13,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using NajaEcho.Application.Abstractions;
+using NajaEcho.Application.Features.Commodities.GetCommodities;
 using NajaEcho.Domain.Commodities;
 using NajaEcho.Infrastructure.Persistence;
 
@@ -174,9 +175,13 @@ internal sealed class FakeApiCommodityCoordinator : IImportCoordinator
 
 internal sealed class FakeApiCommodityRepository : ICommodityRepository
 {
-    public Task<(int Inserted, int Updated, int Restored, int SoftDeleted)> BulkUpsertAsync(
+    public Task<(int Inserted, int Updated, int Unchanged, int Restored, int SoftDeleted)> BulkUpsertAsync(
         IReadOnlyList<Commodity> incoming, CancellationToken ct) =>
-        Task.FromResult((incoming.Count, 0, 0, 0));
+        Task.FromResult((incoming.Count, 0, 0, 0, 0));
+
+    public Task<(IReadOnlyList<CommodityListItem> Items, int TotalCount)> GetPagedAsync(
+        int page, int pageSize, CancellationToken ct = default) =>
+        Task.FromResult(((IReadOnlyList<CommodityListItem>)[], 0));
 }
 
 internal sealed class FakeCommodityTestLoginService : IExternalLoginService

@@ -8,12 +8,12 @@ import { ImportCommoditiesButton } from '../components/ImportCommoditiesButton'
 
 const now = new Date().toISOString()
 const importResult = {
-  fetched: 10, skipped: 0, inserted: 8, updated: 2, restored: 0, softDeleted: 1,
+  fetched: 10, skipped: 0, inserted: 8, updated: 2, unchanged: 0, restored: 0, softDeleted: 1,
   startedAt: now, completedAt: now, durationMs: 250, warning: null,
 }
 
 const emptyFeedResult = {
-  fetched: 0, skipped: 0, inserted: 0, updated: 0, restored: 0, softDeleted: 0,
+  fetched: 0, skipped: 0, inserted: 0, updated: 0, unchanged: 0, restored: 0, softDeleted: 0,
   startedAt: now, completedAt: now, durationMs: 5,
   warning: 'Feed returned zero records; no changes applied.',
 }

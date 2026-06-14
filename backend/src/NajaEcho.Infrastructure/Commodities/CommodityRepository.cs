@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using NajaEcho.Application.Abstractions;
+using NajaEcho.Application.Features.Commodities.GetCommodities;
 using NajaEcho.Domain.Commodities;
 using NajaEcho.Infrastructure.Persistence;
 
@@ -7,22 +8,36 @@ namespace NajaEcho.Infrastructure.Commodities;
 
 public sealed class CommodityRepository(AppDbContext db) : ICommodityRepository
 {
-    public async Task<(IReadOnlyList<Commodity> Items, int TotalCount)> GetPagedAsync(
+    public async Task<(IReadOnlyList<CommodityListItem> Items, int TotalCount)> GetPagedAsync(
         int page, int pageSize, CancellationToken ct = default)
     {
-        var query = db.Commodities.OrderBy(c => c.Name);
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
+        var query = db.Commodities
+            .AsNoTracking()
+            .OrderBy(c => c.Name)
+            .ThenBy(c => c.UexId);
+
         var total = await query.CountAsync(ct);
+
+        // Project in the database so the heavy raw_data jsonb (and unused columns) are never loaded.
         var items = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
+            .Select(c => new CommodityListItem(c.Id, c.UexId, c.Name, c.Code, c.Kind, c.Status))
             .ToListAsync(ct);
+
         return (items, total);
     }
 
-    public async Task<(int Inserted, int Updated, int Restored, int SoftDeleted)> BulkUpsertAsync(
+    public async Task<(int Inserted, int Updated, int Unchanged, int Restored, int SoftDeleted)> BulkUpsertAsync(
         IReadOnlyList<Commodity> incoming, CancellationToken ct = default)
     {
-        var incomingByUexId = incoming.ToDictionary(c => c.UexId);
+        // Tolerate duplicate uex_id in the feed (last record wins) rather than throwing on ToDictionary.
+        var incomingByUexId = incoming
+            .GroupBy(c => c.UexId)
+            .ToDictionary(g => g.Key, g => g.Last());
         var incomingIds = incomingByUexId.Keys.ToHashSet();
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
@@ -32,25 +47,32 @@ public sealed class CommodityRepository(AppDbContext db) : ICommodityRepository
             .ToListAsync(ct);
         var existingByUexId = existing.ToDictionary(c => c.UexId);
 
-        int inserted = 0, updated = 0, restored = 0;
+        int inserted = 0, updated = 0, unchanged = 0, restored = 0;
         var now = DateTimeOffset.UtcNow;
 
-        foreach (var inc in incoming)
+        foreach (var inc in incomingByUexId.Values)
         {
             if (existingByUexId.TryGetValue(inc.UexId, out var stored))
             {
                 var wasDeleted = stored.Status == CommodityStatus.SoftDeleted;
-                UpdateFields(stored, inc, now);
+                var changed = HasChanges(stored, inc);
 
                 if (wasDeleted)
                 {
+                    UpdateFields(stored, inc, now);
                     stored.Status = CommodityStatus.Active;
                     stored.SoftDeletedAt = null;
                     restored++;
                 }
+                else if (changed)
+                {
+                    UpdateFields(stored, inc, now);
+                    updated++;
+                }
                 else
                 {
-                    updated++;
+                    // No promoted field changed — leave the row (and updated_at) untouched.
+                    unchanged++;
                 }
             }
             else
@@ -79,7 +101,7 @@ public sealed class CommodityRepository(AppDbContext db) : ICommodityRepository
         await db.SaveChangesAsync(ct);
         await tx.CommitAsync(ct);
 
-        return (inserted, updated, restored, toSoftDelete.Count);
+        return (inserted, updated, unchanged, restored, toSoftDelete.Count);
     }
 
     private static void UpdateFields(Commodity stored, Commodity inc, DateTimeOffset now)
@@ -130,4 +152,17 @@ public sealed class CommodityRepository(AppDbContext db) : ICommodityRepository
         stored.RawData = inc.RawData;
         stored.UpdatedAt = now;
     }
+
+    // Cheap change detection on the source-of-truth fields the feed can move. Avoids rewriting
+    // (and bumping updated_at on) rows that are byte-for-byte identical to the last import.
+    private static bool HasChanges(Commodity stored, Commodity inc) =>
+        stored.Name != inc.Name ||
+        stored.Uuid != inc.Uuid ||
+        stored.Code != inc.Code ||
+        stored.Slug != inc.Slug ||
+        stored.Kind != inc.Kind ||
+        stored.WeightScu != inc.WeightScu ||
+        stored.IdParent != inc.IdParent ||
+        stored.IdItem != inc.IdItem ||
+        stored.SourceDateModified != inc.SourceDateModified;
 }

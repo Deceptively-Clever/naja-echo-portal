@@ -59,10 +59,11 @@ public sealed class CommodityRepositoryTests : IAsyncLifetime
         var repo = new CommodityRepository(_db);
         var commodities = new[] { MakeCommodity(1, "Agricium"), MakeCommodity(2, "Laranite") };
 
-        var (ins, upd, res, sd) = await repo.BulkUpsertAsync(commodities);
+        var (ins, upd, unch, res, sd) = await repo.BulkUpsertAsync(commodities);
 
         ins.Should().Be(2);
         upd.Should().Be(0);
+        unch.Should().Be(0);
         res.Should().Be(0);
         sd.Should().Be(0);
 
@@ -92,7 +93,7 @@ public sealed class CommodityRepositoryTests : IAsyncLifetime
         await repo.BulkUpsertAsync([MakeCommodity(1, "Agricium"), MakeCommodity(2, "Laranite")]);
         _db.ChangeTracker.Clear();
 
-        var (_, _, _, sd) = await repo.BulkUpsertAsync([MakeCommodity(2, "Laranite")]);
+        var (_, _, _, _, sd) = await repo.BulkUpsertAsync([MakeCommodity(2, "Laranite")]);
 
         sd.Should().Be(1);
         _db.ChangeTracker.Clear();
@@ -114,7 +115,7 @@ public sealed class CommodityRepositoryTests : IAsyncLifetime
         _db.ChangeTracker.Clear();
 
         // Reappear → restore
-        var (ins, upd, res, sd) = await repo.BulkUpsertAsync([MakeCommodity(1, "Agricium"), MakeCommodity(2, "Laranite")]);
+        var (ins, upd, unch, res, sd) = await repo.BulkUpsertAsync([MakeCommodity(1, "Agricium"), MakeCommodity(2, "Laranite")]);
 
         res.Should().Be(1);
         sd.Should().Be(0);
@@ -123,6 +124,47 @@ public sealed class CommodityRepositoryTests : IAsyncLifetime
         var restored = await _db.Commodities.FirstAsync(c => c.UexId == 1);
         restored.Status.Should().Be(CommodityStatus.Active);
         restored.SoftDeletedAt.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task BulkUpsertAsync_DuplicateUexIdInFeed_DoesNotThrowAndUpsertsOnce()
+    {
+        var repo = new CommodityRepository(_db);
+
+        // Two records share uex_id 1; the later one should win.
+        var (ins, _, _, _, _) = await repo.BulkUpsertAsync(
+        [
+            MakeCommodity(1, "First"),
+            MakeCommodity(1, "Second"),
+        ]);
+
+        ins.Should().Be(1);
+        _db.ChangeTracker.Clear();
+
+        var stored = await _db.Commodities.Where(c => c.UexId == 1).ToListAsync();
+        stored.Should().ContainSingle();
+        stored[0].Name.Should().Be("Second");
+    }
+
+    [Fact]
+    public async Task BulkUpsertAsync_UnchangedCommodity_CountsUnchangedAndDoesNotBumpUpdatedAt()
+    {
+        var repo = new CommodityRepository(_db);
+        await repo.BulkUpsertAsync([MakeCommodity(1, "Agricium")]);
+        _db.ChangeTracker.Clear();
+
+        var before = await _db.Commodities.AsNoTracking().FirstAsync(c => c.UexId == 1);
+        _db.ChangeTracker.Clear();
+
+        // Re-import an identical record.
+        var (_, upd, unch, _, _) = await repo.BulkUpsertAsync([MakeCommodity(1, "Agricium")]);
+
+        upd.Should().Be(0);
+        unch.Should().Be(1);
+        _db.ChangeTracker.Clear();
+
+        var after = await _db.Commodities.AsNoTracking().FirstAsync(c => c.UexId == 1);
+        after.UpdatedAt.Should().Be(before.UpdatedAt);
     }
 
     [Fact]

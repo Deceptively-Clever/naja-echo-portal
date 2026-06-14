@@ -2,6 +2,7 @@ using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using NajaEcho.Application.Abstractions;
+using NajaEcho.Application.Features.Commodities.GetCommodities;
 using NajaEcho.Application.Features.Commodities.ImportCommodities;
 using NajaEcho.Application.Features.Ships.ImportShips;
 using NajaEcho.Domain.Commodities;
@@ -14,12 +15,16 @@ public sealed class ImportCommoditiesHandlerTests
     {
         public List<Commodity> Upserted { get; } = [];
 
-        public Task<(int Inserted, int Updated, int Restored, int SoftDeleted)> BulkUpsertAsync(
+        public Task<(int Inserted, int Updated, int Unchanged, int Restored, int SoftDeleted)> BulkUpsertAsync(
             IReadOnlyList<Commodity> incoming, CancellationToken ct)
         {
             Upserted.AddRange(incoming);
-            return Task.FromResult((incoming.Count, 0, 0, 0));
+            return Task.FromResult((incoming.Count, 0, 0, 0, 0));
         }
+
+        public Task<(IReadOnlyList<CommodityListItem> Items, int TotalCount)> GetPagedAsync(
+            int page, int pageSize, CancellationToken ct = default) =>
+            Task.FromResult(((IReadOnlyList<CommodityListItem>)[], 0));
     }
 
     private sealed class FakeCommodityClient : IUexCommodityClient

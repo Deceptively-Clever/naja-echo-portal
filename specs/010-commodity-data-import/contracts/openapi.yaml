@@ -18,7 +18,10 @@ info:
         unreachable or returns an unusable shape (FR-003, SC-007).
       - A single-flight lock shared across all admin imports allows only one import/refresh at a time
         (FR-016); a concurrent attempt returns 409.
-      - This is an import-only contract for v1: there are no browse/list/detail endpoints for commodities.
+      - The primary operation is the import. A read-only, admin-only paged list endpoint is also exposed
+        for verifying import results; it returns both active and soft-deleted commodities (each row carries
+        its status). `page` defaults to 1 and is floored at 1; `pageSize` defaults to 25 and is clamped to
+        the range 1..100. There are no detail or public browse endpoints for commodities in v1.
 
 servers:
   - url: http://localhost:5080
@@ -78,16 +81,44 @@ paths:
             application/problem+json:
               schema: { $ref: '#/components/schemas/ProblemDetails' }
 
+  /api/admin/commodities:
+    get:
+      tags: [admin-commodities]
+      summary: List imported commodities (paged), for verifying import results.
+      description: |
+        Read-only, admin-only paged listing of imported commodities (active and soft-deleted). Returns a
+        lightweight projection per row; the verbatim source object (`raw_data`) is not included.
+      parameters:
+        - name: page
+          in: query
+          required: false
+          schema: { type: integer, default: 1, minimum: 1 }
+          description: 1-based page number. Values below 1 are treated as 1.
+        - name: pageSize
+          in: query
+          required: false
+          schema: { type: integer, default: 25, minimum: 1, maximum: 100 }
+          description: Page size, clamped to 1..100.
+      responses:
+        '200':
+          description: A page of commodities.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PagedCommoditiesResult' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
 components:
   schemas:
     ImportCommoditiesResult:
       type: object
-      required: [fetched, skipped, inserted, updated, restored, softDeleted, startedAt, completedAt, durationMs]
+      required: [fetched, skipped, inserted, updated, unchanged, restored, softDeleted, startedAt, completedAt, durationMs]
       properties:
         fetched: { type: integer, description: Records returned by the source feed. }
         skipped: { type: integer, description: Records skipped for missing id or name (FR-005). }
         inserted: { type: integer, description: New commodities inserted this run. }
-        updated: { type: integer, description: Existing active commodities refreshed this run. }
+        updated: { type: integer, description: Existing active commodities whose promoted fields changed this run. }
+        unchanged: { type: integer, description: Existing active commodities present but unchanged this run. }
         restored: { type: integer, description: Previously soft-deleted commodities reactivated (FR-007). }
         softDeleted: { type: integer, description: Commodities absent from the feed, soft-deleted this run (FR-006). }
         startedAt: { type: string, format: date-time }
@@ -97,6 +128,29 @@ components:
           type: string
           nullable: true
           description: Set when the feed returned zero records.
+
+    CommodityListItem:
+      type: object
+      required: [id, uexId, name, status]
+      properties:
+        id: { type: string, format: uuid }
+        uexId: { type: integer, description: UEX source identity (uex_id). }
+        name: { type: string }
+        code: { type: string, nullable: true }
+        kind: { type: string, nullable: true }
+        status: { type: string, enum: [active, softDeleted] }
+
+    PagedCommoditiesResult:
+      type: object
+      required: [items, page, pageSize, totalCount, totalPages]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/CommodityListItem' }
+        page: { type: integer }
+        pageSize: { type: integer }
+        totalCount: { type: integer }
+        totalPages: { type: integer }
 
     ProblemDetails:
       type: object

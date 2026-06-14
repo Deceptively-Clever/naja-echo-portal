@@ -5,6 +5,7 @@ public sealed record ImportCommoditiesResponse(
     int Skipped,
     int Inserted,
     int Updated,
+    int Unchanged,
     int Restored,
     int SoftDeleted,
     DateTimeOffset StartedAt,

@@ -5,6 +5,7 @@ export const importCommoditiesResultSchema = z.object({
   skipped: z.number(),
   inserted: z.number(),
   updated: z.number(),
+  unchanged: z.number(),
   restored: z.number(),
   softDeleted: z.number(),
   startedAt: z.string(),
