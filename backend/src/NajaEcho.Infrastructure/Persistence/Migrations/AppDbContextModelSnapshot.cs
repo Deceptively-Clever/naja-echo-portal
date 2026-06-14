@@ -764,6 +764,58 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                     b.ToTable("ships", "sc");
                 });
 
+            modelBuilder.Entity("NajaEcho.Domain.Warehouse.WarehouseInventoryEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("item_id");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("location");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer")
+                        .HasColumnName("quantity");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_warehouse_inventory");
+
+                    b.HasIndex("ItemId")
+                        .HasDatabaseName("ix_warehouse_inventory_item_id");
+
+                    b.HasIndex("OwnerUserId")
+                        .HasDatabaseName("ix_warehouse_inventory_owner_user_id");
+
+                    b.HasIndex("ItemId", "OwnerUserId", "Location")
+                        .IsUnique()
+                        .HasDatabaseName("ux_warehouse_inventory_item_owner_location");
+
+                    b.ToTable("warehouse_inventory", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_warehouse_inventory_quantity", "quantity >= 1");
+                        });
+                });
+
             modelBuilder.Entity("NajaEcho.Infrastructure.Identity.ApplicationUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -922,6 +974,16 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_hangar_entries_ship_id");
+                });
+
+            modelBuilder.Entity("NajaEcho.Domain.Warehouse.WarehouseInventoryEntry", b =>
+                {
+                    b.HasOne("NajaEcho.Domain.Items.Item", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_warehouse_inventory_item_id");
                 });
 #pragma warning restore 612, 618
         }

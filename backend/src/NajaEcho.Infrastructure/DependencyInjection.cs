@@ -20,6 +20,12 @@ using NajaEcho.Application.Features.Commodities.ImportCommodities;
 using NajaEcho.Application.Features.ItemCategories.GetCategories;
 using NajaEcho.Application.Features.ItemCategories.RefreshCategories;
 using NajaEcho.Application.Features.Items.ImportItems;
+using NajaEcho.Application.Features.Warehouse.GetInventory;
+using NajaEcho.Application.Features.Warehouse.GetInventoryFilters;
+using NajaEcho.Application.Features.Warehouse.SearchCatalogItems;
+using NajaEcho.Application.Features.Warehouse.AddInventoryItem;
+using NajaEcho.Application.Features.Warehouse.ChangeInventoryQuantity;
+using NajaEcho.Application.Features.Warehouse.RemoveInventoryItem;
 using NajaEcho.Infrastructure.Commodities;
 using NajaEcho.Infrastructure.Hangar;
 using NajaEcho.Infrastructure.Identity;
@@ -28,6 +34,7 @@ using NajaEcho.Infrastructure.ItemCategories;
 using NajaEcho.Infrastructure.Items;
 using NajaEcho.Infrastructure.Persistence;
 using NajaEcho.Infrastructure.Ships;
+using NajaEcho.Infrastructure.Warehouse;
 
 namespace NajaEcho.Infrastructure;
 
@@ -100,8 +107,20 @@ public static class DependencyInjection
         services.AddScoped<GetCommoditiesHandler>();
         services.AddScoped<ImportCommoditiesHandler>();
 
-        // Admin role seeder
-        services.AddScoped<AdminRoleSeeder>();
+        // Users
+        services.AddScoped<IUserRepository, UserRepository>();
+
+        // Warehouse
+        services.AddScoped<IWarehouseInventoryRepository, WarehouseInventoryRepository>();
+        services.AddScoped<GetInventoryHandler>();
+        services.AddScoped<GetInventoryFiltersHandler>();
+        services.AddScoped<SearchCatalogItemsHandler>();
+        services.AddScoped<AddInventoryItemHandler>();
+        services.AddScoped<ChangeInventoryQuantityHandler>();
+        services.AddScoped<RemoveInventoryItemHandler>();
+
+        // Role seeder (Admin + Quartermaster)
+        services.AddScoped<RoleSeeder>();
 
         return services;
     }

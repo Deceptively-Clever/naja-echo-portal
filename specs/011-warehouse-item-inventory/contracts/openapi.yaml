@@ -1,0 +1,217 @@
+openapi: 3.0.3
+info:
+  title: NajaEchoPortal — Warehouse Item Inventory API
+  version: 0.1.0
+  description: |
+    REST endpoints for the warehouse item-inventory feature (`011-warehouse-item-inventory`). The SPA
+    consumes types generated from this contract (Constitution I & III); it never accesses the database
+    directly.
+
+    Contract invariants:
+      - All endpoints under `/api/warehouse/**` require an authenticated session. Unauthenticated
+        browser requests are redirected to sign-in by the cookie scheme; API callers get 401 (FR-001,
+        SC-006).
+      - READ endpoints (`GET /items`, `GET /items/filters`) are available to any authenticated user.
+      - WRITE endpoints (`GET /catalog/search`, `POST /items`, `PUT /items/{id}/quantity`,
+        `DELETE /items/{id}`) require the `Quartermaster` policy, satisfied by the `Quartermaster` OR
+        `Admin` role (FR-008, FR-027). Authenticated-but-unauthorized → 403 (SC-005).
+      - Inventory identity is (itemId, ownerUserId, trimmed location). `POST /items` increments the
+        quantity of an existing matching row, otherwise inserts a new row (FR-017, FR-018, FR-019).
+        Concurrent posts for the same key yield exactly one row (server-side unique constraint).
+      - Location is required, trimmed server-side, and rejected when empty after trim (FR-013, FR-014).
+      - Quantity is an integer >= 1 (FR-020..FR-022). `POST` adds to the existing quantity; `PUT`
+        replaces it (FR-023).
+      - The inventory list is sorted by item Name ascending and supports optional AND-combined filters:
+        name (partial, case-insensitive), type (exact), subtype (exact), ownerUserId (exact), location
+        (partial, case-insensitive) (FR-002..FR-007).
+      - Removing an inventory row never affects the catalog item (FR-025).
+
+servers:
+  - url: http://localhost:5080
+    description: Local development
+  - url: https://api.example.invalid
+    description: Production (placeholder)
+
+tags:
+  - name: Warehouse
+    description: Warehouse item inventory (read + Quartermaster writes)
+
+paths:
+  /api/warehouse/items:
+    get:
+      tags: [Warehouse]
+      operationId: getInventory
+      summary: List inventory (any authenticated user), filtered and sorted by Name ascending.
+      parameters:
+        - { name: name, in: query, required: false, schema: { type: string }, description: Partial item name, case-insensitive. }
+        - { name: type, in: query, required: false, schema: { type: string }, description: Exact Type (item Section). }
+        - { name: subtype, in: query, required: false, schema: { type: string }, description: Exact Subtype (item Category). }
+        - { name: ownerUserId, in: query, required: false, schema: { type: string, format: uuid }, description: Exact owner. }
+        - { name: location, in: query, required: false, schema: { type: string }, description: Partial location, case-insensitive. }
+      responses:
+        '200':
+          description: Filtered inventory list.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InventoryListResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Warehouse]
+      operationId: addInventoryItem
+      summary: Add a catalog item to inventory, or increment the quantity of a matching row. Quartermaster only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AddInventoryItemRequest' }
+      responses:
+        '200':
+          description: Existing row incremented.
+          content: { application/json: { schema: { $ref: '#/components/schemas/InventoryRow' } } }
+        '201':
+          description: New row created.
+          content: { application/json: { schema: { $ref: '#/components/schemas/InventoryRow' } } }
+        '400': { $ref: '#/components/responses/ValidationProblem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: Referenced catalog item or owner does not exist.
+          content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } }
+
+  /api/warehouse/items/filters:
+    get:
+      tags: [Warehouse]
+      operationId: getInventoryFilters
+      summary: Distinct Type/Subtype (from item-category data) and Owner options for filter controls. Any authenticated user.
+      responses:
+        '200':
+          description: Available filter option values.
+          content: { application/json: { schema: { $ref: '#/components/schemas/InventoryFiltersResponse' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/warehouse/items/{id}/quantity:
+    put:
+      tags: [Warehouse]
+      operationId: changeInventoryQuantity
+      summary: Replace the quantity of an inventory row. Quartermaster only.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChangeQuantityRequest' }
+      responses:
+        '200':
+          description: Quantity updated.
+          content: { application/json: { schema: { $ref: '#/components/schemas/InventoryRow' } } }
+        '400': { $ref: '#/components/responses/ValidationProblem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { description: No inventory row with that id., content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+
+  /api/warehouse/items/{id}:
+    delete:
+      tags: [Warehouse]
+      operationId: removeInventoryItem
+      summary: Remove an inventory row. The catalog item is unaffected. Quartermaster only.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204': { description: Row removed. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { description: No inventory row with that id., content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } } }
+
+  /api/warehouse/catalog/search:
+    get:
+      tags: [Warehouse]
+      operationId: searchCatalogItems
+      summary: Search the active item catalog by name for the add flow. Quartermaster only.
+      parameters:
+        - { name: search, in: query, required: false, schema: { type: string }, description: Partial item name, case-insensitive. }
+      responses:
+        '200':
+          description: Matching catalog items (capped).
+          content: { application/json: { schema: { type: array, items: { $ref: '#/components/schemas/CatalogItem' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+components:
+  schemas:
+    InventoryListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/InventoryRow' }
+    InventoryRow:
+      type: object
+      required: [id, itemId, name, quantity, ownerUserId, ownerDisplayName, location]
+      properties:
+        id: { type: string, format: uuid }
+        itemId: { type: string, format: uuid }
+        name: { type: string }
+        type: { type: string, nullable: true, description: Item Section. }
+        subtype: { type: string, nullable: true, description: Item Category. }
+        quantity: { type: integer, minimum: 1 }
+        ownerUserId: { type: string, format: uuid }
+        ownerDisplayName: { type: string }
+        location: { type: string }
+    InventoryFiltersResponse:
+      type: object
+      required: [types, subtypes, owners]
+      properties:
+        types: { type: array, items: { type: string } }
+        subtypes: { type: array, items: { type: string } }
+        owners:
+          type: array
+          items: { $ref: '#/components/schemas/OwnerOption' }
+    OwnerOption:
+      type: object
+      required: [userId, displayName]
+      properties:
+        userId: { type: string, format: uuid }
+        displayName: { type: string }
+    CatalogItem:
+      type: object
+      required: [itemId, name]
+      properties:
+        itemId: { type: string, format: uuid }
+        name: { type: string }
+        type: { type: string, nullable: true }
+        subtype: { type: string, nullable: true }
+    AddInventoryItemRequest:
+      type: object
+      required: [itemId, quantity, location]
+      properties:
+        itemId: { type: string, format: uuid }
+        quantity: { type: integer, minimum: 1, description: Amount to add (incremented onto an existing matching row). }
+        location: { type: string, minLength: 1, description: Trimmed server-side; rejected if empty after trim. }
+        ownerUserId:
+          type: string
+          format: uuid
+          nullable: true
+          description: Owner; defaults to the authenticated caller when omitted (FR-011).
+    ChangeQuantityRequest:
+      type: object
+      required: [quantity]
+      properties:
+        quantity: { type: integer, minimum: 1, description: Replacement value (not additive). }
+    Problem:
+      type: object
+      properties:
+        title: { type: string }
+        detail: { type: string }
+        status: { type: integer }
+  responses:
+    Unauthorized:
+      description: No authenticated session.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } }
+    Forbidden:
+      description: Authenticated but lacks the Quartermaster/Admin role.
+      content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } }
+    ValidationProblem:
+      description: Request failed validation (e.g. quantity < 1, empty location).
+      content: { application/json: { schema: { $ref: '#/components/schemas/Problem' } } }

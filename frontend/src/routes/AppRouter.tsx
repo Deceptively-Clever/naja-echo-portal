@@ -11,6 +11,7 @@ import { AdminRoute } from '@/features/auth/AdminRoute'
 import { DataImportPage } from '@/features/admin/pages/DataImportPage'
 import { MyHangarView } from '@/features/hangar/pages/MyHangarView'
 import { OrgHangarView } from '@/features/hangar/pages/OrgHangarView'
+import { WarehouseItemsView } from '@/features/warehouse/pages/WarehouseItemsView'
 
 export function AppRouter() {
   return (
@@ -25,6 +26,8 @@ export function AppRouter() {
             <Route path="/hangar" element={<Navigate to="/hangar/mine" replace />} />
             <Route path="/hangar/mine" element={<MyHangarView />} />
             <Route path="/hangar/org" element={<OrgHangarView />} />
+            <Route path="/warehouse" element={<Navigate to="/warehouse/items" replace />} />
+            <Route path="/warehouse/items" element={<WarehouseItemsView />} />
             <Route path="/dashboard/profile" element={<ProfilePage />} />
             <Route path="/dashboard/settings" element={<SettingsPage />} />
             <Route element={<AdminRoute />}>

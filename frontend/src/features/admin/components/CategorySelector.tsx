@@ -1,4 +1,11 @@
 import { useState, useMemo } from 'react'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import type { CategoryListItem } from '../schemas/itemSchemas'
 
 interface CategorySelectorProps {
@@ -39,19 +46,20 @@ export function CategorySelector({ categories, selectedId, onSelect }: CategoryS
           className="border rounded px-2 py-1 text-sm bg-background"
         />
 
-        <label htmlFor="section-filter" className="sr-only">Section</label>
-        <select
-          id="section-filter"
-          aria-label="Section"
-          value={sectionFilter}
-          onChange={(e) => setSectionFilter(e.target.value)}
-          className="border rounded px-2 py-1 text-sm bg-background"
+        <Select
+          value={sectionFilter || '__all__'}
+          onValueChange={(v) => setSectionFilter(v === '__all__' ? '' : v)}
         >
-          <option value="">All sections</option>
-          {sections.map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
+          <SelectTrigger aria-label="Section" className="w-40 text-sm">
+            <SelectValue placeholder="All sections" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All sections</SelectItem>
+            {sections.map((s) => (
+              <SelectItem key={s} value={s}>{s}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
         <label className="flex items-center gap-1 text-sm cursor-pointer">
           <input

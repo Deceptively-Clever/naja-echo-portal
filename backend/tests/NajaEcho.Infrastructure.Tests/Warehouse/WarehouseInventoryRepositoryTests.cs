@@ -1,0 +1,222 @@
+using System.Text.Json;
+using FluentAssertions;
+using Microsoft.EntityFrameworkCore;
+using NajaEcho.Domain.Items;
+using NajaEcho.Domain.Warehouse;
+using NajaEcho.Infrastructure.Identity;
+using NajaEcho.Infrastructure.Persistence;
+using NajaEcho.Infrastructure.Warehouse;
+using Testcontainers.PostgreSql;
+using Xunit;
+
+namespace NajaEcho.Infrastructure.Tests.Warehouse;
+
+public sealed class WarehouseInventoryRepositoryTests : IAsyncLifetime
+{
+    private readonly PostgreSqlContainer _pg = new PostgreSqlBuilder()
+        .WithDatabase("najaecho_test")
+        .WithUsername("test")
+        .WithPassword("test")
+        .Build();
+
+    private AppDbContext _db = null!;
+
+    public async Task InitializeAsync()
+    {
+        await _pg.StartAsync();
+        var opts = new DbContextOptionsBuilder<AppDbContext>()
+            .UseNpgsql(_pg.GetConnectionString())
+            .UseSnakeCaseNamingConvention()
+            .Options;
+        _db = new AppDbContext(opts);
+        await _db.Database.MigrateAsync();
+    }
+
+    public async Task DisposeAsync()
+    {
+        await _db.DisposeAsync();
+        await _pg.DisposeAsync();
+    }
+
+    private ApplicationUser AddUser(string displayName = "Test User")
+    {
+        var user = new ApplicationUser
+        {
+            Id = Guid.NewGuid(),
+            DisplayName = displayName,
+            DiscordUsername = displayName.ToLower().Replace(" ", ""),
+            UserName = displayName,
+            NormalizedUserName = displayName.ToUpper(),
+            Email = $"{displayName}@test.com",
+            NormalizedEmail = $"{displayName}@test.com".ToUpper(),
+            SecurityStamp = Guid.NewGuid().ToString(),
+        };
+        _db.Set<ApplicationUser>().Add(user);
+        return user;
+    }
+
+    private Item AddItem(string name = "Test Item", string? section = null, string? category = null)
+    {
+        var item = new Item
+        {
+            Id = Guid.NewGuid(),
+            UexId = Random.Shared.Next(1, 100000),
+            IdCategory = 1,
+            Name = name,
+            Status = ItemStatus.Active,
+            RawData = JsonDocument.Parse($"{{\"name\":\"{name}\"}}"),
+            ImportedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
+        };
+        _db.Items.Add(item);
+        return item;
+    }
+
+    private WarehouseInventoryRepository MakeRepo() => new(_db);
+
+    // ── Add-or-Increment ─────────────────────────────────────────────────
+
+    [Fact]
+    public async Task AddOrIncrementAsync_NewEntry_CreatesRow()
+    {
+        var user = AddUser();
+        var item = AddItem();
+        await _db.SaveChangesAsync();
+
+        var repo = MakeRepo();
+        var (row, isNew) = await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 3, default);
+
+        isNew.Should().BeTrue();
+        row.Quantity.Should().Be(3);
+        row.Location.Should().Be("Bay 1");
+    }
+
+    [Fact]
+    public async Task AddOrIncrementAsync_ExistingEntry_IncrementsQuantity()
+    {
+        var user = AddUser();
+        var item = AddItem();
+        await _db.SaveChangesAsync();
+
+        var repo = MakeRepo();
+        await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 3, default);
+        var (row, isNew) = await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 2, default);
+
+        isNew.Should().BeFalse();
+        row.Quantity.Should().Be(5);
+    }
+
+    [Fact]
+    public async Task AddOrIncrementAsync_DifferentLocation_CreatesSeparateRow()
+    {
+        var user = AddUser();
+        var item = AddItem();
+        await _db.SaveChangesAsync();
+
+        var repo = MakeRepo();
+        var (row1, isNew1) = await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 1, default);
+        var (row2, isNew2) = await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 2", 1, default);
+
+        isNew1.Should().BeTrue();
+        isNew2.Should().BeTrue();
+        row1.Id.Should().NotBe(row2.Id);
+    }
+
+    [Fact]
+    public async Task AddOrIncrementAsync_DifferentOwner_CreatesSeparateRow()
+    {
+        var user1 = AddUser("Alice");
+        var user2 = AddUser("Bob");
+        var item = AddItem();
+        await _db.SaveChangesAsync();
+
+        var repo = MakeRepo();
+        var (row1, isNew1) = await repo.AddOrIncrementAsync(item.Id, user1.Id, "Bay 1", 1, default);
+        var (row2, isNew2) = await repo.AddOrIncrementAsync(item.Id, user2.Id, "Bay 1", 1, default);
+
+        isNew1.Should().BeTrue();
+        isNew2.Should().BeTrue();
+        row1.Id.Should().NotBe(row2.Id);
+    }
+
+    [Fact]
+    public async Task AddOrIncrementAsync_UniqueConstraintEnforced()
+    {
+        var user = AddUser();
+        var item = AddItem();
+        await _db.SaveChangesAsync();
+
+        var repo = MakeRepo();
+        await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 1, default);
+
+        // Second call must not create a second row — must increment
+        await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 4, default);
+
+        var count = await _db.WarehouseInventory.CountAsync();
+        count.Should().Be(1);
+    }
+
+    // ── Update Quantity ──────────────────────────────────────────────────
+
+    [Fact]
+    public async Task UpdateQuantityAsync_ExistingRow_ReplacesQuantity()
+    {
+        var user = AddUser();
+        var item = AddItem();
+        await _db.SaveChangesAsync();
+
+        var repo = MakeRepo();
+        var (created, _) = await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 5, default);
+        var updated = await repo.UpdateQuantityAsync(created.Id, 12, default);
+
+        updated.Quantity.Should().Be(12);
+    }
+
+    [Fact]
+    public async Task UpdateQuantityAsync_MissingRow_Throws()
+    {
+        var repo = MakeRepo();
+        Func<Task> act = () => repo.UpdateQuantityAsync(Guid.NewGuid(), 5, default);
+        await act.Should().ThrowAsync<Exception>();
+    }
+
+    // ── Remove ────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task RemoveAsync_ExistingRow_DeletesRow()
+    {
+        var user = AddUser();
+        var item = AddItem();
+        await _db.SaveChangesAsync();
+
+        var repo = MakeRepo();
+        var (created, _) = await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 1, default);
+        await repo.RemoveAsync(created.Id, default);
+
+        var exists = await _db.WarehouseInventory.AnyAsync(w => w.Id == created.Id);
+        exists.Should().BeFalse();
+    }
+
+    [Fact]
+    public async Task RemoveAsync_DoesNotDeleteCatalogItem()
+    {
+        var user = AddUser();
+        var item = AddItem();
+        await _db.SaveChangesAsync();
+
+        var repo = MakeRepo();
+        var (created, _) = await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 1, default);
+        await repo.RemoveAsync(created.Id, default);
+
+        var itemStillExists = await _db.Items.AnyAsync(i => i.Id == item.Id);
+        itemStillExists.Should().BeTrue();
+    }
+
+    [Fact]
+    public async Task RemoveAsync_MissingRow_Throws()
+    {
+        var repo = MakeRepo();
+        Func<Task> act = () => repo.RemoveAsync(Guid.NewGuid(), default);
+        await act.Should().ThrowAsync<Exception>();
+    }
+}

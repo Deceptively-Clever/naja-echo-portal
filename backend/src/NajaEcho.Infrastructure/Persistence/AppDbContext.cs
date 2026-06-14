@@ -6,6 +6,7 @@ using NajaEcho.Domain.Hangar;
 using NajaEcho.Domain.ItemCategories;
 using NajaEcho.Domain.Items;
 using NajaEcho.Domain.Ships;
+using NajaEcho.Domain.Warehouse;
 using NajaEcho.Infrastructure.Identity;
 using NajaEcho.Infrastructure.Persistence.Configurations;
 
@@ -19,6 +20,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<ItemCategory> ItemCategories => Set<ItemCategory>();
     public DbSet<Item> Items => Set<Item>();
     public DbSet<Commodity> Commodities => Set<Commodity>();
+    public DbSet<WarehouseInventoryEntry> WarehouseInventory => Set<WarehouseInventoryEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -29,5 +31,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         modelBuilder.ApplyConfiguration(new ItemCategoryConfiguration());
         modelBuilder.ApplyConfiguration(new ItemConfiguration());
         modelBuilder.ApplyConfiguration(new CommodityConfiguration());
+        modelBuilder.ApplyConfiguration(new WarehouseInventoryEntryConfiguration());
     }
 }

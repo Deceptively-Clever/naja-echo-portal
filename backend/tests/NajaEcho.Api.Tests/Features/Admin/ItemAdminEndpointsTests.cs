@@ -269,6 +269,9 @@ internal sealed class FakeApiItemCategoryRepository : IItemCategoryRepository
 
 internal sealed class FakeApiItemRepository : IItemRepository
 {
+    public Task<Item?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
+        Task.FromResult<Item?>(null);
+
     public Task<(int Inserted, int Updated, int Unchanged, int SoftDeleted, int Restored)> BulkUpsertForCategoryAsync(
         int idCategory, IReadOnlyList<Item> incoming, CancellationToken ct) =>
         Task.FromResult((incoming.Count, 0, 0, 0, 0));

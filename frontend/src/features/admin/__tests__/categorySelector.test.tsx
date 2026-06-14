@@ -32,7 +32,8 @@ describe('CategorySelector', () => {
     const user = userEvent.setup()
     render(<CategorySelector categories={categories} selectedId={undefined} onSelect={() => {}} />)
 
-    await user.selectOptions(screen.getByRole('combobox', { name: /section/i }), 'Mining')
+    await user.click(screen.getByRole('combobox', { name: /section/i }))
+    await user.click(await screen.findByRole('option', { name: 'Mining' }))
 
     await waitFor(() => {
       expect(screen.queryByText('Armor')).toBeNull()

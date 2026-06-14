@@ -3,6 +3,13 @@ import { useOrgHangar } from '../hooks/useOrgHangar'
 import { useOwningMembers } from '../hooks/useOwningMembers'
 import { ShipCardGallery } from '../components/ShipCardGallery'
 import { OwnerCountBadge } from '../components/OwnerCountBadge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import type { OrgHangarShipCard } from '../schemas/hangarShipCard'
 
 export function OrgHangarView() {
@@ -72,30 +79,33 @@ export function OrgHangarView() {
             </button>
 
             {/* Member filter */}
-            <select
+            <Select
               value={memberId ?? ''}
-              onChange={(e) => handleMemberChange(e.target.value)}
-              className="h-7 rounded-md border border-input bg-background px-2 text-xs text-foreground"
-              aria-label="Filter by member"
+              onValueChange={(v) => handleMemberChange(v === '__all__' ? '' : v)}
             >
-              <option value="">All Members</option>
-              {(members ?? []).map((m) => (
-                <option key={m.userId} value={m.userId}>
-                  {m.displayName}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger aria-label="Filter by member" className="h-8 w-36 text-xs">
+                <SelectValue placeholder="All Members" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All Members</SelectItem>
+                {(members ?? []).map((m) => (
+                  <SelectItem key={m.userId} value={m.userId}>
+                    {m.displayName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
             {/* Sort control */}
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'ownerCount' | 'name')}
-              className="h-7 rounded-md border border-input bg-background px-2 text-xs text-foreground"
-              aria-label="Sort by"
-            >
-              <option value="ownerCount">Most Owners</option>
-              <option value="name">Ship Name</option>
-            </select>
+            <Select value={sortBy} onValueChange={(v) => setSortBy(v as 'ownerCount' | 'name')}>
+              <SelectTrigger aria-label="Sort by" className="h-8 w-36 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ownerCount">Most Owners</SelectItem>
+                <SelectItem value="name">Ship Name</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         }
       />

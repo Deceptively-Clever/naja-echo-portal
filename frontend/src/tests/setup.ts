@@ -34,6 +34,32 @@ if (!window.IntersectionObserver) {
   vi.stubGlobal('IntersectionObserver', NoopIntersectionObserver)
 }
 
+// jsdom does not implement PointerEvent capture methods used by Radix UI.
+if (!Element.prototype.hasPointerCapture) {
+  Element.prototype.hasPointerCapture = () => false
+}
+if (!Element.prototype.setPointerCapture) {
+  Element.prototype.setPointerCapture = () => {}
+}
+if (!Element.prototype.releasePointerCapture) {
+  Element.prototype.releasePointerCapture = () => {}
+}
+
+// jsdom does not implement scrollIntoView used by Radix UI Select.
+if (!window.HTMLElement.prototype.scrollIntoView) {
+  window.HTMLElement.prototype.scrollIntoView = vi.fn()
+}
+
+// jsdom does not implement ResizeObserver used by Radix UI.
+if (typeof window.ResizeObserver === 'undefined') {
+  class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  }
+  vi.stubGlobal('ResizeObserver', ResizeObserver)
+}
+
 // jsdom does not implement matchMedia; provide a default mock (matches: false).
 // Tests that need a specific system preference can override window.matchMedia locally.
 Object.defineProperty(window, 'matchMedia', {

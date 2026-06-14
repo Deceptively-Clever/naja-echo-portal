@@ -41,6 +41,9 @@ public sealed class ImportItemsHandlerTests
         public bool Throws { get; set; }
         public (int, int, int, int, int) ReturnValue { get; set; } = (0, 0, 0, 0, 0);
 
+        public Task<Item?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
+            Task.FromResult<Item?>(null);
+
         public Task<(int Inserted, int Updated, int Unchanged, int SoftDeleted, int Restored)> BulkUpsertForCategoryAsync(
             int idCategory, IReadOnlyList<Item> incoming, CancellationToken ct)
         {
@@ -264,6 +267,9 @@ public sealed class ImportItemsHandlerTests
         private int _callCount;
 
         public PerCallFailItemRepo(int failOnCall) => _failOnCall = failOnCall;
+
+        public Task<Item?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
+            Task.FromResult<Item?>(null);
 
         public Task<(int Inserted, int Updated, int Unchanged, int SoftDeleted, int Restored)> BulkUpsertForCategoryAsync(
             int idCategory, IReadOnlyList<Item> incoming, CancellationToken ct)

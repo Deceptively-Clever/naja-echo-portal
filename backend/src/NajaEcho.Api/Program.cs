@@ -12,6 +12,7 @@ using NajaEcho.Api.Features.Admin.Commodities;
 using NajaEcho.Api.Features.Admin.Items;
 using NajaEcho.Api.Features.Admin.Ships;
 using NajaEcho.Api.Features.Hangar;
+using NajaEcho.Api.Features.Warehouse;
 using NajaEcho.Application.Features.Auth.SignInWithDiscord;
 using NajaEcho.Domain.Users;
 using NajaEcho.Infrastructure;
@@ -210,20 +211,20 @@ try
             };
         });
 
-    builder.Services.AddAuthorization(opts => opts.AddAdminPolicy());
+    builder.Services.AddAuthorization(opts => opts.AddPolicies());
 
     var app = builder.Build();
 
-    // Seed the Admin role at startup (non-fatal if it fails in test environments)
+    // Seed roles at startup (non-fatal if it fails in test environments)
     try
     {
         using var scope = app.Services.CreateScope();
-        var seeder = scope.ServiceProvider.GetRequiredService<AdminRoleSeeder>();
+        var seeder = scope.ServiceProvider.GetRequiredService<RoleSeeder>();
         await seeder.SeedAsync();
     }
     catch (Exception ex)
     {
-        Log.Warning(ex, "Admin role seeding failed (non-fatal)");
+        Log.Warning(ex, "Role seeding failed (non-fatal)");
     }
 
     app.UseForwardedHeaders();
@@ -254,6 +255,7 @@ try
     app.MapItemAdminEndpoints();
     app.MapCommodityAdminEndpoints();
     app.MapHangarEndpoints();
+    app.MapWarehouseEndpoints();
 
     app.Run();
 }

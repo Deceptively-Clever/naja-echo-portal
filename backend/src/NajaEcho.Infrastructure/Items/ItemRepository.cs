@@ -7,6 +7,9 @@ namespace NajaEcho.Infrastructure.Items;
 
 public sealed class ItemRepository(AppDbContext db) : IItemRepository
 {
+    public Task<Item?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
+        db.Items.FirstOrDefaultAsync(i => i.Id == id, ct);
+
     public async Task<(int Inserted, int Updated, int Unchanged, int SoftDeleted, int Restored)> BulkUpsertForCategoryAsync(
         int idCategory, IReadOnlyList<Item> incoming, CancellationToken ct = default)
     {

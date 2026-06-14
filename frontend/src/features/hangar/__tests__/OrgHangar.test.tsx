@@ -113,16 +113,16 @@ describe('OrgHangarView', () => {
     await waitFor(() => {
       expect(screen.getByRole('combobox', { name: /filter by member/i })).toBeDefined()
     })
-    const select = screen.getByRole('combobox', { name: /filter by member/i }) as HTMLSelectElement
-    expect(select.value).toBe('')
+    expect(screen.getByRole('combobox', { name: /filter by member/i })).toHaveTextContent('All Members')
   })
 
   it('populates member filter from API', async () => {
+    const user = userEvent.setup()
     render(<OrgHangarView />, { wrapper: createWrapper(['/hangar']) })
-    await waitFor(() => {
-      expect(screen.getByRole('option', { name: 'Alice' })).toBeDefined()
-      expect(screen.getByRole('option', { name: 'Bob' })).toBeDefined()
-    })
+    await waitFor(() => screen.getByText('Gladius'))
+    await user.click(screen.getByRole('combobox', { name: /filter by member/i }))
+    expect(await screen.findByRole('option', { name: 'Alice' })).toBeDefined()
+    expect(screen.getByRole('option', { name: 'Bob' })).toBeDefined()
   })
 
   it('My Ships toggle marks button as pressed when active', async () => {
@@ -143,31 +143,33 @@ describe('OrgHangarView', () => {
     expect(screen.getByRole('button', { name: /my ships/i }).getAttribute('aria-pressed')).toBe('true')
 
     // Wait for members to load, then select one
-    await waitFor(() => screen.getByRole('option', { name: 'Alice' }))
-    await user.selectOptions(screen.getByRole('combobox', { name: /filter by member/i }), mockOwner1.userId)
+    await waitFor(() => screen.getByText('Gladius'))
+    await user.click(screen.getByRole('combobox', { name: /filter by member/i }))
+    await user.click(await screen.findByRole('option', { name: 'Alice' }))
 
     // My Ships should be cleared
     expect(screen.getByRole('button', { name: /my ships/i }).getAttribute('aria-pressed')).toBe('false')
   })
 
-  it('shows sort dropdown defaulting to Most Owners', async () => {
+  it('shows sort dropdown defaulting to Most Owners', () => {
     render(<OrgHangarView />, { wrapper: createWrapper(['/hangar']) })
-    const sortSelect = screen.getByRole('combobox', { name: /sort by/i }) as HTMLSelectElement
-    expect(sortSelect.value).toBe('ownerCount')
+    expect(screen.getByRole('combobox', { name: /sort by/i })).toHaveTextContent('Most Owners')
   })
 
   it('sort dropdown contains Most Owners and Ship Name options', async () => {
+    const user = userEvent.setup()
     render(<OrgHangarView />, { wrapper: createWrapper(['/hangar']) })
-    expect(screen.getByRole('option', { name: 'Most Owners' })).toBeDefined()
+    await user.click(screen.getByRole('combobox', { name: /sort by/i }))
+    expect(await screen.findByRole('option', { name: 'Most Owners' })).toBeDefined()
     expect(screen.getByRole('option', { name: 'Ship Name' })).toBeDefined()
   })
 
   it('changing sort updates the dropdown value', async () => {
     const user = userEvent.setup()
     render(<OrgHangarView />, { wrapper: createWrapper(['/hangar']) })
-    const sortSelect = screen.getByRole('combobox', { name: /sort by/i }) as HTMLSelectElement
-    await user.selectOptions(sortSelect, 'name')
-    expect(sortSelect.value).toBe('name')
+    await user.click(screen.getByRole('combobox', { name: /sort by/i }))
+    await user.click(await screen.findByRole('option', { name: 'Ship Name' }))
+    expect(screen.getByRole('combobox', { name: /sort by/i })).toHaveTextContent('Ship Name')
   })
 
   it('shows empty state when org has no ships', async () => {
