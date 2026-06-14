@@ -54,17 +54,14 @@ public sealed class CommodityRepository(AppDbContext db) : ICommodityRepository
         {
             if (existingByUexId.TryGetValue(inc.UexId, out var stored))
             {
-                var wasDeleted = stored.Status == CommodityStatus.SoftDeleted;
-                var changed = HasChanges(stored, inc);
-
-                if (wasDeleted)
+                if (stored.Status == CommodityStatus.SoftDeleted)
                 {
                     UpdateFields(stored, inc, now);
                     stored.Status = CommodityStatus.Active;
                     stored.SoftDeletedAt = null;
                     restored++;
                 }
-                else if (changed)
+                else if (HasChanges(stored, inc))
                 {
                     UpdateFields(stored, inc, now);
                     updated++;
@@ -153,16 +150,47 @@ public sealed class CommodityRepository(AppDbContext db) : ICommodityRepository
         stored.UpdatedAt = now;
     }
 
-    // Cheap change detection on the source-of-truth fields the feed can move. Avoids rewriting
-    // (and bumping updated_at on) rows that are byte-for-byte identical to the last import.
+    // Change detection across every promoted field UpdateFields writes, so a feed change to any
+    // promoted column (not just the scalars) is persisted. Avoids rewriting — and bumping
+    // updated_at on — rows that are identical to the last import. RawData is excluded: it is
+    // re-serialized by the jsonb round-trip, so comparing it would report spurious differences;
+    // any real source change is reflected in a promoted column below. The parsed int[] columns
+    // are covered by their raw string sources, and the *Utc timestamps by their raw long sources.
     private static bool HasChanges(Commodity stored, Commodity inc) =>
-        stored.Name != inc.Name ||
         stored.Uuid != inc.Uuid ||
+        stored.Name != inc.Name ||
         stored.Code != inc.Code ||
         stored.Slug != inc.Slug ||
         stored.Kind != inc.Kind ||
         stored.WeightScu != inc.WeightScu ||
         stored.IdParent != inc.IdParent ||
         stored.IdItem != inc.IdItem ||
+        stored.Wiki != inc.Wiki ||
+        stored.IdsStarSystemsRaw != inc.IdsStarSystemsRaw ||
+        stored.IdsPlanetsRaw != inc.IdsPlanetsRaw ||
+        stored.IdsMoonsRaw != inc.IdsMoonsRaw ||
+        stored.IdsPoiRaw != inc.IdsPoiRaw ||
+        stored.IdsOrbitsRaw != inc.IdsOrbitsRaw ||
+        stored.IsAvailable != inc.IsAvailable ||
+        stored.IsAvailableLive != inc.IsAvailableLive ||
+        stored.IsVisible != inc.IsVisible ||
+        stored.IsExtractable != inc.IsExtractable ||
+        stored.IsMineral != inc.IsMineral ||
+        stored.IsRaw != inc.IsRaw ||
+        stored.IsPure != inc.IsPure ||
+        stored.IsRefined != inc.IsRefined ||
+        stored.IsRefinable != inc.IsRefinable ||
+        stored.IsHarvestable != inc.IsHarvestable ||
+        stored.IsBuyable != inc.IsBuyable ||
+        stored.IsSellable != inc.IsSellable ||
+        stored.IsTemporary != inc.IsTemporary ||
+        stored.IsIllegal != inc.IsIllegal ||
+        stored.IsVolatileQt != inc.IsVolatileQt ||
+        stored.IsVolatileTime != inc.IsVolatileTime ||
+        stored.IsInert != inc.IsInert ||
+        stored.IsExplosive != inc.IsExplosive ||
+        stored.IsBuggy != inc.IsBuggy ||
+        stored.IsFuel != inc.IsFuel ||
+        stored.SourceDateAdded != inc.SourceDateAdded ||
         stored.SourceDateModified != inc.SourceDateModified;
 }

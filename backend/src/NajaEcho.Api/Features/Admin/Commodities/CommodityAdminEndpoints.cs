@@ -25,9 +25,7 @@ public static class CommodityAdminEndpoints
         int pageSize = 25,
         CancellationToken ct = default)
     {
-        page = Math.Max(1, page);
-        pageSize = Math.Clamp(pageSize, 1, 100);
-
+        // Paging is normalized in the handler (the use-case boundary); the endpoint stays thin.
         var result = await handler.HandleAsync(new GetCommoditiesQuery(page, pageSize), ct);
 
         var items = result.Items.Select(c => new CommodityListItemResponse(
