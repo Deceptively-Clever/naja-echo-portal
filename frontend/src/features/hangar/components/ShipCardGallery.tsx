@@ -1,6 +1,7 @@
 import { useCallback, useRef, useEffect, useState } from 'react'
 import type { HangarShipCard, OrgHangarShipCard } from '../schemas/hangarShipCard'
 import { ShipCard } from './ShipCard'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface ShipCardGalleryProps {
   ships: (HangarShipCard | OrgHangarShipCard)[]
@@ -81,6 +82,12 @@ export function ShipCardGallery({
       {/* Gallery grid */}
       {ships.length === 0 && !isLoading ? (
         <p className="text-sm text-muted-foreground py-8 text-center">{emptyStateMessage}</p>
+      ) : ships.length === 0 && isLoading ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+          {Array.from({ length: 10 }).map((_, i) => (
+            <Skeleton key={i} className="aspect-square rounded-lg" />
+          ))}
+        </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
           {ships.map((ship) => (
@@ -97,8 +104,12 @@ export function ShipCardGallery({
       {/* Infinite scroll sentinel — invisible, no pagination controls */}
       <div ref={sentinelRef} aria-hidden className="h-1" />
 
-      {isLoading && (
-        <p className="text-sm text-muted-foreground text-center py-2">Loading…</p>
+      {isLoading && ships.length > 0 && (
+        <div className="flex flex-col gap-2 py-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-6 w-full" />
+          ))}
+        </div>
       )}
     </div>
   )

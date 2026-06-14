@@ -94,7 +94,7 @@ describe('ImportHangarDialog', () => {
     const user = userEvent.setup()
     const onClose = vi.fn()
     render(<ImportHangarDialog open={true} onClose={onClose} />, { wrapper: createWrapper() })
-    await user.click(screen.getByLabelText(/close dialog/i))
+    await user.click(screen.getByRole('button', { name: /close/i }))
     expect(onClose).toHaveBeenCalledOnce()
   })
 

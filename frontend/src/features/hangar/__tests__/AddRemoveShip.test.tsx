@@ -58,7 +58,7 @@ describe('AddShipDialog', () => {
     const user = userEvent.setup()
     let closed = false
     render(<AddShipDialog open={true} onClose={() => { closed = true }} />, { wrapper: createWrapper() })
-    await user.click(screen.getByLabelText(/close dialog/i))
+    await user.click(screen.getByRole('button', { name: /close/i }))
     expect(closed).toBe(true)
   })
 

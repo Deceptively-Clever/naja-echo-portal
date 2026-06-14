@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge'
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { ShipListItem } from '../schemas/shipSchemas'
 import { useShipDetail } from '../hooks/useShipDetail'
 
@@ -24,7 +25,11 @@ export function ShipDetailSheet({ ship, onClose }: ShipDetailSheetProps) {
         </SheetHeader>
 
         {isLoading && (
-          <p className="mt-4 text-sm text-muted-foreground">Loading…</p>
+          <div className="mt-4 flex flex-col gap-2">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <Skeleton key={i} className="h-5 w-full" />
+            ))}
+          </div>
         )}
 
         {detail && (

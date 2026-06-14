@@ -27,11 +27,11 @@ export function MyHangarView() {
         <h1 className="text-2xl font-bold">My Hangar</h1>
         <div className="flex gap-2">
           <Button size="sm" variant="outline" onClick={() => setImportOpen(true)}>
-            <Upload className="h-4 w-4 mr-1" aria-hidden />
+            <Upload data-icon="inline-start" aria-hidden />
             Import
           </Button>
           <Button size="sm" onClick={() => setAddOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" aria-hidden />
+            <Plus data-icon="inline-start" aria-hidden />
             Add Ship
           </Button>
         </div>

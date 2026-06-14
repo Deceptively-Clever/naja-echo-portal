@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
-import { X, Plus, Check } from 'lucide-react'
+import { Plus, Check } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { useCatalogSearch } from '../hooks/useCatalogSearch'
 import { useAddShip } from '../hooks/useAddShip'
 import type { CatalogSearchItem } from '../schemas/catalogSearchItem'
@@ -14,7 +17,6 @@ export function AddShipDialog({ open, onClose }: AddShipDialogProps) {
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  // Debounce keystrokes so we issue one catalog request per pause, not per character
   useEffect(() => {
     const id = setTimeout(() => setDebouncedSearch(search), 300)
     return () => clearTimeout(id)
@@ -22,8 +24,6 @@ export function AddShipDialog({ open, onClose }: AddShipDialogProps) {
 
   const { data, isLoading } = useCatalogSearch(debouncedSearch)
   const { mutate: addShip, isPending } = useAddShip()
-
-  if (!open) return null
 
   const items = data?.items ?? []
 
@@ -37,45 +37,32 @@ export function AddShipDialog({ open, onClose }: AddShipDialogProps) {
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Add Ship"
-    >
-      <div className="relative bg-background border border-border rounded-lg shadow-xl w-full max-w-md mx-4 flex flex-col max-h-[80vh]">
+    <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
+      <DialogContent className="max-w-md flex flex-col max-h-[80vh] p-0 gap-0 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-border">
-          <h2 className="text-base font-semibold">Add Ship</h2>
-          <button onClick={onClose} aria-label="Close dialog" className="text-muted-foreground hover:text-foreground">
-            <X className="h-4 w-4" aria-hidden />
-          </button>
+        <div className="flex items-center px-4 py-3 border-b border-border">
+          <DialogTitle className="text-base font-semibold">Add Ship</DialogTitle>
         </div>
 
         {/* Search */}
-        <div className="p-4 border-b border-border">
+        <div className="px-4 py-3 border-b border-border">
           <input
             type="search"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search ship catalog…"
             autoFocus
-            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
             aria-label="Search ship catalog"
           />
         </div>
 
         {/* Feedback message */}
         {message && (
-          <div
-            role="status"
-            className={`mx-4 mt-3 p-2 rounded text-sm ${
-              message.type === 'success'
-                ? 'bg-green-50 text-green-800 dark:bg-green-900/20 dark:text-green-300'
-                : 'bg-destructive/10 text-destructive'
-            }`}
-          >
-            {message.text}
+          <div className="px-4 pt-3">
+            <Alert variant={message.type === 'error' ? 'destructive' : 'default'} role="status">
+              <AlertDescription>{message.text}</AlertDescription>
+            </Alert>
           </div>
         )}
 
@@ -107,20 +94,22 @@ export function AddShipDialog({ open, onClose }: AddShipDialogProps) {
                     Owned
                   </span>
                 ) : (
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => handleAdd(item)}
                     disabled={isPending}
                     aria-label={`Add ${item.name}`}
-                    className="p-1 rounded hover:bg-primary/10 text-primary disabled:opacity-50"
+                    className="h-8 w-8 shrink-0"
                   >
-                    <Plus className="h-4 w-4" aria-hidden />
-                  </button>
+                    <Plus aria-hidden />
+                  </Button>
                 )}
               </li>
             ))}
           </ul>
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

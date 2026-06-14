@@ -29,7 +29,7 @@ export function EditQuantityControl({ currentQuantity, onConfirm, onCancel, isPe
           id="edit-qty-input"
           aria-label="Quantity"
           type="number"
-          className="h-8 w-20 rounded border px-2 text-sm"
+          className="h-8 w-20 rounded-md border border-input bg-background px-2 text-sm text-foreground"
           value={value}
           onChange={(e) => setValue(Number(e.target.value))}
         />

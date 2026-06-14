@@ -16,7 +16,7 @@ export function AuthErrorPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="w-full max-w-md space-y-4">
+      <div className="flex flex-col gap-4 w-full max-w-md">
         <Alert variant="destructive">
           <AlertTitle>Sign-in could not be completed</AlertTitle>
           <AlertDescription>

@@ -8,6 +8,7 @@ import { useRemoveInventoryItem } from '../hooks/useRemoveInventoryItem'
 import { InventoryTable } from '../components/InventoryTable'
 import { InventoryFilters, type FilterValues } from '../components/InventoryFilters'
 import { AddInventoryDialog } from '../components/AddInventoryDialog'
+import { Skeleton } from '@/components/ui/skeleton'
 
 const emptyFilters: FilterValues = {
   name: '',
@@ -70,7 +71,11 @@ export function WarehouseItemsView() {
       />
 
       {isLoading ? (
-        <div className="py-8 text-center text-muted-foreground">Loading…</div>
+        <div className="flex flex-col gap-2">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Skeleton key={i} className="h-10 w-full" />
+          ))}
+        </div>
       ) : (
         <InventoryTable
           rows={rows}

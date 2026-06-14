@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Toggle } from '@/components/ui/toggle'
 import type { OrgHangarShipCard } from '../schemas/hangarShipCard'
 
 export function OrgHangarView() {
@@ -66,17 +67,16 @@ export function OrgHangarView() {
         headerSlot={
           <div className="flex gap-2 items-center flex-wrap">
             {/* My Ships toggle */}
-            <button
-              onClick={handleMineToggle}
-              aria-pressed={mine}
-              className={`px-3 py-1 text-xs rounded-full border transition-colors ${
-                mine
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'border-border text-muted-foreground hover:text-foreground'
-              }`}
+            <Toggle
+              pressed={mine}
+              onPressedChange={handleMineToggle}
+              variant="outline"
+              size="sm"
+              className="rounded-full text-xs"
+              aria-label="Show my ships only"
             >
               My Ships
-            </button>
+            </Toggle>
 
             {/* Member filter */}
             <Select
