@@ -6,13 +6,6 @@ import { server } from '@/tests/server'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { RefreshCategoriesButton } from '../components/RefreshCategoriesButton'
 
-const categoriesResponse = {
-  categories: [
-    { uexId: 1, name: 'Armor', section: 'Combat', type: 'item', isGameRelated: true, isMining: false, sourceDateModified: null, localItemCount: 5, lastImportedAt: null },
-  ],
-  lastRefreshedAt: '2026-01-01T00:00:00Z',
-}
-
 const refreshResponse = {
   fetched: 10, inserted: 8, updated: 2, unchanged: 0, failed: 0,
   startedAt: '2026-01-01T00:00:00Z', completedAt: '2026-01-01T00:00:01Z', durationMs: 1000,
