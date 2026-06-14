@@ -10,7 +10,10 @@ public sealed class ItemCategoryRepository(AppDbContext db) : IItemCategoryRepos
     public async Task<(int Inserted, int Updated, int Unchanged)> BulkUpsertAsync(
         IReadOnlyList<ItemCategory> incoming, CancellationToken ct = default)
     {
-        var incomingByUexId = incoming.ToDictionary(c => c.UexId);
+        // Tolerate duplicate uex_id in the feed (last record wins) rather than throwing on ToDictionary.
+        var incomingByUexId = incoming
+            .GroupBy(c => c.UexId)
+            .ToDictionary(g => g.Key, g => g.Last());
         var incomingIds = incomingByUexId.Keys.ToHashSet();
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
@@ -23,7 +26,7 @@ public sealed class ItemCategoryRepository(AppDbContext db) : IItemCategoryRepos
         int inserted = 0, updated = 0, unchanged = 0;
         var now = DateTimeOffset.UtcNow;
 
-        foreach (var inc in incoming)
+        foreach (var inc in incomingByUexId.Values)
         {
             if (existingByUexId.TryGetValue(inc.UexId, out var stored))
             {

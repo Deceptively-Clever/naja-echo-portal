@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using NajaEcho.Application.Abstractions;
@@ -100,7 +101,9 @@ public sealed class RefreshCategoriesHandler(
         if (!el.TryGetProperty(prop, out var v)) return null;
         if (v.ValueKind == JsonValueKind.Number && v.TryGetInt64(out var unix))
             return DateTimeOffset.FromUnixTimeSeconds(unix);
-        if (v.ValueKind == JsonValueKind.String && DateTimeOffset.TryParse(v.GetString(), out var dto))
+        if (v.ValueKind == JsonValueKind.String && DateTimeOffset.TryParse(
+                v.GetString(), CultureInfo.InvariantCulture,
+                DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var dto))
             return dto;
         return null;
     }

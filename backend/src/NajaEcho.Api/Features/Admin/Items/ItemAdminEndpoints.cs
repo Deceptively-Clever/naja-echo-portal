@@ -57,6 +57,13 @@ public static class ItemAdminEndpoints
                 statusCode: StatusCodes.Status502BadGateway,
                 title: ex.Message);
         }
+        catch (InvalidOperationException ex)
+        {
+            return Results.Problem(
+                detail: ex.Message,
+                statusCode: StatusCodes.Status502BadGateway,
+                title: "Invalid response from UEX categories feed.");
+        }
     }
 
     private static async Task<IResult> ImportItems(
@@ -91,6 +98,13 @@ public static class ItemAdminEndpoints
                 detail: "Failed to fetch items from the UEX API.",
                 statusCode: StatusCodes.Status502BadGateway,
                 title: ex.Message);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Results.Problem(
+                detail: ex.Message,
+                statusCode: StatusCodes.Status502BadGateway,
+                title: "Invalid response from the UEX items feed.");
         }
     }
 }

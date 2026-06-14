@@ -45,6 +45,13 @@ public static class ShipAdminEndpoints
                 statusCode: StatusCodes.Status502BadGateway,
                 title: ex.Message);
         }
+        catch (InvalidOperationException ex)
+        {
+            return Results.Problem(
+                detail: ex.Message,
+                statusCode: StatusCodes.Status502BadGateway,
+                title: "Invalid response from UEX vehicle feed.");
+        }
     }
 
     private static async Task<IResult> GetShips(

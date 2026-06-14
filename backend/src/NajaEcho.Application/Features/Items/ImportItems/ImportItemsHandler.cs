@@ -213,7 +213,10 @@ public sealed class ImportItemsHandler(
         if (!el.TryGetProperty(prop, out var v)) return null;
         if (v.ValueKind == System.Text.Json.JsonValueKind.Number && v.TryGetInt64(out var unix))
             return DateTimeOffset.FromUnixTimeSeconds(unix);
-        if (v.ValueKind == System.Text.Json.JsonValueKind.String && DateTimeOffset.TryParse(v.GetString(), out var dto))
+        if (v.ValueKind == System.Text.Json.JsonValueKind.String && DateTimeOffset.TryParse(
+                v.GetString(), System.Globalization.CultureInfo.InvariantCulture,
+                System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
+                out var dto))
             return dto;
         return null;
     }

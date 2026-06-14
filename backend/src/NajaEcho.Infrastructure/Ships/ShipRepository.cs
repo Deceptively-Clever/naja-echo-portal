@@ -10,7 +10,14 @@ public sealed class ShipRepository(AppDbContext db) : IShipRepository
     public async Task<(IReadOnlyList<Ship> Items, int TotalCount)> GetPagedAsync(
         int page, int pageSize, CancellationToken ct = default)
     {
-        var query = db.Ships.OrderBy(s => s.Name);
+        page = Math.Max(1, page);
+        pageSize = Math.Clamp(pageSize, 1, 100);
+
+        var query = db.Ships
+            .AsNoTracking()
+            .OrderBy(s => s.Name)
+            .ThenBy(s => s.UexId);
+
         var total = await query.CountAsync(ct);
         var items = await query
             .Skip((page - 1) * pageSize)
@@ -28,7 +35,10 @@ public sealed class ShipRepository(AppDbContext db) : IShipRepository
     public async Task<(int Added, int Updated, int Reactivated, int SoftDeleted)> BulkUpsertAsync(
         IReadOnlyList<Ship> incomingShips, CancellationToken ct = default)
     {
-        var incomingByUexId = incomingShips.ToDictionary(s => s.UexId);
+        // Tolerate duplicate uex_id in the feed (last record wins) rather than throwing on ToDictionary.
+        var incomingByUexId = incomingShips
+            .GroupBy(s => s.UexId)
+            .ToDictionary(g => g.Key, g => g.Last());
         var incomingIds = incomingByUexId.Keys.ToHashSet();
 
         await using var tx = await db.Database.BeginTransactionAsync(ct);
@@ -41,7 +51,7 @@ public sealed class ShipRepository(AppDbContext db) : IShipRepository
         int added = 0, updated = 0, reactivated = 0;
         var now = DateTimeOffset.UtcNow;
 
-        foreach (var incoming in incomingShips)
+        foreach (var incoming in incomingByUexId.Values)
         {
             if (existingByUexId.TryGetValue(incoming.UexId, out var stored))
             {
