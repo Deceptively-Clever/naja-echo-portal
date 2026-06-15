@@ -34,6 +34,7 @@ public sealed class ItemRepository(AppDbContext db) : IItemRepository
             if (existingByUexId.TryGetValue(inc.UexId, out var stored))
             {
                 var wasDeleted = stored.Status == ItemStatus.SoftDeleted;
+                var changed = HasChanges(stored, inc);
 
                 UpdateFields(stored, inc, now);
 
@@ -43,7 +44,7 @@ public sealed class ItemRepository(AppDbContext db) : IItemRepository
                     stored.SoftDeletedAt = null;
                     restored++;
                 }
-                else if (HasChanges(stored, inc))
+                else if (changed)
                 {
                     updated++;
                 }

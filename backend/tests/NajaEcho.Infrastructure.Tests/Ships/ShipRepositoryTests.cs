@@ -84,14 +84,15 @@ public sealed class ShipRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
         _db.ChangeTracker.Clear();
 
-        // Create a repo that will trigger a unique constraint violation by adding duplicate uex_ids
-        var duplicates = new List<Ship>
+        // Trigger a mid-transaction failure by inserting a row that violates the
+        // NOT NULL constraint on "name". The first ship is valid; the second is not.
+        // If the operation is transactional, neither should be persisted.
+        var badBatch = new List<Ship>
         {
-            new() { UexId = 2, Name = "New", RawData = MakeRaw(2, "New"), Status = ShipStatus.Active, ImportedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow },
-            new() { UexId = 2, Name = "Duplicate", RawData = MakeRaw(2, "Duplicate"), Status = ShipStatus.Active, ImportedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow },
+            new() { UexId = 2, Name = "Valid", RawData = MakeRaw(2, "Valid"), Status = ShipStatus.Active, ImportedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow },
+            new() { UexId = 3, Name = null!, RawData = MakeRaw(3, "Invalid"), Status = ShipStatus.Active, ImportedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow },
         };
 
-        // Since our BulkUpsertAsync processes them as new, the second will cause a unique constraint on uex_id
         var opts = new DbContextOptionsBuilder<AppDbContext>()
             .UseNpgsql(_pg.GetConnectionString())
             .UseSnakeCaseNamingConvention()
@@ -99,7 +100,7 @@ public sealed class ShipRepositoryTests : IAsyncLifetime
         using var freshDb = new AppDbContext(opts);
         var repo2 = new NajaEcho.Infrastructure.Ships.ShipRepository(freshDb);
 
-        await repo2.Invoking(r => r.BulkUpsertAsync(duplicates)).Should().ThrowAsync<Exception>();
+        await repo2.Invoking(r => r.BulkUpsertAsync(badBatch)).Should().ThrowAsync<Exception>();
 
         _db.ChangeTracker.Clear();
         var count = await _db.Ships.CountAsync();

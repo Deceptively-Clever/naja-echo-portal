@@ -113,10 +113,13 @@ public sealed class ItemCategoryRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
         _db.ChangeTracker.Clear();
 
-        var duplicates = new List<ItemCategory>
+        // Trigger a mid-transaction failure by inserting a row that violates the
+        // NOT NULL constraint on "name". The first category is valid; the second is not.
+        // If the operation is transactional, neither should be persisted.
+        var badBatch = new List<ItemCategory>
         {
-            new() { UexId = 2, Type = "item", Name = "New", RawData = MakeRaw(2, "New"), ImportedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow },
-            new() { UexId = 2, Type = "item", Name = "Duplicate", RawData = MakeRaw(2, "Duplicate"), ImportedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow },
+            new() { UexId = 2, Type = "item", Name = "Valid", RawData = MakeRaw(2, "Valid"), ImportedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow },
+            new() { UexId = 3, Type = "item", Name = null!, RawData = MakeRaw(3, "Invalid"), ImportedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow },
         };
 
         var opts = new DbContextOptionsBuilder<AppDbContext>()
@@ -126,7 +129,7 @@ public sealed class ItemCategoryRepositoryTests : IAsyncLifetime
         await using var freshDb = new AppDbContext(opts);
         var repo2 = new ItemCategoryRepository(freshDb);
 
-        await repo2.Invoking(r => r.BulkUpsertAsync(duplicates)).Should().ThrowAsync<Exception>();
+        await repo2.Invoking(r => r.BulkUpsertAsync(badBatch)).Should().ThrowAsync<Exception>();
 
         _db.ChangeTracker.Clear();
         (await _db.ItemCategories.CountAsync()).Should().Be(1);
