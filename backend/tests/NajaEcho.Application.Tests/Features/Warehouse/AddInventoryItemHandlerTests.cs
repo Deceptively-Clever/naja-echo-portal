@@ -1,12 +1,16 @@
+using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using NajaEcho.Application.Abstractions;
 using NajaEcho.Application.Features.Warehouse.AddInventoryItem;
-using NajaEcho.Application.Features.Warehouse.ChangeInventoryQuantity;
 using NajaEcho.Application.Features.Warehouse.GetInventory;
 using NajaEcho.Application.Features.Warehouse.GetInventoryFilters;
 using NajaEcho.Application.Features.Warehouse.SearchCatalogItems;
+using NajaEcho.Application.Features.Warehouse.ShipComponents.GetShipComponentFilters;
+using NajaEcho.Application.Features.Warehouse.ShipComponents.GetShipComponents;
+using NajaEcho.Application.Features.Warehouse.ShipComponents.SearchSystemsCatalog;
 using NajaEcho.Domain.Items;
+using NajaEcho.Domain.Warehouse;
 using Xunit;
 
 namespace NajaEcho.Application.Tests.Features.Warehouse;
@@ -40,9 +44,16 @@ public sealed class AddInventoryItemHandlerTests
     private sealed class FakeItemRepo : IItemRepository
     {
         public bool ItemExists { get; set; } = true;
+        public int UexId { get; set; } = 42;
         public Task<Item?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
-            Task.FromResult(ItemExists ? (Item?)new Item { Id = id, Name = "Test Item", Status = ItemStatus.Active, Uuid = id.ToString(), UexId = 1, IdCategory = 1, RawData = System.Text.Json.JsonDocument.Parse("{}"), ImportedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow } : null);
-        public Task<(int Inserted, int Updated, int Unchanged, int SoftDeleted, int Restored)> BulkUpsertForCategoryAsync(int idCategory, IReadOnlyList<Item> incoming, CancellationToken ct) =>
+            Task.FromResult(ItemExists ? (Item?)new Item
+            {
+                Id = id, Name = "Test Item", Status = ItemStatus.Active,
+                Uuid = id.ToString(), UexId = UexId, IdCategory = 1,
+                RawData = JsonDocument.Parse("{}"),
+                ImportedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow,
+            } : null);
+        public Task<(int, int, int, int, int)> BulkUpsertForCategoryAsync(int idCategory, IReadOnlyList<Item> incoming, CancellationToken ct) =>
             throw new NotImplementedException();
     }
 
@@ -54,43 +65,70 @@ public sealed class AddInventoryItemHandlerTests
             Task.FromResult<IReadOnlyList<(Guid, string)>>([]);
     }
 
-    private static AddInventoryItemHandler MakeHandler(FakeWarehouseRepo? repo = null, FakeItemRepo? itemRepo = null, FakeUserRepo? userRepo = null) =>
-        new(repo ?? new FakeWarehouseRepo(), itemRepo ?? new FakeItemRepo(), userRepo ?? new FakeUserRepo(), NullLogger<AddInventoryItemHandler>.Instance);
+    private sealed class FakeScRepo : IShipComponentRepository
+    {
+        public bool HasCache { get; set; }
+        public bool SaveCalled { get; private set; }
+        public bool UpsertCalled { get; private set; }
+
+        public Task<bool> HasCachedAttributesAsync(Guid id, CancellationToken ct) => Task.FromResult(HasCache);
+        public Task SaveItemAttributesAsync(IReadOnlyList<ItemAttribute> attrs, CancellationToken ct) { SaveCalled = true; return Task.CompletedTask; }
+        public Task UpsertShipComponentAttributesAsync(Guid id, DateTimeOffset at, CancellationToken ct) { UpsertCalled = true; return Task.CompletedTask; }
+        public Task<IReadOnlyList<ShipComponentRowDto>> GetShipComponentsAsync(GetShipComponentsQuery q, CancellationToken ct) => Task.FromResult<IReadOnlyList<ShipComponentRowDto>>([]);
+        public Task<ShipComponentFiltersDto> GetShipComponentFiltersAsync(CancellationToken ct) => Task.FromResult(new ShipComponentFiltersDto([], [], [], [], [], [], false, false, false));
+        public Task<IReadOnlyList<SystemsCatalogItemDto>> SearchSystemsCatalogAsync(string? s, int l, CancellationToken ct) => Task.FromResult<IReadOnlyList<SystemsCatalogItemDto>>([]);
+    }
+
+    private sealed class FakeAttrClient : IUexItemAttributeClient
+    {
+        public bool ShouldThrow { get; set; }
+        public int CallCount { get; private set; }
+        public Task<IReadOnlyList<JsonDocument>> FetchItemAttributesAsync(int uexItemId, CancellationToken ct = default)
+        {
+            CallCount++;
+            if (ShouldThrow) throw new HttpRequestException("UEX down");
+            return Task.FromResult<IReadOnlyList<JsonDocument>>([]);
+        }
+    }
+
+    private static AddInventoryItemHandler MakeHandler(
+        FakeWarehouseRepo? repo = null,
+        FakeItemRepo? itemRepo = null,
+        FakeUserRepo? userRepo = null,
+        FakeScRepo? scRepo = null,
+        FakeAttrClient? attrClient = null) =>
+        new(
+            repo ?? new FakeWarehouseRepo(),
+            itemRepo ?? new FakeItemRepo(),
+            userRepo ?? new FakeUserRepo(),
+            scRepo ?? new FakeScRepo(),
+            attrClient ?? new FakeAttrClient(),
+            NullLogger<AddInventoryItemHandler>.Instance);
 
     [Fact]
     public async Task HandleAsync_NewRow_ReturnsCreated()
     {
         var repo = new FakeWarehouseRepo { NextIsNew = true };
-        var handler = MakeHandler(repo);
-
-        var (row, isNew) = await handler.HandleAsync(
+        var (_, isNew) = await MakeHandler(repo).HandleAsync(
             new AddInventoryItemCommand(KnownItemId, KnownOwnerId, "Bay 1", 5), default);
-
         isNew.Should().BeTrue();
-        row.Should().NotBeNull();
     }
 
     [Fact]
     public async Task HandleAsync_ExistingRow_ReturnsIncrement()
     {
         var repo = new FakeWarehouseRepo { NextIsNew = false };
-        var handler = MakeHandler(repo);
-
-        var (row, isNew) = await handler.HandleAsync(
+        var (_, isNew) = await MakeHandler(repo).HandleAsync(
             new AddInventoryItemCommand(KnownItemId, KnownOwnerId, "Bay 1", 3), default);
-
         isNew.Should().BeFalse();
-        row.Should().NotBeNull();
     }
 
     [Fact]
     public async Task HandleAsync_LocationTrimmed_PassesTrimmedToRepository()
     {
         var repo = new FakeWarehouseRepo();
-        var handler = MakeHandler(repo);
-        var (row, _) = await handler.HandleAsync(
+        var (row, _) = await MakeHandler(repo).HandleAsync(
             new AddInventoryItemCommand(KnownItemId, KnownOwnerId, "  Bay 1  ", 1), default);
-
         row.Location.Should().Be("Bay 1");
     }
 
@@ -98,11 +136,8 @@ public sealed class AddInventoryItemHandlerTests
     public async Task HandleAsync_UnknownItem_ThrowsItemNotFoundException()
     {
         var itemRepo = new FakeItemRepo { ItemExists = false };
-        var handler = MakeHandler(itemRepo: itemRepo);
-
-        Func<Task> act = () => handler.HandleAsync(
+        var act = () => MakeHandler(itemRepo: itemRepo).HandleAsync(
             new AddInventoryItemCommand(KnownItemId, KnownOwnerId, "Bay 1", 1), default);
-
         await act.Should().ThrowAsync<ItemNotFoundException>();
     }
 
@@ -110,55 +145,82 @@ public sealed class AddInventoryItemHandlerTests
     public async Task HandleAsync_UnknownOwner_ThrowsOwnerNotFoundException()
     {
         var userRepo = new FakeUserRepo { UserExists = false };
-        var handler = MakeHandler(userRepo: userRepo);
-
-        Func<Task> act = () => handler.HandleAsync(
+        var act = () => MakeHandler(userRepo: userRepo).HandleAsync(
             new AddInventoryItemCommand(KnownItemId, KnownOwnerId, "Bay 1", 1), default);
-
         await act.Should().ThrowAsync<OwnerNotFoundException>();
     }
 
     [Fact]
     public async Task HandleAsync_EmptyLocation_ThrowsArgumentException()
     {
-        var handler = MakeHandler();
-
-        Func<Task> act = () => handler.HandleAsync(
+        var act = () => MakeHandler().HandleAsync(
             new AddInventoryItemCommand(KnownItemId, KnownOwnerId, "", 1), default);
-
         await act.Should().ThrowAsync<ArgumentException>();
     }
 
     [Fact]
     public async Task HandleAsync_WhitespaceLocation_ThrowsArgumentException()
     {
-        var handler = MakeHandler();
-
-        Func<Task> act = () => handler.HandleAsync(
+        var act = () => MakeHandler().HandleAsync(
             new AddInventoryItemCommand(KnownItemId, KnownOwnerId, "   ", 1), default);
-
         await act.Should().ThrowAsync<ArgumentException>();
     }
 
     [Fact]
     public async Task HandleAsync_ZeroQuantity_ThrowsArgumentOutOfRangeException()
     {
-        var handler = MakeHandler();
-
-        Func<Task> act = () => handler.HandleAsync(
+        var act = () => MakeHandler().HandleAsync(
             new AddInventoryItemCommand(KnownItemId, KnownOwnerId, "Bay 1", 0), default);
-
         await act.Should().ThrowAsync<ArgumentOutOfRangeException>();
     }
 
     [Fact]
     public async Task HandleAsync_NegativeQuantity_ThrowsArgumentOutOfRangeException()
     {
-        var handler = MakeHandler();
-
-        Func<Task> act = () => handler.HandleAsync(
+        var act = () => MakeHandler().HandleAsync(
             new AddInventoryItemCommand(KnownItemId, KnownOwnerId, "Bay 1", -1), default);
-
         await act.Should().ThrowAsync<ArgumentOutOfRangeException>();
+    }
+
+    // ── Attribute fetch tests ─────────────────────────────────────────────
+
+    [Fact]
+    public async Task HandleAsync_NoCachedAttributes_FetchesFromUex()
+    {
+        var attrClient = new FakeAttrClient();
+        var scRepo = new FakeScRepo { HasCache = false };
+        await MakeHandler(scRepo: scRepo, attrClient: attrClient).HandleAsync(
+            new AddInventoryItemCommand(KnownItemId, KnownOwnerId, "Bay 1", 1), default);
+        attrClient.CallCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task HandleAsync_CachedAttributesExist_SkipsFetch()
+    {
+        var attrClient = new FakeAttrClient();
+        var scRepo = new FakeScRepo { HasCache = true };
+        await MakeHandler(scRepo: scRepo, attrClient: attrClient).HandleAsync(
+            new AddInventoryItemCommand(KnownItemId, KnownOwnerId, "Bay 1", 1), default);
+        attrClient.CallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task HandleAsync_UexFetchFails_InventoryStillCreated()
+    {
+        var repo = new FakeWarehouseRepo();
+        var attrClient = new FakeAttrClient { ShouldThrow = true };
+        var act = () => MakeHandler(repo: repo, attrClient: attrClient).HandleAsync(
+            new AddInventoryItemCommand(KnownItemId, KnownOwnerId, "Bay 1", 1), default);
+        await act.Should().NotThrowAsync();
+    }
+
+    [Fact]
+    public async Task HandleAsync_ItemWithZeroUexId_SkipsFetch()
+    {
+        var itemRepo = new FakeItemRepo { UexId = 0 };
+        var attrClient = new FakeAttrClient();
+        await MakeHandler(itemRepo: itemRepo, attrClient: attrClient).HandleAsync(
+            new AddInventoryItemCommand(KnownItemId, KnownOwnerId, "Bay 1", 1), default);
+        attrClient.CallCount.Should().Be(0);
     }
 }

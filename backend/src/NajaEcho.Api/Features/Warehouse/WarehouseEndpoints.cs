@@ -7,6 +7,9 @@ using NajaEcho.Application.Features.Warehouse.GetInventory;
 using NajaEcho.Application.Features.Warehouse.GetInventoryFilters;
 using NajaEcho.Application.Features.Warehouse.RemoveInventoryItem;
 using NajaEcho.Application.Features.Warehouse.SearchCatalogItems;
+using NajaEcho.Application.Features.Warehouse.ShipComponents.GetShipComponentFilters;
+using NajaEcho.Application.Features.Warehouse.ShipComponents.GetShipComponents;
+using NajaEcho.Application.Features.Warehouse.ShipComponents.SearchSystemsCatalog;
 using Serilog;
 
 namespace NajaEcho.Api.Features.Warehouse;
@@ -17,6 +20,9 @@ public static class WarehouseEndpoints
     {
         var group = app.MapGroup("/api/warehouse").RequireAuthorization();
 
+        group.MapGet("/ship-components", GetShipComponents);
+        group.MapGet("/ship-components/filters", GetShipComponentFilters);
+        group.MapGet("/ship-components/catalog/search", SearchSystemsCatalog).RequireAuthorization(AuthorizationPolicies.Quartermaster);
         group.MapGet("/items", GetInventory);
         group.MapPost("/items", AddInventoryItem).RequireAuthorization(AuthorizationPolicies.Quartermaster);
         group.MapGet("/items/filters", GetInventoryFilters);
@@ -25,6 +31,81 @@ public static class WarehouseEndpoints
         group.MapDelete("/items/{id:guid}", RemoveInventoryItem).RequireAuthorization(AuthorizationPolicies.Quartermaster);
 
         return app;
+    }
+
+    // ── GET /api/warehouse/ship-components ───────────────────────────────
+
+    private static async Task<IResult> GetShipComponents(
+        ClaimsPrincipal user,
+        GetShipComponentsQueryHandler handler,
+        string? name = null,
+        string[]? type = null,
+        string[]? @class = null,
+        int[]? size = null,
+        string[]? grade = null,
+        Guid[]? ownerUserId = null,
+        string[]? location = null,
+        bool unknownClass = false,
+        bool unknownSize = false,
+        bool unknownGrade = false,
+        CancellationToken ct = default)
+    {
+        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+
+        Log.Information("GetShipComponents {CallerId} name={Name}", callerId, name);
+
+        var query = new GetShipComponentsQuery(name, type, @class, size, grade, ownerUserId, location, unknownClass, unknownSize, unknownGrade);
+        var rows = await handler.HandleAsync(query, ct);
+        var dto = new ShipComponentListResponse(rows.Select(r =>
+            new ShipComponentRowResponse(r.Id, r.ItemId, r.Name, r.Type, r.Class, r.Size, r.Grade, r.Quantity, r.OwnerUserId, r.OwnerDisplayName, r.Location)).ToList());
+
+        Log.Information("GetShipComponents {CallerId} returned {Count} rows", callerId, rows.Count);
+        return Results.Ok(dto);
+    }
+
+    // ── GET /api/warehouse/ship-components/filters ────────────────────────
+
+    private static async Task<IResult> GetShipComponentFilters(
+        ClaimsPrincipal user,
+        GetShipComponentFiltersQueryHandler handler,
+        CancellationToken ct = default)
+    {
+        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+
+        Log.Information("GetShipComponentFilters {CallerId}", callerId);
+
+        var dto = await handler.HandleAsync(new GetShipComponentFiltersQuery(), ct);
+        var response = new ShipComponentFiltersResponse(
+            dto.Types,
+            dto.Classes,
+            dto.Sizes,
+            dto.Grades,
+            dto.Owners.Select(o => new ShipComponentOwnerOption(o.UserId, o.DisplayName)).ToList(),
+            dto.Locations,
+            dto.UnknownClass,
+            dto.UnknownSize,
+            dto.UnknownGrade);
+
+        return Results.Ok(response);
+    }
+
+    // ── GET /api/warehouse/ship-components/catalog/search ─────────────────
+
+    private static async Task<IResult> SearchSystemsCatalog(
+        ClaimsPrincipal user,
+        SearchSystemsCatalogQueryHandler handler,
+        string? search = null,
+        int limit = 25,
+        CancellationToken ct = default)
+    {
+        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+
+        Log.Information("SearchSystemsCatalog {CallerId} search={Search}", callerId, search);
+
+        var results = await handler.HandleAsync(new SearchSystemsCatalogQuery(search, limit), ct);
+        var dto = new SystemsCatalogResponse(results.Select(r => new SystemsCatalogItemResponse(r.ItemId, r.Name, r.Type)).ToList());
+
+        return Results.Ok(dto);
     }
 
     // ── GET /api/warehouse/items ──────────────────────────────────────────

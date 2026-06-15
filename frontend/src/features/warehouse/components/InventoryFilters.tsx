@@ -1,10 +1,4 @@
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Combobox } from '@/components/ui/combobox'
 import type { InventoryFiltersResponse } from '../schemas/inventorySchemas'
 
 export interface FilterValues {
@@ -24,6 +18,10 @@ interface Props {
 export function InventoryFilters({ filters, values, onFilterChange }: Props) {
   const update = (patch: Partial<FilterValues>) => onFilterChange({ ...values, ...patch })
 
+  const typeOptions = filters.types.map((t) => ({ value: t, label: t }))
+  const subtypeOptions = filters.subtypes.map((s) => ({ value: s, label: s }))
+  const ownerOptions = filters.owners.map((o) => ({ value: o.userId, label: o.displayName }))
+
   return (
     <div className="flex flex-wrap gap-3">
       <div className="flex flex-col gap-1">
@@ -40,47 +38,41 @@ export function InventoryFilters({ filters, values, onFilterChange }: Props) {
 
       <div className="flex flex-col gap-1">
         <label className="text-xs text-muted-foreground">Type</label>
-        <Select value={values.type} onValueChange={(v) => update({ type: v === '__all__' ? '' : v })}>
-          <SelectTrigger aria-label="Type" className="w-40">
-            <SelectValue placeholder="All types" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">All types</SelectItem>
-            {filters.types.map((t) => (
-              <SelectItem key={t} value={t}>{t}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Combobox
+          options={typeOptions}
+          value={values.type}
+          onValueChange={(v) => update({ type: v })}
+          placeholder="All types"
+          searchPlaceholder="Search types…"
+          className="w-40"
+          aria-label="Type"
+        />
       </div>
 
       <div className="flex flex-col gap-1">
         <label className="text-xs text-muted-foreground">Subtype</label>
-        <Select value={values.subtype} onValueChange={(v) => update({ subtype: v === '__all__' ? '' : v })}>
-          <SelectTrigger aria-label="Subtype" className="w-40">
-            <SelectValue placeholder="All subtypes" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">All subtypes</SelectItem>
-            {filters.subtypes.map((s) => (
-              <SelectItem key={s} value={s}>{s}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Combobox
+          options={subtypeOptions}
+          value={values.subtype}
+          onValueChange={(v) => update({ subtype: v })}
+          placeholder="All subtypes"
+          searchPlaceholder="Search subtypes…"
+          className="w-40"
+          aria-label="Subtype"
+        />
       </div>
 
       <div className="flex flex-col gap-1">
         <label className="text-xs text-muted-foreground">Owner</label>
-        <Select value={values.ownerUserId} onValueChange={(v) => update({ ownerUserId: v === '__all__' ? '' : v })}>
-          <SelectTrigger aria-label="Owner" className="w-40">
-            <SelectValue placeholder="All owners" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="__all__">All owners</SelectItem>
-            {filters.owners.map((o) => (
-              <SelectItem key={o.userId} value={o.userId}>{o.displayName}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <Combobox
+          options={ownerOptions}
+          value={values.ownerUserId}
+          onValueChange={(v) => update({ ownerUserId: v })}
+          placeholder="All owners"
+          searchPlaceholder="Search owners…"
+          className="w-40"
+          aria-label="Owner"
+        />
       </div>
 
       <div className="flex flex-col gap-1">

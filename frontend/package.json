@@ -16,13 +16,15 @@
     "gen:api:hangar-import": "openapi-typescript ../specs/008-hangar-json-import/contracts/openapi.yaml -o src/lib/api/hangar-import.d.ts",
     "gen:api:items": "openapi-typescript ../specs/009-item-data-import/contracts/openapi.yaml -o src/lib/api/items.d.ts",
     "gen:api:commodities": "openapi-typescript ../specs/010-commodity-data-import/contracts/openapi.yaml -o src/lib/api/commodities.d.ts",
-    "gen:api:warehouse": "openapi-typescript ../specs/011-warehouse-item-inventory/contracts/openapi.yaml -o src/lib/api/warehouse.d.ts"
+    "gen:api:warehouse": "openapi-typescript ../specs/011-warehouse-item-inventory/contracts/openapi.yaml -o src/lib/api/warehouse.d.ts",
+    "gen:api:ship-components": "openapi-typescript ../specs/012-warehouse-ship-components/contracts/openapi.yaml -o src/lib/api/ship-components.d.ts"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.16",
     "@radix-ui/react-avatar": "^1.1.12",
     "@radix-ui/react-dialog": "^1.1.16",
     "@radix-ui/react-dropdown-menu": "^2.1.17",
+    "@radix-ui/react-popover": "^1.1.16",
     "@radix-ui/react-select": "^2.3.0",
     "@radix-ui/react-separator": "^1.1.9",
     "@radix-ui/react-tabs": "^1.1.14",
@@ -31,6 +33,7 @@
     "@testing-library/dom": "^10.4.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
     "lucide-react": "^1.17.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",

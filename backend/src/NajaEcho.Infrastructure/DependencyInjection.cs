@@ -26,6 +26,9 @@ using NajaEcho.Application.Features.Warehouse.SearchCatalogItems;
 using NajaEcho.Application.Features.Warehouse.AddInventoryItem;
 using NajaEcho.Application.Features.Warehouse.ChangeInventoryQuantity;
 using NajaEcho.Application.Features.Warehouse.RemoveInventoryItem;
+using NajaEcho.Application.Features.Warehouse.ShipComponents.GetShipComponentFilters;
+using NajaEcho.Application.Features.Warehouse.ShipComponents.GetShipComponents;
+using NajaEcho.Application.Features.Warehouse.ShipComponents.SearchSystemsCatalog;
 using NajaEcho.Infrastructure.Commodities;
 using NajaEcho.Infrastructure.Hangar;
 using NajaEcho.Infrastructure.Identity;
@@ -118,6 +121,17 @@ public static class DependencyInjection
         services.AddScoped<AddInventoryItemHandler>();
         services.AddScoped<ChangeInventoryQuantityHandler>();
         services.AddScoped<RemoveInventoryItemHandler>();
+
+        // Ship Components
+        services.AddScoped<IShipComponentRepository, ShipComponentRepository>();
+        services.AddScoped<GetShipComponentsQueryHandler>();
+        services.AddScoped<GetShipComponentFiltersQueryHandler>();
+        services.AddScoped<SearchSystemsCatalogQueryHandler>();
+        services.AddHttpClient<IUexItemAttributeClient, UexItemAttributeClient>(client =>
+        {
+            var baseUrl = configuration["UexVehicleClient:BaseUrl"] ?? "https://api.uexcorp.uk/2.0/";
+            client.BaseAddress = new Uri(baseUrl);
+        });
 
         // Role seeder (Admin + Quartermaster)
         services.AddScoped<RoleSeeder>();

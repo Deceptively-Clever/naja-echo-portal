@@ -1,0 +1,285 @@
+openapi: 3.0.3
+info:
+  title: NajaEchoPortal — Warehouse Ship Components API
+  version: 0.1.0
+  description: |
+    REST endpoints for the Warehouse → Ship Components subpage (`012-warehouse-ship-components`).
+    The SPA consumes types generated from this contract (Constitution I & III); it never accesses the
+    database directly.
+
+    Contract invariants:
+      - All endpoints under `/api/warehouse/**` require an authenticated session. Unauthenticated
+        browser requests are redirected to sign-in by the cookie scheme; API callers get 401
+        (FR-003, SC-009).
+      - READ endpoints (`GET /ship-components`, `GET /ship-components/filters`) are available to any
+        authenticated user (FR-003, FR-004).
+      - WRITE endpoints (`GET /ship-components/catalog/search`, `POST /ship-components`) require the
+        `Quartermaster` policy, satisfied by the `Quartermaster` OR `Admin` role (FR-005, FR-006).
+        Authenticated-but-unauthorized → 403 (SC-010).
+      - Ship Components list returns only inventory rows whose item Section is `Systems` (FR-007).
+        The Section field is never returned (FR-008).
+      - Class, Size, Grade are DERIVED from cached UEX item attributes (sc.ship_component_attributes),
+        nullable in the payload; the client renders null as "Unknown" (FR-012, FR-014). They are
+        read-only and never editable from this page (FR-024).
+      - Default sort: name ASC, type ASC, size ASC, class ASC, grade ASC; null component attributes
+        sort last (FR-015).
+      - Filters: name = partial case-insensitive; type/class/size/grade/owner/location = selectable,
+        AND across fields, OR within a field (repeated query params); empty ignored; "Unknown" can be
+        requested explicitly via the unknown* flags without "Unknown" being a stored value
+        (FR-016..FR-022). Filter options derive from current Ship Component inventory only.
+      - `POST /ship-components` restricts items to the `Systems` section (FR-023, SC-008) and lazily
+        fetches + caches UEX attributes on first add of an uncached item; a fetch failure does NOT
+        block inventory creation (attributes remain Unknown).
+      - Edit (quantity) and delete reuse the existing feature-011 endpoints
+        `PUT /api/warehouse/items/{id}/quantity` and `DELETE /api/warehouse/items/{id}` unchanged;
+        they are referenced here for completeness but defined by `011-warehouse-item-inventory`.
+
+servers:
+  - url: http://localhost:5080
+    description: Local development
+  - url: https://api.example.invalid
+    description: Production (placeholder)
+
+tags:
+  - name: ShipComponents
+    description: Warehouse Ship Components inventory (Systems-scoped read + Quartermaster writes)
+
+paths:
+  /api/warehouse/ship-components:
+    get:
+      tags: [ShipComponents]
+      operationId: getShipComponents
+      summary: List Systems-scoped ship component inventory, filtered and multi-key sorted.
+      parameters:
+        - { name: name, in: query, required: false, schema: { type: string }, description: Partial item name, case-insensitive. }
+        - { name: type, in: query, required: false, schema: { type: array, items: { type: string } }, style: form, explode: true, description: Item category (Type). Repeatable → OR. }
+        - { name: class, in: query, required: false, schema: { type: array, items: { type: string } }, style: form, explode: true, description: Component class. Repeatable → OR. }
+        - { name: size, in: query, required: false, schema: { type: array, items: { type: integer } }, style: form, explode: true, description: Component size. Repeatable → OR. }
+        - { name: grade, in: query, required: false, schema: { type: array, items: { type: string } }, style: form, explode: true, description: Component grade. Repeatable → OR. }
+        - { name: ownerUserId, in: query, required: false, schema: { type: array, items: { type: string, format: uuid } }, style: form, explode: true, description: Owner. Repeatable → OR. }
+        - { name: location, in: query, required: false, schema: { type: array, items: { type: string } }, style: form, explode: true, description: Location. Repeatable → OR. }
+        - { name: unknownClass, in: query, required: false, schema: { type: boolean }, description: Include rows whose Class is Unknown (null), OR-combined with selected class values. }
+        - { name: unknownSize, in: query, required: false, schema: { type: boolean }, description: Include rows whose Size is Unknown (null). }
+        - { name: unknownGrade, in: query, required: false, schema: { type: boolean }, description: Include rows whose Grade is Unknown (null). }
+      responses:
+        '200':
+          description: Filtered, sorted Systems-scoped inventory list.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ShipComponentListResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [ShipComponents]
+      operationId: addShipComponent
+      summary: Add (or increment) a Systems-item inventory row; lazily fetch + cache UEX attributes.
+      description: |
+        Restricts the item to the Systems section (non-Systems → 422). On first add of an item with no
+        cached attributes, fetches `items_attributes` from UEX and builds the typed projection; a UEX
+        failure is logged and ignored (row still created, attributes Unknown). Increments an existing
+        matching (item, owner, location) row, otherwise inserts a new row.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AddShipComponentRequest' }
+      responses:
+        '201':
+          description: Row created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ShipComponentRow' }
+        '200':
+          description: Existing row incremented.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ShipComponentRow' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: Item or owner not found.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+        '422':
+          description: Item is not in the Systems section (not addable from Ship Components).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+
+  /api/warehouse/ship-components/filters:
+    get:
+      tags: [ShipComponents]
+      operationId: getShipComponentFilters
+      summary: Selectable filter options derived from current Ship Component inventory only.
+      responses:
+        '200':
+          description: Filter option lists and Unknown availability flags.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ShipComponentFiltersResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/warehouse/ship-components/catalog/search:
+    get:
+      tags: [ShipComponents]
+      operationId: searchSystemsCatalog
+      summary: Catalog search restricted to Systems items, for the add flow (Quartermaster).
+      parameters:
+        - { name: search, in: query, required: false, schema: { type: string }, description: Partial item name, case-insensitive. }
+        - { name: limit, in: query, required: false, schema: { type: integer, default: 25, minimum: 1, maximum: 100 } }
+      responses:
+        '200':
+          description: Matching Systems catalog items.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/SystemsCatalogResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /api/warehouse/items/{id}/quantity:
+    put:
+      tags: [ShipComponents]
+      operationId: changeShipComponentQuantity
+      summary: (Reused from 011) Replace an inventory row's quantity.
+      description: Defined by `011-warehouse-item-inventory`; reused unchanged for Ship Component rows.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [quantity]
+              properties:
+                quantity: { type: integer, minimum: 1 }
+      responses:
+        '200':
+          description: Updated row.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ShipComponentRow' }
+        '400': { $ref: '#/components/responses/ValidationError' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: Inventory row not found.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+
+  /api/warehouse/items/{id}:
+    delete:
+      tags: [ShipComponents]
+      operationId: removeShipComponent
+      summary: (Reused from 011) Remove an inventory row; the catalog item is untouched.
+      description: Defined by `011-warehouse-item-inventory`; reused unchanged for Ship Component rows.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204': { description: Removed. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: Inventory row not found.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+
+components:
+  responses:
+    Unauthorized:
+      description: No authenticated session.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    Forbidden:
+      description: Authenticated but lacks the Quartermaster/Admin role.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    ValidationError:
+      description: Request failed validation.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+
+  schemas:
+    ShipComponentRow:
+      type: object
+      required: [id, itemId, name, quantity, ownerUserId, ownerDisplayName, location]
+      properties:
+        id: { type: string, format: uuid, description: Inventory row id (for edit/delete). }
+        itemId: { type: string, format: uuid }
+        name: { type: string, description: Item/component name. }
+        type: { type: string, nullable: true, description: Item category name. }
+        class: { type: string, nullable: true, description: Derived; null → render "Unknown". }
+        size: { type: integer, nullable: true, description: Derived; null → render "Unknown". }
+        grade: { type: string, nullable: true, description: Derived; null → render "Unknown". }
+        quantity: { type: integer }
+        ownerUserId: { type: string, format: uuid }
+        ownerDisplayName: { type: string }
+        location: { type: string }
+
+    ShipComponentListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/ShipComponentRow' }
+
+    OwnerOption:
+      type: object
+      required: [userId, displayName]
+      properties:
+        userId: { type: string, format: uuid }
+        displayName: { type: string }
+
+    ShipComponentFiltersResponse:
+      type: object
+      required: [types, classes, sizes, grades, owners, locations, unknownClass, unknownSize, unknownGrade]
+      properties:
+        types: { type: array, items: { type: string } }
+        classes: { type: array, items: { type: string } }
+        sizes: { type: array, items: { type: integer } }
+        grades: { type: array, items: { type: string } }
+        owners: { type: array, items: { $ref: '#/components/schemas/OwnerOption' } }
+        locations: { type: array, items: { type: string } }
+        unknownClass: { type: boolean }
+        unknownSize: { type: boolean }
+        unknownGrade: { type: boolean }
+
+    SystemsCatalogItem:
+      type: object
+      required: [itemId, name]
+      properties:
+        itemId: { type: string, format: uuid }
+        name: { type: string }
+        type: { type: string, nullable: true, description: Item category name. }
+
+    SystemsCatalogResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/SystemsCatalogItem' }
+
+    AddShipComponentRequest:
+      type: object
+      required: [itemId, location, quantity]
+      properties:
+        itemId: { type: string, format: uuid, description: Must reference an Active Systems item. }
+        ownerUserId: { type: string, format: uuid, nullable: true, description: Defaults to the caller. }
+        location: { type: string, description: Required; trimmed server-side; rejected when empty. }
+        quantity: { type: integer, minimum: 1 }
+
+    ProblemDetails:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }

@@ -764,6 +764,113 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                     b.ToTable("ships", "sc");
                 });
 
+            modelBuilder.Entity("NajaEcho.Domain.Warehouse.ItemAttribute", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AttributeName")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("attribute_name");
+
+                    b.Property<DateTimeOffset>("FetchedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fetched_at");
+
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("item_id");
+
+                    b.Property<DateTimeOffset?>("SourceDateAdded")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("source_date_added");
+
+                    b.Property<DateTimeOffset?>("SourceDateModified")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("source_date_modified");
+
+                    b.Property<int?>("UexAttributeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("uex_attribute_id");
+
+                    b.Property<int>("UexCategoryAttributeId")
+                        .HasColumnType("integer")
+                        .HasColumnName("uex_category_attribute_id");
+
+                    b.Property<int?>("UexCategoryId")
+                        .HasColumnType("integer")
+                        .HasColumnName("uex_category_id");
+
+                    b.Property<int>("UexItemId")
+                        .HasColumnType("integer")
+                        .HasColumnName("uex_item_id");
+
+                    b.Property<string>("Unit")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("unit");
+
+                    b.Property<string>("Value")
+                        .HasMaxLength(1024)
+                        .HasColumnType("character varying(1024)")
+                        .HasColumnName("value");
+
+                    b.HasKey("Id")
+                        .HasName("pk_item_attributes");
+
+                    b.HasIndex("ItemId")
+                        .HasDatabaseName("ix_item_attributes_item_id");
+
+                    b.HasIndex("ItemId", "UexCategoryAttributeId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_item_attributes_item_category_attr");
+
+                    b.ToTable("item_attributes", "sc");
+                });
+
+            modelBuilder.Entity("NajaEcho.Domain.Warehouse.ShipComponentAttributes", b =>
+                {
+                    b.Property<Guid>("ItemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("item_id");
+
+                    b.Property<DateTimeOffset>("AttributesFetchedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("attributes_fetched_at");
+
+                    b.Property<string>("Class")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("class");
+
+                    b.Property<string>("Grade")
+                        .HasMaxLength(128)
+                        .HasColumnType("character varying(128)")
+                        .HasColumnName("grade");
+
+                    b.Property<int?>("Size")
+                        .HasColumnType("integer")
+                        .HasColumnName("size");
+
+                    b.HasKey("ItemId")
+                        .HasName("pk_ship_component_attributes");
+
+                    b.HasIndex("Class")
+                        .HasDatabaseName("ix_ship_component_attributes_class");
+
+                    b.HasIndex("Grade")
+                        .HasDatabaseName("ix_ship_component_attributes_grade");
+
+                    b.HasIndex("Size")
+                        .HasDatabaseName("ix_ship_component_attributes_size");
+
+                    b.ToTable("ship_component_attributes", "sc");
+                });
+
             modelBuilder.Entity("NajaEcho.Domain.Warehouse.WarehouseInventoryEntry", b =>
                 {
                     b.Property<Guid>("Id")
@@ -974,6 +1081,26 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_hangar_entries_ship_id");
+                });
+
+            modelBuilder.Entity("NajaEcho.Domain.Warehouse.ItemAttribute", b =>
+                {
+                    b.HasOne("NajaEcho.Domain.Items.Item", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_item_attributes_item_id");
+                });
+
+            modelBuilder.Entity("NajaEcho.Domain.Warehouse.ShipComponentAttributes", b =>
+                {
+                    b.HasOne("NajaEcho.Domain.Items.Item", null)
+                        .WithMany()
+                        .HasForeignKey("ItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_ship_component_attributes_item_id");
                 });
 
             modelBuilder.Entity("NajaEcho.Domain.Warehouse.WarehouseInventoryEntry", b =>

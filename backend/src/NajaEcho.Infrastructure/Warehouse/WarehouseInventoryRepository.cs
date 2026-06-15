@@ -71,10 +71,9 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
             """).ToListAsync(ct);
 
         var owners = await db.Database.SqlQuery<OwnerRow>($"""
-            SELECT DISTINCT u.id AS user_id, u.display_name AS display_name
-            FROM warehouse_inventory w
-            JOIN "AspNetUsers" u ON u.id = w.owner_user_id
-            ORDER BY u.display_name
+            SELECT id AS user_id, display_name AS display_name
+            FROM "AspNetUsers"
+            ORDER BY display_name
             """).ToListAsync(ct);
 
         return new InventoryFiltersDto(

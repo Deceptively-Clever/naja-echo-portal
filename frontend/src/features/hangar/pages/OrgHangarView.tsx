@@ -3,15 +3,14 @@ import { useOrgHangar } from '../hooks/useOrgHangar'
 import { useOwningMembers } from '../hooks/useOwningMembers'
 import { ShipCardGallery } from '../components/ShipCardGallery'
 import { OwnerCountBadge } from '../components/OwnerCountBadge'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Combobox } from '@/components/ui/combobox'
 import { Toggle } from '@/components/ui/toggle'
 import type { OrgHangarShipCard } from '../schemas/hangarShipCard'
+
+const SORT_OPTIONS = [
+  { value: 'ownerCount', label: 'Most Owners' },
+  { value: 'name', label: 'Ship Name' },
+]
 
 export function OrgHangarView() {
   const [search, setSearch] = useState('')
@@ -24,19 +23,15 @@ export function OrgHangarView() {
 
   const ships = data?.pages.flatMap((p) => p.items) ?? []
 
+  const memberOptions = (members ?? []).map((m) => ({ value: m.userId, label: m.displayName }))
+
   const handleMemberChange = (id: string) => {
-    if (id === '') {
-      setMemberId(undefined)
-    } else {
-      setMemberId(id)
-      setMine(false)
-    }
+    setMemberId(id || undefined)
+    if (id) setMine(false)
   }
 
   const handleMineToggle = () => {
-    if (!mine) {
-      setMemberId(undefined)
-    }
+    if (!mine) setMemberId(undefined)
     setMine((prev) => !prev)
   }
 
@@ -66,7 +61,6 @@ export function OrgHangarView() {
         }}
         headerSlot={
           <div className="flex gap-2 items-center flex-wrap">
-            {/* My Ships toggle */}
             <Toggle
               pressed={mine}
               onPressedChange={handleMineToggle}
@@ -78,34 +72,25 @@ export function OrgHangarView() {
               My Ships
             </Toggle>
 
-            {/* Member filter */}
-            <Select
+            <Combobox
+              options={memberOptions}
               value={memberId ?? ''}
-              onValueChange={(v) => handleMemberChange(v === '__all__' ? '' : v)}
-            >
-              <SelectTrigger aria-label="Filter by member" className="h-8 w-36 text-xs">
-                <SelectValue placeholder="All Members" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__all__">All Members</SelectItem>
-                {(members ?? []).map((m) => (
-                  <SelectItem key={m.userId} value={m.userId}>
-                    {m.displayName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              onValueChange={handleMemberChange}
+              placeholder="All Members"
+              searchPlaceholder="Search members…"
+              className="h-8 w-36 text-xs"
+              aria-label="Filter by member"
+            />
 
-            {/* Sort control */}
-            <Select value={sortBy} onValueChange={(v) => setSortBy(v as 'ownerCount' | 'name')}>
-              <SelectTrigger aria-label="Sort by" className="h-8 w-36 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ownerCount">Most Owners</SelectItem>
-                <SelectItem value="name">Ship Name</SelectItem>
-              </SelectContent>
-            </Select>
+            <Combobox
+              options={SORT_OPTIONS}
+              value={sortBy}
+              onValueChange={(v) => { if (v) setSortBy(v as 'ownerCount' | 'name') }}
+              placeholder="Sort by…"
+              searchPlaceholder="Search…"
+              className="h-8 w-36 text-xs"
+              aria-label="Sort by"
+            />
           </div>
         }
       />

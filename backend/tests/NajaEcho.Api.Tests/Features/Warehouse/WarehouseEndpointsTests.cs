@@ -12,10 +12,15 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using System.Text.Json;
 using NajaEcho.Application.Abstractions;
 using NajaEcho.Application.Features.Warehouse.GetInventory;
 using NajaEcho.Application.Features.Warehouse.GetInventoryFilters;
 using NajaEcho.Application.Features.Warehouse.SearchCatalogItems;
+using NajaEcho.Application.Features.Warehouse.ShipComponents.GetShipComponentFilters;
+using NajaEcho.Application.Features.Warehouse.ShipComponents.GetShipComponents;
+using NajaEcho.Application.Features.Warehouse.ShipComponents.SearchSystemsCatalog;
+using NajaEcho.Domain.Warehouse;
 using NajaEcho.Infrastructure.Persistence;
 using Xunit;
 
@@ -62,6 +67,12 @@ public sealed class WarehouseEndpointsTests : IClassFixture<WebApplicationFactor
 
                 services.RemoveAll<IUserRepository>();
                 services.AddSingleton<IUserRepository, WarehouseFakeUserRepo>();
+
+                services.RemoveAll<IShipComponentRepository>();
+                services.AddSingleton<IShipComponentRepository, WarehouseFakeShipComponentRepo>();
+
+                services.RemoveAll<IUexItemAttributeClient>();
+                services.AddSingleton<IUexItemAttributeClient, WarehouseFakeUexAttrClient>();
 
                 services.AddAuthentication()
                     .AddScheme<AuthenticationSchemeOptions, WarehouseTestAuthHandler>(
@@ -393,6 +404,25 @@ internal sealed class WarehouseFakeLoginService : IExternalLoginService
 
     public Task<LocalUser?> GetByIdAsync(Guid userId, CancellationToken ct = default) =>
         Task.FromResult<LocalUser?>(new LocalUser(userId, "Test", "test"));
+}
+
+internal sealed class WarehouseFakeShipComponentRepo : IShipComponentRepository
+{
+    public Task<bool> HasCachedAttributesAsync(Guid itemId, CancellationToken ct) => Task.FromResult(true);
+    public Task SaveItemAttributesAsync(IReadOnlyList<ItemAttribute> attributes, CancellationToken ct) => Task.CompletedTask;
+    public Task UpsertShipComponentAttributesAsync(Guid itemId, DateTimeOffset fetchedAt, CancellationToken ct) => Task.CompletedTask;
+    public Task<IReadOnlyList<ShipComponentRowDto>> GetShipComponentsAsync(GetShipComponentsQuery query, CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<ShipComponentRowDto>>([]);
+    public Task<ShipComponentFiltersDto> GetShipComponentFiltersAsync(CancellationToken ct) =>
+        Task.FromResult(new ShipComponentFiltersDto([], [], [], [], [], [], false, false, false));
+    public Task<IReadOnlyList<SystemsCatalogItemDto>> SearchSystemsCatalogAsync(string? search, int limit, CancellationToken ct) =>
+        Task.FromResult<IReadOnlyList<SystemsCatalogItemDto>>([]);
+}
+
+internal sealed class WarehouseFakeUexAttrClient : IUexItemAttributeClient
+{
+    public Task<IReadOnlyList<JsonDocument>> FetchItemAttributesAsync(int uexItemId, CancellationToken ct = default) =>
+        Task.FromResult<IReadOnlyList<JsonDocument>>([]);
 }
 
 internal sealed class WarehouseTestAuthHandler(

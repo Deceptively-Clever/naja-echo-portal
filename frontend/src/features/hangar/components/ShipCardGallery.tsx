@@ -29,8 +29,14 @@ export function ShipCardGallery({
   headerSlot,
 }: ShipCardGalleryProps) {
   const [inputValue, setInputValue] = useState(search)
+  const [prevSearch, setPrevSearch] = useState(search)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
+
+  if (prevSearch !== search) {
+    setPrevSearch(search)
+    setInputValue(search)
+  }
 
   const handleInput = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,11 +49,6 @@ export function ShipCardGallery({
     },
     [onSearchChange]
   )
-
-  // Keep local input in sync when parent resets search externally
-  useEffect(() => {
-    setInputValue(search)
-  }, [search])
 
   // IntersectionObserver for infinite scroll sentinel
   useEffect(() => {

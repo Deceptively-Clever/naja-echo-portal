@@ -1,0 +1,3 @@
+namespace NajaEcho.Application.Features.Warehouse.ShipComponents.GetShipComponentFilters;
+
+public sealed record GetShipComponentFiltersQuery;
