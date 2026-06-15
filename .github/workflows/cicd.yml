@@ -1,0 +1,204 @@
+# .github/workflows/ci-cd.yml
+name: ci-cd
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+env:
+  DOTNET_VERSION: '10.0.x'
+  NODE_VERSION: '22'
+
+jobs:
+  backend:
+    name: Backend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore
+        working-directory: backend
+        run: dotnet restore NajaEcho.slnx
+
+      - name: Build
+        working-directory: backend
+        run: dotnet build NajaEcho.slnx --no-restore -c Release
+
+
+      - name: Test
+        working-directory: backend
+        run: >
+
+          dotnet test NajaEcho.slnx
+
+          --no-build
+          -c Release
+          --results-directory TestResults
+          --logger "trx;LogFileName=test-results.trx"
+
+      - name: Upload backend test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-test-results
+          path: backend/TestResults/*.trx
+          if-no-files-found: ignore
+
+  frontend:
+    name: Frontend
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install
+        working-directory: frontend
+        run: npm ci
+
+      - name: Lint
+        working-directory: frontend
+        run: npm run lint
+
+      - name: Test
+        working-directory: frontend
+        run: npm run test:run
+
+      - name: Build
+        working-directory: frontend
+        run: npm run build
+
+      - name: Package frontend dist
+        if: github.event_name != 'pull_request'
+        run: tar -C frontend/dist -czf frontend-dist.tar.gz .
+
+      - name: Upload frontend dist
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend-dist.tar.gz
+
+          if-no-files-found: error
+
+  deploy:
+    name: Deploy Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: [backend, frontend]
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+
+    concurrency:
+
+      group: deploy-production
+      cancel-in-progress: false
+
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set lowercase image name
+        run: |
+          OWNER_LC="$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')"
+          echo "IMAGE_NAME=ghcr.io/${OWNER_LC}/najaecho-api" >> "$GITHUB_ENV"
+
+      - name: Log in to GHCR
+
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push API image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ github.sha }}
+            ${{ env.IMAGE_NAME }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Download frontend dist
+        uses: actions/download-artifact@v4
+
+        with:
+          name: frontend-dist
+          path: .
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}
+
+      - name: Restore backend packages
+        working-directory: backend
+        run: dotnet restore NajaEcho.slnx
+
+      - name: Restore .NET tools
+        working-directory: backend
+        run: dotnet tool restore
+
+      - name: Build EF migration bundle
+
+        working-directory: backend
+        run: |
+          dotnet ef migrations bundle \
+            --project src/NajaEcho.Infrastructure/NajaEcho.Infrastructure.csproj \
+            --startup-project src/NajaEcho.Api/NajaEcho.Api.csproj \
+            --configuration Release \
+            --self-contained \
+            -r linux-x64 \
+            -o ../efbundle \
+            --force
+
+      - name: Copy artifacts to VM
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host:     ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key:      ${{ secrets.DEPLOY_SSH_KEY }}
+          source:   "efbundle,frontend-dist.tar.gz"
+          target:   "/tmp/najaecho-deploy"
+          rm:       true
+
+      - name: Run deploy script on VM
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host:     ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key:      ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            sudo /opt/najaecho/deploy.sh ${{ github.sha }}
