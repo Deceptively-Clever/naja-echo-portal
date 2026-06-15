@@ -44,9 +44,7 @@ jobs:
       - name: Test
         working-directory: backend
         run: >
-
           dotnet test NajaEcho.slnx
-
           --no-build
           -c Release
           --results-directory TestResults
