@@ -84,10 +84,11 @@ public sealed class WarehouseInventoryRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();
-        var (row, isNew) = await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 3, default);
+        var (row, isNew) = await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 3, 700, default);
 
         isNew.Should().BeTrue();
         row.Quantity.Should().Be(3);
+        row.Quality.Should().Be(700);
         row.Location.Should().Be("Bay 1");
     }
 
@@ -99,11 +100,12 @@ public sealed class WarehouseInventoryRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();
-        await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 3, default);
-        var (row, isNew) = await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 2, default);
+        await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 3, 500, default);
+        var (row, isNew) = await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 2, 650, default);
 
         isNew.Should().BeFalse();
         row.Quantity.Should().Be(5);
+        row.Quality.Should().Be(650);
     }
 
     [Fact]
@@ -114,8 +116,8 @@ public sealed class WarehouseInventoryRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();
-        var (row1, isNew1) = await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 1, default);
-        var (row2, isNew2) = await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 2", 1, default);
+        var (row1, isNew1) = await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 1, 500, default);
+        var (row2, isNew2) = await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 2", 1, 500, default);
 
         isNew1.Should().BeTrue();
         isNew2.Should().BeTrue();
@@ -131,8 +133,8 @@ public sealed class WarehouseInventoryRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();
-        var (row1, isNew1) = await repo.AddOrIncrementAsync(item.Id, user1.Id, "Bay 1", 1, default);
-        var (row2, isNew2) = await repo.AddOrIncrementAsync(item.Id, user2.Id, "Bay 1", 1, default);
+        var (row1, isNew1) = await repo.AddOrIncrementAsync(item.Id, user1.Id, "Bay 1", 1, 500, default);
+        var (row2, isNew2) = await repo.AddOrIncrementAsync(item.Id, user2.Id, "Bay 1", 1, 500, default);
 
         isNew1.Should().BeTrue();
         isNew2.Should().BeTrue();
@@ -147,10 +149,10 @@ public sealed class WarehouseInventoryRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();
-        await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 1, default);
+        await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 1, 500, default);
 
         // Second call must not create a second row — must increment
-        await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 4, default);
+        await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 4, 500, default);
 
         var count = await _db.WarehouseInventory.CountAsync();
         count.Should().Be(1);
@@ -166,7 +168,7 @@ public sealed class WarehouseInventoryRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();
-        var (created, _) = await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 5, default);
+        var (created, _) = await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 5, 500, default);
         var updated = await repo.UpdateQuantityAsync(created.Id, 12, default);
 
         updated.Quantity.Should().Be(12);
@@ -190,7 +192,7 @@ public sealed class WarehouseInventoryRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();
-        var (created, _) = await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 1, default);
+        var (created, _) = await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 1, 500, default);
         await repo.RemoveAsync(created.Id, default);
 
         var exists = await _db.WarehouseInventory.AnyAsync(w => w.Id == created.Id);
@@ -205,7 +207,7 @@ public sealed class WarehouseInventoryRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();
-        var (created, _) = await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 1, default);
+        var (created, _) = await repo.AddOrIncrementAsync(item.Id, user.Id, "Bay 1", 1, 500, default);
         await repo.RemoveAsync(created.Id, default);
 
         var itemStillExists = await _db.Items.AnyAsync(i => i.Id == item.Id);

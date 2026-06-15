@@ -7,6 +7,7 @@ public sealed record InventoryRowDto(
     string? Type,
     string? Subtype,
     int Quantity,
+    int Quality,
     Guid OwnerUserId,
     string OwnerDisplayName,
     string Location);

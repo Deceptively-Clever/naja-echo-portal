@@ -32,6 +32,7 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
               i.section             AS type,
               i.category            AS subtype,
               w.quantity            AS quantity,
+              w.quality             AS quality,
               w.owner_user_id       AS owner_user_id,
               u.display_name        AS owner_display_name,
               w.location            AS location
@@ -47,13 +48,13 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
             """).ToListAsync(ct);
 
         return rows.Select(r => new InventoryRowDto(
-            r.Id, r.ItemId, r.Name, r.Type, r.Subtype, r.Quantity,
+            r.Id, r.ItemId, r.Name, r.Type, r.Subtype, r.Quantity, r.Quality,
             r.OwnerUserId, r.OwnerDisplayName, r.Location)).ToList();
     }
 
     private sealed record InventoryRow(
         Guid Id, Guid ItemId, string Name, string? Type, string? Subtype,
-        int Quantity, Guid OwnerUserId, string OwnerDisplayName, string Location);
+        int Quantity, int Quality, Guid OwnerUserId, string OwnerDisplayName, string Location);
 
     public async Task<InventoryFiltersDto> GetInventoryFiltersAsync(CancellationToken ct)
     {
@@ -113,7 +114,7 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
     // ──────────────────────────────────────────────────────────────────────
 
     public async Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(
-        Guid itemId, Guid ownerUserId, string location, int quantity, CancellationToken ct)
+        Guid itemId, Guid ownerUserId, string location, int quantity, int quality, CancellationToken ct)
     {
         await using var tx = await db.Database.BeginTransactionAsync(ct);
 
@@ -126,6 +127,7 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
         if (existing is not null)
         {
             existing.Quantity += quantity;
+            existing.Quality = quality;
             existing.UpdatedAt = DateTimeOffset.UtcNow;
             entry = existing;
             isNew = false;
@@ -139,6 +141,7 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
                 OwnerUserId = ownerUserId,
                 Location = location,
                 Quantity = quantity,
+                Quality = quality,
                 CreatedAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow,
             };
@@ -159,6 +162,7 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
             var row = await db.WarehouseInventory
                 .FirstAsync(w => w.ItemId == itemId && w.OwnerUserId == ownerUserId && w.Location == location, ct);
             row.Quantity += quantity;
+            row.Quality = quality;
             row.UpdatedAt = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync(ct);
             entry = row;
@@ -202,6 +206,7 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
               i.section             AS type,
               i.category            AS subtype,
               w.quantity            AS quantity,
+              w.quality             AS quality,
               w.owner_user_id       AS owner_user_id,
               u.display_name        AS owner_display_name,
               w.location            AS location
@@ -213,6 +218,6 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
 
         return new InventoryRowDto(
             rows.Id, rows.ItemId, rows.Name, rows.Type, rows.Subtype,
-            rows.Quantity, rows.OwnerUserId, rows.OwnerDisplayName, rows.Location);
+            rows.Quantity, rows.Quality, rows.OwnerUserId, rows.OwnerDisplayName, rows.Location);
     }
 }

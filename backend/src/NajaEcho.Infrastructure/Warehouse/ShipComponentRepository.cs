@@ -11,7 +11,8 @@ namespace NajaEcho.Infrastructure.Warehouse;
 
 public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRepository
 {
-    private const string SystemsSection = "Systems";
+    private const string SystemsSectionLower = "systems";
+    private const string VehicleWeaponsSectionLower = "vehicle weapons";
 
     // ── List ─────────────────────────────────────────────────────────────
 
@@ -30,6 +31,7 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
               sca.size                    AS size,
               sca.grade                   AS grade,
               w.quantity                  AS quantity,
+              w.quality                   AS quality,
               w.owner_user_id             AS owner_user_id,
               u.display_name              AS owner_display_name,
               w.location                  AS location
@@ -37,7 +39,7 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
             JOIN sc.items i              ON i.id = w.item_id
             LEFT JOIN sc.ship_component_attributes sca ON sca.item_id = i.id
             JOIN "AspNetUsers" u         ON u.id = w.owner_user_id
-            WHERE LOWER(i.section) = {SystemsSection.ToLower()}
+            WHERE LOWER(i.section) IN ({SystemsSectionLower}, {VehicleWeaponsSectionLower})
               AND ({namePattern}::text IS NULL OR i.name ILIKE {namePattern})
             ORDER BY i.name, i.category, sca.size NULLS LAST, sca.class NULLS LAST, sca.grade NULLS LAST
             """).ToListAsync(ct);
@@ -76,12 +78,12 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
 
         return result.Select(r => new ShipComponentRowDto(
             r.Id, r.ItemId, r.Name, r.Type, r.Class, r.Size, r.Grade,
-            r.Quantity, r.OwnerUserId, r.OwnerDisplayName, r.Location)).ToList();
+            r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location)).ToList();
     }
 
     private sealed record ScRow(
         Guid Id, Guid ItemId, string Name, string? Type, string? Class, int? Size, string? Grade,
-        int Quantity, Guid OwnerUserId, string OwnerDisplayName, string Location);
+        int Quantity, int Quality, Guid OwnerUserId, string OwnerDisplayName, string Location);
 
     // ── Filters ──────────────────────────────────────────────────────────
 
@@ -91,7 +93,7 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
             SELECT DISTINCT i.category AS value
             FROM warehouse_inventory w
             JOIN sc.items i ON i.id = w.item_id
-            WHERE LOWER(i.section) = {SystemsSection.ToLower()}
+            WHERE LOWER(i.section) IN ({SystemsSectionLower}, {VehicleWeaponsSectionLower})
               AND i.category IS NOT NULL
             ORDER BY value
             """).ToListAsync(ct);
@@ -101,7 +103,7 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
             FROM warehouse_inventory w
             JOIN sc.items i ON i.id = w.item_id
             LEFT JOIN sc.ship_component_attributes sca ON sca.item_id = i.id
-            WHERE LOWER(i.section) = {SystemsSection.ToLower()}
+            WHERE LOWER(i.section) IN ({SystemsSectionLower}, {VehicleWeaponsSectionLower})
               AND sca.class IS NOT NULL
             ORDER BY value
             """).ToListAsync(ct);
@@ -111,7 +113,7 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
             FROM warehouse_inventory w
             JOIN sc.items i ON i.id = w.item_id
             LEFT JOIN sc.ship_component_attributes sca ON sca.item_id = i.id
-            WHERE LOWER(i.section) = {SystemsSection.ToLower()}
+            WHERE LOWER(i.section) IN ({SystemsSectionLower}, {VehicleWeaponsSectionLower})
               AND sca.size IS NOT NULL
             ORDER BY value
             """).ToListAsync(ct);
@@ -121,7 +123,7 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
             FROM warehouse_inventory w
             JOIN sc.items i ON i.id = w.item_id
             LEFT JOIN sc.ship_component_attributes sca ON sca.item_id = i.id
-            WHERE LOWER(i.section) = {SystemsSection.ToLower()}
+            WHERE LOWER(i.section) IN ({SystemsSectionLower}, {VehicleWeaponsSectionLower})
               AND sca.grade IS NOT NULL
             ORDER BY value
             """).ToListAsync(ct);
@@ -131,7 +133,7 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
             FROM warehouse_inventory w
             JOIN sc.items i ON i.id = w.item_id
             JOIN "AspNetUsers" u ON u.id = w.owner_user_id
-            WHERE LOWER(i.section) = {SystemsSection.ToLower()}
+            WHERE LOWER(i.section) IN ({SystemsSectionLower}, {VehicleWeaponsSectionLower})
             ORDER BY u.display_name
             """).ToListAsync(ct);
 
@@ -139,7 +141,7 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
             SELECT DISTINCT w.location AS value
             FROM warehouse_inventory w
             JOIN sc.items i ON i.id = w.item_id
-            WHERE LOWER(i.section) = {SystemsSection.ToLower()}
+            WHERE LOWER(i.section) IN ({SystemsSectionLower}, {VehicleWeaponsSectionLower})
             ORDER BY value
             """).ToListAsync(ct);
 
@@ -149,7 +151,7 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
                 FROM warehouse_inventory w
                 JOIN sc.items i ON i.id = w.item_id
                 LEFT JOIN sc.ship_component_attributes sca ON sca.item_id = i.id
-                WHERE LOWER(i.section) = {SystemsSection.ToLower()}
+                WHERE LOWER(i.section) IN ({SystemsSectionLower}, {VehicleWeaponsSectionLower})
                   AND sca.class IS NULL
             ) AS value
             """).FirstAsync(ct);
@@ -160,7 +162,7 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
                 FROM warehouse_inventory w
                 JOIN sc.items i ON i.id = w.item_id
                 LEFT JOIN sc.ship_component_attributes sca ON sca.item_id = i.id
-                WHERE LOWER(i.section) = {SystemsSection.ToLower()}
+                WHERE LOWER(i.section) IN ({SystemsSectionLower}, {VehicleWeaponsSectionLower})
                   AND sca.size IS NULL
             ) AS value
             """).FirstAsync(ct);
@@ -171,7 +173,7 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
                 FROM warehouse_inventory w
                 JOIN sc.items i ON i.id = w.item_id
                 LEFT JOIN sc.ship_component_attributes sca ON sca.item_id = i.id
-                WHERE LOWER(i.section) = {SystemsSection.ToLower()}
+                WHERE LOWER(i.section) IN ({SystemsSectionLower}, {VehicleWeaponsSectionLower})
                   AND sca.grade IS NULL
             ) AS value
             """).FirstAsync(ct);
@@ -206,7 +208,7 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
               i.name     AS name,
               i.category AS type
             FROM sc.items i
-            WHERE LOWER(i.section) = {SystemsSection.ToLower()}
+            WHERE LOWER(i.section) IN ({SystemsSectionLower}, {VehicleWeaponsSectionLower})
               AND i.status = {ItemStatus.Active.ToString()}
               AND ({searchPattern}::text IS NULL OR i.name ILIKE {searchPattern})
             ORDER BY i.name

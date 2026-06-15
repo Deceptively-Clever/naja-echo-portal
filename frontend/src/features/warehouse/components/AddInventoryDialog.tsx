@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -7,7 +6,6 @@ import { useCatalogItemSearch } from '../hooks/useCatalogItemSearch'
 import { useAddInventoryItem } from '../hooks/useAddInventoryItem'
 import { useSystemsCatalogSearch } from '../hooks/useSystemsCatalogSearch'
 import { useInventoryFilters } from '../hooks/useInventoryFilters'
-import { warehouseKeys } from '../hooks/warehouseQueryKeys'
 import type { CatalogItem } from '../schemas/inventorySchemas'
 import type { SystemsCatalogItem } from '../api/shipComponentsApi'
 
@@ -45,6 +43,7 @@ export function AddInventoryDialog({
   const [ownerUserId, setOwnerUserId] = useState(rememberedOwnerId || currentUserId)
   const [location, setLocation] = useState(rememberedLocation)
   const [quantity, setQuantity] = useState(1)
+  const [quality, setQuality] = useState(500)
   const [error, setError] = useState('')
   const [prevOpen, setPrevOpen] = useState(open)
 
@@ -57,12 +56,12 @@ export function AddInventoryDialog({
       setOwnerUserId(rememberedOwnerId || currentUserId)
       setLocation(rememberedLocation)
       setQuantity(1)
+      setQuality(500)
       setError('')
     }
   }
 
   const isShipComponents = scope === 'ship-components'
-  const queryClient = useQueryClient()
 
   useEffect(() => {
     const timer = setTimeout(() => setDebouncedSearch(search), 300)
@@ -78,7 +77,7 @@ export function AddInventoryDialog({
     isShipComponents
   )
   const { data: filtersData } = useInventoryFilters()
-  const addItem = useAddInventoryItem()
+  const addItem = useAddInventoryItem(scope)
 
   const owners = filtersData?.owners ?? []
 
@@ -90,6 +89,10 @@ export function AddInventoryDialog({
     if (!selectedItem) { setError('Select an item from the catalog.'); return }
     if (!location.trim()) { setError('Location is required.'); return }
     if (quantity < 1) { setError('Quantity must be at least 1.'); return }
+    if (!Number.isInteger(quality) || quality < 1 || quality > 1000) {
+      setError('Quality must be an integer between 1 and 1000.')
+      return
+    }
     setError('')
 
     await addItem.mutateAsync({
@@ -97,11 +100,8 @@ export function AddInventoryDialog({
       ownerUserId,
       location: location.trim(),
       quantity,
+      quality,
     })
-
-    if (isShipComponents) {
-      void queryClient.invalidateQueries({ queryKey: warehouseKeys.shipComponents() })
-    }
 
     onClose({ rememberedLocation: location.trim(), rememberedOwnerId: ownerUserId })
   }
@@ -197,6 +197,22 @@ export function AddInventoryDialog({
               className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
               value={quantity}
               onChange={(e) => setQuantity(Number(e.target.value))}
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
+            <label htmlFor="add-item-quality" className="text-sm font-medium">
+              Quality
+            </label>
+            <input
+              id="add-item-quality"
+              aria-label="Quality"
+              type="number"
+              min={1}
+              max={1000}
+              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
+              value={quality}
+              onChange={(e) => setQuality(Number(e.target.value))}
             />
           </div>
 

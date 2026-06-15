@@ -45,6 +45,7 @@ describe('AddInventoryDialog', () => {
     )
     expect(screen.getByLabelText(/location/i)).toBeDefined()
     expect(screen.getByLabelText(/quantity/i)).toBeDefined()
+    expect(screen.getByLabelText(/quality/i)).toBeDefined()
   })
 
   it('quantity defaults to 1', () => {
@@ -54,6 +55,15 @@ describe('AddInventoryDialog', () => {
     )
     const qty = screen.getByLabelText(/quantity/i) as HTMLInputElement
     expect(qty.value).toBe('1')
+  })
+
+  it('quality defaults to 500', () => {
+    render(
+      <AddInventoryDialog open={true} onClose={() => {}} currentUserId="user-1" />,
+      { wrapper: createWrapper() }
+    )
+    const quality = screen.getByLabelText(/quality/i) as HTMLInputElement
+    expect(quality.value).toBe('500')
   })
 
   it('shows catalog results when search is typed', async () => {

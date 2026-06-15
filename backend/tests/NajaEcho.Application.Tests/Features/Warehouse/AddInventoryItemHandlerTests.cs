@@ -25,10 +25,10 @@ public sealed class AddInventoryItemHandlerTests
     {
         public bool NextIsNew { get; set; } = true;
         private readonly InventoryRowDto _row;
-        public FakeWarehouseRepo() => _row = new(KnownRowId, KnownItemId, "Test Item", null, null, 1, KnownOwnerId, "Alice", "Bay 1");
+        public FakeWarehouseRepo() => _row = new(KnownRowId, KnownItemId, "Test Item", null, null, 1, 500, KnownOwnerId, "Alice", "Bay 1");
 
-        public Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(Guid itemId, Guid ownerUserId, string location, int quantity, CancellationToken ct) =>
-            Task.FromResult((_row with { ItemId = itemId, OwnerUserId = ownerUserId, Location = location, Quantity = quantity }, NextIsNew));
+        public Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(Guid itemId, Guid ownerUserId, string location, int quantity, int quality, CancellationToken ct) =>
+            Task.FromResult((_row with { ItemId = itemId, OwnerUserId = ownerUserId, Location = location, Quantity = quantity, Quality = quality }, NextIsNew));
 
         public Task<IReadOnlyList<InventoryRowDto>> GetInventoryAsync(string? name, string? type, string? subtype, Guid? ownerUserId, string? location, CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<InventoryRowDto>>([]);
@@ -220,5 +220,13 @@ public sealed class AddInventoryItemHandlerTests
         await MakeHandler(itemRepo: itemRepo, attrClient: attrClient).HandleAsync(
             new AddInventoryItemCommand(KnownItemId, KnownOwnerId, "Bay 1", 1), default);
         attrClient.CallCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task HandleAsync_QualityOutOfRange_ThrowsArgumentOutOfRangeException()
+    {
+        var act = () => MakeHandler().HandleAsync(
+            new AddInventoryItemCommand(KnownItemId, KnownOwnerId, "Bay 1", 1, 1001), default);
+        await act.Should().ThrowAsync<ArgumentOutOfRangeException>();
     }
 }

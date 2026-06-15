@@ -9,6 +9,7 @@ public sealed record ShipComponentRowDto(
     int? Size,
     string? Grade,
     int Quantity,
+    int Quality,
     Guid OwnerUserId,
     string OwnerDisplayName,
     string Location);

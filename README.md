@@ -141,6 +141,13 @@ npm run test:run  # single run (CI)
 
 ---
 
+## Warehouse quality field
+
+Warehouse add flows support an optional `quality` value on inventory rows. The valid range is `1..1000`
+and omitted values default to `500`.
+
+---
+
 ## Project structure
 
 ```text

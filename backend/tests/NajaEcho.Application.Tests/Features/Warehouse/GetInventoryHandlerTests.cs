@@ -49,7 +49,7 @@ public sealed class GetInventoryHandlerTests
         public Task<IReadOnlyList<CatalogItemResultDto>> SearchCatalogItemsAsync(string? search, int limit, CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<CatalogItemResultDto>>([]);
 
-        public Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(Guid itemId, Guid ownerUserId, string location, int quantity, CancellationToken ct) =>
+        public Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(Guid itemId, Guid ownerUserId, string location, int quantity, int quality, CancellationToken ct) =>
             throw new NotImplementedException();
 
         public Task<InventoryRowDto> UpdateQuantityAsync(Guid id, int quantity, CancellationToken ct) =>
@@ -63,7 +63,7 @@ public sealed class GetInventoryHandlerTests
 
     private static InventoryRowDto MakeRow(Guid id, Guid itemId, string name, string? type, string? subtype,
         Guid ownerId, string ownerName, string location, int quantity = 1) =>
-        new(id, itemId, name, type, subtype, quantity, ownerId, ownerName, location);
+        new(id, itemId, name, type, subtype, quantity, 500, ownerId, ownerName, location);
 
     [Fact]
     public async Task HandleAsync_NoFilters_ReturnsAllRows()

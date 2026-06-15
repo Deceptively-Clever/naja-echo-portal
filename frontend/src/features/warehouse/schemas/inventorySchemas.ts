@@ -7,6 +7,7 @@ export const inventoryRowSchema = z.object({
   type: z.string().nullable().optional(),
   subtype: z.string().nullable().optional(),
   quantity: z.number().int().min(1),
+  quality: z.number().int().min(1).max(1000),
   ownerUserId: z.string().uuid(),
   ownerDisplayName: z.string(),
   location: z.string(),

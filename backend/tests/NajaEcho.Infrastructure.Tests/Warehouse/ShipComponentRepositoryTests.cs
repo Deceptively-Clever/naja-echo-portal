@@ -109,15 +109,17 @@ public sealed class ShipComponentRepositoryTests : IAsyncLifetime
 
     private ShipComponentRepository MakeRepo() => new(_db);
 
-    // ── Systems-only list ────────────────────────────────────────────────
+    // ── Section-scoped list ───────────────────────────────────────────────
 
     [Fact]
-    public async Task GetShipComponentsAsync_ReturnsOnlySystemsRows()
+    public async Task GetShipComponentsAsync_ReturnsSystemsAndVehicleWeaponsRows()
     {
         var user = AddUser();
         var systemsItem = AddItem("Shield A", section: "Systems");
-        var otherItem = AddItem("Laser B", section: "Weapons");
+        var vehicleWeaponsItem = AddItem("Laser B", section: "Vehicle Weapons");
+        var otherItem = AddItem("Cargo C", section: "Cargo");
         AddInventoryEntry(systemsItem.Id, user.Id);
+        AddInventoryEntry(vehicleWeaponsItem.Id, user.Id);
         AddInventoryEntry(otherItem.Id, user.Id);
         await _db.SaveChangesAsync();
 
@@ -125,8 +127,8 @@ public sealed class ShipComponentRepositoryTests : IAsyncLifetime
         var query = new GetShipComponentsQuery(null, null, null, null, null, null, null, false, false, false);
         var rows = await repo.GetShipComponentsAsync(query, default);
 
-        rows.Should().HaveCount(1);
-        rows[0].Name.Should().Be("Shield A");
+        rows.Should().HaveCount(2);
+        rows.Select(r => r.Name).Should().BeEquivalentTo(["Shield A", "Laser B"]);
     }
 
     [Fact]
@@ -378,5 +380,19 @@ public sealed class ShipComponentRepositoryTests : IAsyncLifetime
 
         rows.Should().HaveCount(1);
         rows[0].Name.Should().Be("Shield Military");
+    }
+
+    [Fact]
+    public async Task SearchSystemsCatalogAsync_IncludesSystemsAndVehicleWeaponsOnly()
+    {
+        AddItem("Shield A", section: "Systems");
+        AddItem("Laser B", section: "Vehicle Weapons");
+        AddItem("Cargo C", section: "Cargo");
+        await _db.SaveChangesAsync();
+
+        var repo = MakeRepo();
+        var rows = await repo.SearchSystemsCatalogAsync(null, 25, default);
+
+        rows.Select(r => r.Name).Should().BeEquivalentTo(["Shield A", "Laser B"]);
     }
 }

@@ -56,6 +56,10 @@ public sealed class ShipComponentsEndpointTests : IClassFixture<WebApplicationFa
                 services.AddSingleton<FakeScRepo>();
                 services.AddSingleton<IShipComponentRepository>(sp => sp.GetRequiredService<FakeScRepo>());
 
+                services.RemoveAll<IWarehouseInventoryRepository>();
+                services.AddSingleton<FakeWarehouseRepo>();
+                services.AddSingleton<IWarehouseInventoryRepository>(sp => sp.GetRequiredService<FakeWarehouseRepo>());
+
                 services.RemoveAll<IItemRepository>();
                 services.AddSingleton<IItemRepository, ScFakeItemRepo>();
 
@@ -194,6 +198,28 @@ public sealed class ShipComponentsEndpointTests : IClassFixture<WebApplicationFa
         response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
+    [Fact]
+    public async Task PostShipComponents_Quartermaster_Returns201()
+    {
+        var fakeRepo = _factory.Services.GetRequiredService<FakeWarehouseRepo>();
+        fakeRepo.NextAddIsNew = true;
+
+        var response = await CreateQuartermasterClient().PostAsJsonAsync("/api/warehouse/ship-components",
+            new { itemId = Guid.NewGuid(), location = "Bay 1", quantity = 1, quality = 700 });
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var body = await response.Content.ReadAsStringAsync();
+        body.Should().Contain("\"quality\":700");
+    }
+
+    [Fact]
+    public async Task PostShipComponents_InvalidQuality_Returns400()
+    {
+        var response = await CreateQuartermasterClient().PostAsJsonAsync("/api/warehouse/ship-components",
+            new { itemId = Guid.NewGuid(), location = "Bay 1", quantity = 1, quality = 0 });
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
     // ── Filter params on GET /api/warehouse/ship-components ──────────────
 
     [Fact]
@@ -241,7 +267,7 @@ internal sealed class FakeScRepo : IShipComponentRepository
     public static readonly Guid KnownOwnerId = new("cccccccc-cccc-cccc-cccc-cccccccccccc");
 
     private static ShipComponentRowDto MakeRow(Guid id) =>
-        new(id, KnownItemId, "Shield Mk1", "Shield", null, null, null, 1, KnownOwnerId, "Alice", "Bay 1");
+        new(id, KnownItemId, "Shield Mk1", "Shield", null, null, null, 1, 500, KnownOwnerId, "Alice", "Bay 1");
 
     public Task<IReadOnlyList<ShipComponentRowDto>> GetShipComponentsAsync(GetShipComponentsQuery query, CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<ShipComponentRowDto>>([MakeRow(KnownRowId)]);

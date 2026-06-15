@@ -1,0 +1,217 @@
+openapi: 3.0.3
+info:
+  title: NajaEchoPortal — Warehouse Item Quality API
+  version: 0.1.0
+  description: |
+    Contract updates for `001-add-item-quality`.
+
+    This feature extends existing warehouse endpoints with a bounded integer `quality` field:
+      - `quality` range is 1..1000 inclusive.
+      - `quality` defaults to 500 when omitted on add requests.
+      - list/read payloads include persisted `quality`.
+
+servers:
+  - url: http://localhost:5080
+    description: Local development
+
+tags:
+  - name: Warehouse
+    description: Warehouse item inventory endpoints (updated for quality support)
+  - name: ShipComponents
+    description: Warehouse ship-components endpoints (quality parity)
+
+paths:
+  /api/warehouse/items:
+    get:
+      tags: [Warehouse]
+      operationId: getInventory
+      summary: List warehouse inventory rows including quality.
+      parameters:
+        - { name: name, in: query, required: false, schema: { type: string } }
+        - { name: type, in: query, required: false, schema: { type: string } }
+        - { name: subtype, in: query, required: false, schema: { type: string } }
+        - { name: ownerUserId, in: query, required: false, schema: { type: string, format: uuid } }
+        - { name: location, in: query, required: false, schema: { type: string } }
+      responses:
+        '200':
+          description: Filtered inventory list.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InventoryListResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Warehouse]
+      operationId: addInventoryItem
+      summary: Add or increment an inventory row with optional quality.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AddInventoryItemRequest' }
+      responses:
+        '201':
+          description: New row created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InventoryRow' }
+        '200':
+          description: Existing row incremented.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InventoryRow' }
+        '400': { $ref: '#/components/responses/ValidationProblem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /api/warehouse/ship-components:
+    get:
+      tags: [ShipComponents]
+      operationId: getShipComponents
+      summary: List ship-component inventory rows including quality.
+      responses:
+        '200':
+          description: Systems-scoped inventory list.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ShipComponentListResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [ShipComponents]
+      operationId: addShipComponent
+      summary: Add or increment a ship-component row with optional quality.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AddShipComponentRequest' }
+      responses:
+        '201':
+          description: New row created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InventoryRow' }
+        '200':
+          description: Existing row incremented.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InventoryRow' }
+        '400': { $ref: '#/components/responses/ValidationProblem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/UnprocessableEntity' }
+
+components:
+  schemas:
+    InventoryListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/InventoryRow' }
+
+    InventoryRow:
+      type: object
+      required: [id, itemId, name, quantity, quality, ownerUserId, ownerDisplayName, location]
+      properties:
+        id: { type: string, format: uuid }
+        itemId: { type: string, format: uuid }
+        name: { type: string }
+        type: { type: string, nullable: true }
+        subtype: { type: string, nullable: true }
+        quantity: { type: integer, minimum: 1 }
+        quality: { type: integer, minimum: 1, maximum: 1000, default: 500 }
+        ownerUserId: { type: string, format: uuid }
+        ownerDisplayName: { type: string }
+        location: { type: string }
+
+    AddInventoryItemRequest:
+      type: object
+      required: [itemId, quantity, location]
+      properties:
+        itemId: { type: string, format: uuid }
+        ownerUserId: { type: string, format: uuid, nullable: true }
+        location: { type: string, minLength: 1 }
+        quantity: { type: integer, minimum: 1 }
+        quality:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          default: 500
+          description: Optional quality value for the row. Omitted => 500.
+
+    ShipComponentListResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items: { $ref: '#/components/schemas/ShipComponentRow' }
+
+    ShipComponentRow:
+      type: object
+      required: [id, itemId, name, quantity, quality, ownerUserId, ownerDisplayName, location]
+      properties:
+        id: { type: string, format: uuid }
+        itemId: { type: string, format: uuid }
+        name: { type: string }
+        type: { type: string, nullable: true }
+        class: { type: string, nullable: true }
+        size: { type: integer, nullable: true }
+        grade: { type: string, nullable: true }
+        quantity: { type: integer, minimum: 1 }
+        quality: { type: integer, minimum: 1, maximum: 1000, default: 500 }
+        ownerUserId: { type: string, format: uuid }
+        ownerDisplayName: { type: string }
+        location: { type: string }
+
+    AddShipComponentRequest:
+      type: object
+      required: [itemId, quantity, location]
+      properties:
+        itemId: { type: string, format: uuid }
+        ownerUserId: { type: string, format: uuid, nullable: true }
+        location: { type: string, minLength: 1 }
+        quantity: { type: integer, minimum: 1 }
+        quality:
+          type: integer
+          minimum: 1
+          maximum: 1000
+          default: 500
+          description: Optional quality value for the row. Omitted => 500.
+
+    Problem:
+      type: object
+      properties:
+        title: { type: string }
+        detail: { type: string }
+        status: { type: integer }
+
+  responses:
+    Unauthorized:
+      description: No authenticated session.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    Forbidden:
+      description: Authenticated but lacks required role.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    ValidationProblem:
+      description: Request validation failed.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    NotFound:
+      description: Referenced resource does not exist.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }
+    UnprocessableEntity:
+      description: Request is well-formed but violates business constraints.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/Problem' }

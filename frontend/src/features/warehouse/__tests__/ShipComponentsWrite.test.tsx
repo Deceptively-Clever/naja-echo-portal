@@ -13,6 +13,7 @@ const mockRows = [
     size: 2,
     grade: 'A',
     quantity: 5,
+    quality: 500,
     ownerUserId: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
     ownerDisplayName: 'Alice',
     location: 'Bay 1',

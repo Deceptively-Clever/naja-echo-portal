@@ -13,6 +13,7 @@ const mockRows = [
     size: 2,
     grade: 'A',
     quantity: 5,
+    quality: 900,
     ownerUserId: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
     ownerDisplayName: 'Alice',
     location: 'Bay 1',
@@ -26,6 +27,7 @@ const mockRows = [
     size: null,
     grade: null,
     quantity: 3,
+    quality: 500,
     ownerUserId: 'f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a66',
     ownerDisplayName: 'Bob',
     location: 'Dock 2',
@@ -33,7 +35,7 @@ const mockRows = [
 ]
 
 describe('ShipComponentsTable', () => {
-  it('renders all 8 column headers', () => {
+  it('renders all column headers including quality', () => {
     render(<ShipComponentsTable rows={mockRows} isQuartermaster={false} onRemove={() => Promise.resolve()} />, {
       wrapper: createWrapper(),
     })
@@ -43,6 +45,7 @@ describe('ShipComponentsTable', () => {
     expect(screen.getByText('Size')).toBeDefined()
     expect(screen.getByText('Grade')).toBeDefined()
     expect(screen.getByText('Qty')).toBeDefined()
+    expect(screen.getByText('Quality')).toBeDefined()
     expect(screen.getByText('Owner')).toBeDefined()
     expect(screen.getByText('Location')).toBeDefined()
   })

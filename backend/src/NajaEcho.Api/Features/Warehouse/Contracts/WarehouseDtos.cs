@@ -9,6 +9,7 @@ public sealed record InventoryRowResponse(
     string? Type,
     string? Subtype,
     int Quantity,
+    int Quality,
     Guid OwnerUserId,
     string OwnerDisplayName,
     string Location);
@@ -36,6 +37,7 @@ public sealed record AddInventoryItemRequest(
     Guid ItemId,
     Guid? OwnerUserId,
     string Location,
-    int Quantity);
+    int Quantity,
+    int? Quality);
 
 public sealed record ChangeInventoryQuantityRequest(int Quantity);

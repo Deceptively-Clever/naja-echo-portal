@@ -34,6 +34,7 @@ export function ShipComponentsTable({ rows, isQuartermaster, onRemove }: Props) 
           <TableHead>Size</TableHead>
           <TableHead>Grade</TableHead>
           <TableHead>Qty</TableHead>
+          <TableHead>Quality</TableHead>
           <TableHead>Owner</TableHead>
           <TableHead>Location</TableHead>
           {isQuartermaster && <TableHead>Actions</TableHead>}
@@ -62,6 +63,7 @@ export function ShipComponentsTable({ rows, isQuartermaster, onRemove }: Props) 
                 <span>{row.quantity}</span>
               )}
             </TableCell>
+            <TableCell>{row.quality}</TableCell>
             <TableCell>{row.ownerDisplayName}</TableCell>
             <TableCell>{row.location}</TableCell>
             {isQuartermaster && (

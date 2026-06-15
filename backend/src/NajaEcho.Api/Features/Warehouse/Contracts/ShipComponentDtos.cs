@@ -11,6 +11,7 @@ public sealed record ShipComponentRowResponse(
     int? Size,
     string? Grade,
     int Quantity,
+    int Quality,
     Guid OwnerUserId,
     string OwnerDisplayName,
     string Location);
@@ -40,4 +41,5 @@ public sealed record AddShipComponentRequest(
     Guid ItemId,
     Guid? OwnerUserId,
     string Location,
-    int Quantity);
+    int Quantity,
+    int? Quality);

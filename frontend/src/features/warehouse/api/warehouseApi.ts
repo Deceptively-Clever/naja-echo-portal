@@ -47,6 +47,7 @@ export async function addInventoryItem(body: {
   ownerUserId?: string
   location: string
   quantity: number
+  quality?: number
 }): Promise<InventoryRow> {
   const data = await apiFetch<unknown>('/api/warehouse/items', {
     method: 'POST',

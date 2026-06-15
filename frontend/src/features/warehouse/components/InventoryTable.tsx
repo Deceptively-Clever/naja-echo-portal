@@ -32,6 +32,7 @@ export function InventoryTable({ rows, isQuartermaster, onRemove }: Props) {
           <TableHead>Type</TableHead>
           <TableHead>Subtype</TableHead>
           <TableHead>Qty</TableHead>
+          <TableHead>Quality</TableHead>
           <TableHead>Owner</TableHead>
           <TableHead>Location</TableHead>
           {isQuartermaster && <TableHead>Actions</TableHead>}
@@ -58,6 +59,7 @@ export function InventoryTable({ rows, isQuartermaster, onRemove }: Props) {
                 <span>{row.quantity}</span>
               )}
             </TableCell>
+            <TableCell>{row.quality}</TableCell>
             <TableCell>{row.ownerDisplayName}</TableCell>
             <TableCell>{row.location}</TableCell>
             {isQuartermaster && (

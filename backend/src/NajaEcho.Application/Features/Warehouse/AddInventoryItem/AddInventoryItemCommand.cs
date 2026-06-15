@@ -4,4 +4,5 @@ public sealed record AddInventoryItemCommand(
     Guid ItemId,
     Guid OwnerUserId,
     string Location,
-    int Quantity);
+    int Quantity,
+    int Quality = 500);

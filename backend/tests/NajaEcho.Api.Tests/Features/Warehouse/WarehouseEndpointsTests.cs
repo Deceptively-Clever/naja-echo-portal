@@ -247,6 +247,28 @@ public sealed class WarehouseEndpointsTests : IClassFixture<WebApplicationFactor
         response.StatusCode.Should().Be(HttpStatusCode.Created);
     }
 
+    [Fact]
+    public async Task PostInventory_ExplicitQuality_PersistsInResponse()
+    {
+        var fakeRepo = _factory.Services.GetRequiredService<FakeWarehouseRepo>();
+        fakeRepo.NextAddIsNew = true;
+
+        var response = await CreateQuartermasterClient().PostAsJsonAsync("/api/warehouse/items",
+            new { itemId = Guid.NewGuid(), location = "Bay 1", quantity = 1, quality = 750 });
+        response.StatusCode.Should().Be(HttpStatusCode.Created);
+
+        var body = await response.Content.ReadAsStringAsync();
+        body.Should().Contain("\"quality\":750");
+    }
+
+    [Fact]
+    public async Task PostInventory_OutOfRangeQuality_Returns400()
+    {
+        var response = await CreateQuartermasterClient().PostAsJsonAsync("/api/warehouse/items",
+            new { itemId = Guid.NewGuid(), location = "Bay 1", quantity = 1, quality = 1001 });
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
     // ── PUT /api/warehouse/items/{id}/quantity ────────────────────────────
 
     [Fact]
@@ -338,7 +360,7 @@ internal sealed class FakeWarehouseRepo : IWarehouseInventoryRepository
     public bool NextAddIsNew { get; set; } = true;
 
     private static InventoryRowDto MakeRow(Guid id) =>
-        new(id, KnownItemId, "Test Item", "Weapons", "Laser", 5, KnownOwnerId, "Alice", "Bay 1");
+        new(id, KnownItemId, "Test Item", "Weapons", "Laser", 5, 500, KnownOwnerId, "Alice", "Bay 1");
 
     public Task<IReadOnlyList<InventoryRowDto>> GetInventoryAsync(
         string? name, string? type, string? subtype, Guid? ownerUserId, string? location, CancellationToken ct) =>
@@ -351,8 +373,15 @@ internal sealed class FakeWarehouseRepo : IWarehouseInventoryRepository
         Task.FromResult<IReadOnlyList<CatalogItemResultDto>>([new CatalogItemResultDto(KnownItemId, "Laser Mk1", "Weapons", "Laser")]);
 
     public Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(
-        Guid itemId, Guid ownerUserId, string location, int quantity, CancellationToken ct) =>
-        Task.FromResult((MakeRow(Guid.NewGuid()), NextAddIsNew));
+        Guid itemId, Guid ownerUserId, string location, int quantity, int quality, CancellationToken ct) =>
+        Task.FromResult((MakeRow(Guid.NewGuid()) with
+        {
+            ItemId = itemId,
+            OwnerUserId = ownerUserId,
+            Location = location,
+            Quantity = quantity,
+            Quality = quality,
+        }, NextAddIsNew));
 
     public Task<InventoryRowDto> UpdateQuantityAsync(Guid id, int quantity, CancellationToken ct)
     {

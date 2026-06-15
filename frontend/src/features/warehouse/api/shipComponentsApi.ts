@@ -5,6 +5,7 @@ import {
   type ShipComponentListResponse,
   type ShipComponentFiltersResponse,
 } from '../schemas/shipComponentSchemas'
+import { inventoryRowSchema, type InventoryRow } from '../schemas/inventorySchemas'
 import { z } from 'zod'
 
 const systemsCatalogItemSchema = z.object({
@@ -62,3 +63,16 @@ export async function searchSystemsCatalog(search?: string, limit = 25): Promise
   return systemsCatalogResponseSchema.parse(data)
 }
 
+export async function addShipComponent(body: {
+  itemId: string
+  ownerUserId?: string
+  location: string
+  quantity: number
+  quality?: number
+}): Promise<InventoryRow> {
+  const data = await apiFetch<unknown>('/api/warehouse/ship-components', {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
+  return inventoryRowSchema.parse(data)
+}

@@ -9,6 +9,7 @@ export const shipComponentRowSchema = z.object({
   size: z.number().int().nullable().optional(),
   grade: z.string().nullable().optional(),
   quantity: z.number().int().min(1),
+  quality: z.number().int().min(1).max(1000),
   ownerUserId: z.string().uuid(),
   ownerDisplayName: z.string(),
   location: z.string(),

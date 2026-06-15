@@ -45,8 +45,8 @@ public sealed class GetShipComponentsQueryHandlerTests
     {
         var rows = new List<ShipComponentRowDto>
         {
-            new(RowId1, ItemId1, "Alpha Shield", "Shield", "A", 1, "A", 5, OwnerId, "Alice", "Bay 1"),
-            new(RowId2, ItemId2, "Beta Shield", "Shield", null, null, null, 2, OwnerId, "Alice", "Bay 2"),
+            new(RowId1, ItemId1, "Alpha Shield", "Shield", "A", 1, "A", 5, 500, OwnerId, "Alice", "Bay 1"),
+            new(RowId2, ItemId2, "Beta Shield", "Shield", null, null, null, 2, 500, OwnerId, "Alice", "Bay 2"),
         };
         var handler = MakeHandler(rows);
 
@@ -61,7 +61,7 @@ public sealed class GetShipComponentsQueryHandlerTests
     {
         var rows = new List<ShipComponentRowDto>
         {
-            new(RowId1, ItemId1, "Gamma Gun", "Gun", null, null, null, 3, OwnerId, "Bob", "Dock 1"),
+            new(RowId1, ItemId1, "Gamma Gun", "Gun", null, null, null, 3, 500, OwnerId, "Bob", "Dock 1"),
         };
         var handler = MakeHandler(rows);
 
@@ -79,7 +79,7 @@ public sealed class GetShipComponentsQueryHandlerTests
     {
         var rows = new List<ShipComponentRowDto>
         {
-            new(RowId1, ItemId1, "Delta Missile", "Missile", "Military", 2, "A", 10, OwnerId, "Charlie", "Bay 5"),
+            new(RowId1, ItemId1, "Delta Missile", "Missile", "Military", 2, "A", 10, 500, OwnerId, "Charlie", "Bay 5"),
         };
         var handler = MakeHandler(rows);
 

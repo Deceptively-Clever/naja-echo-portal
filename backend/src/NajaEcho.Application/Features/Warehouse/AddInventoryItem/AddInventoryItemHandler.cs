@@ -21,6 +21,8 @@ public sealed class AddInventoryItemHandler(
 
         if (command.Quantity < 1)
             throw new ArgumentOutOfRangeException(nameof(command), "Quantity must be at least 1.");
+        if (command.Quality < 1 || command.Quality > 1000)
+            throw new ArgumentOutOfRangeException(nameof(command), "Quality must be between 1 and 1000.");
 
         var item = await itemRepository.GetByIdAsync(command.ItemId, ct);
         if (item is null || item.Status != NajaEcho.Domain.Items.ItemStatus.Active)
@@ -30,12 +32,12 @@ public sealed class AddInventoryItemHandler(
         if (!ownerExists)
             throw new OwnerNotFoundException(command.OwnerUserId);
 
-        logger.LogInformation("AddInventoryItem itemId={ItemId} ownerUserId={OwnerUserId} location={Location} quantity={Quantity}",
-            command.ItemId, command.OwnerUserId, location, command.Quantity);
+        logger.LogInformation("AddInventoryItem itemId={ItemId} ownerUserId={OwnerUserId} location={Location} quantity={Quantity} quality={Quality}",
+            command.ItemId, command.OwnerUserId, location, command.Quantity, command.Quality);
 
         await TryFetchAndCacheAttributesAsync(command.ItemId, item.UexId, ct);
 
-        var (row, isNew) = await repository.AddOrIncrementAsync(command.ItemId, command.OwnerUserId, location, command.Quantity, ct);
+        var (row, isNew) = await repository.AddOrIncrementAsync(command.ItemId, command.OwnerUserId, location, command.Quantity, command.Quality, ct);
 
         logger.LogInformation("AddInventoryItem {Action} rowId={RowId} quantity={Quantity}",
             isNew ? "created" : "incremented", row.Id, row.Quantity);

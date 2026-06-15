@@ -23,6 +23,7 @@ public static class WarehouseEndpoints
         group.MapGet("/ship-components", GetShipComponents);
         group.MapGet("/ship-components/filters", GetShipComponentFilters);
         group.MapGet("/ship-components/catalog/search", SearchSystemsCatalog).RequireAuthorization(AuthorizationPolicies.Quartermaster);
+        group.MapPost("/ship-components", AddShipComponent).RequireAuthorization(AuthorizationPolicies.Quartermaster);
         group.MapGet("/items", GetInventory);
         group.MapPost("/items", AddInventoryItem).RequireAuthorization(AuthorizationPolicies.Quartermaster);
         group.MapGet("/items/filters", GetInventoryFilters);
@@ -57,7 +58,7 @@ public static class WarehouseEndpoints
         var query = new GetShipComponentsQuery(name, type, @class, size, grade, ownerUserId, location, unknownClass, unknownSize, unknownGrade);
         var rows = await handler.HandleAsync(query, ct);
         var dto = new ShipComponentListResponse(rows.Select(r =>
-            new ShipComponentRowResponse(r.Id, r.ItemId, r.Name, r.Type, r.Class, r.Size, r.Grade, r.Quantity, r.OwnerUserId, r.OwnerDisplayName, r.Location)).ToList());
+            new ShipComponentRowResponse(r.Id, r.ItemId, r.Name, r.Type, r.Class, r.Size, r.Grade, r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location)).ToList());
 
         Log.Information("GetShipComponents {CallerId} returned {Count} rows", callerId, rows.Count);
         return Results.Ok(dto);
@@ -182,14 +183,15 @@ public static class WarehouseEndpoints
         if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
 
         var ownerUserId = body.OwnerUserId ?? callerId;
+        var quality = body.Quality ?? 500;
 
-        Log.Information("AddInventoryItem {CallerId} itemId={ItemId} ownerUserId={OwnerUserId} location={Location} quantity={Quantity}",
-            callerId, body.ItemId, ownerUserId, body.Location, body.Quantity);
+        Log.Information("AddInventoryItem {CallerId} itemId={ItemId} ownerUserId={OwnerUserId} location={Location} quantity={Quantity} quality={Quality}",
+            callerId, body.ItemId, ownerUserId, body.Location, body.Quantity, quality);
 
         try
         {
             var (row, isNew) = await handler.HandleAsync(
-                new AddInventoryItemCommand(body.ItemId, ownerUserId, body.Location, body.Quantity), ct);
+                new AddInventoryItemCommand(body.ItemId, ownerUserId, body.Location, body.Quantity, quality), ct);
 
             Log.Information("AddInventoryItem {CallerId} {Action} rowId={RowId}", callerId, isNew ? "created" : "incremented", row.Id);
 
@@ -215,6 +217,55 @@ public static class WarehouseEndpoints
         catch (ArgumentException ex)
         {
             Log.Warning("AddInventoryItem 400 {CallerId}: {Message}", callerId, ex.Message);
+            return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status400BadRequest, title: "Validation error.");
+        }
+    }
+
+    // ── POST /api/warehouse/ship-components ────────────────────────────────
+
+    private static async Task<IResult> AddShipComponent(
+        ClaimsPrincipal user,
+        AddShipComponentRequest body,
+        AddInventoryItemHandler handler,
+        CancellationToken ct)
+    {
+        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+
+        var ownerUserId = body.OwnerUserId ?? callerId;
+        var quality = body.Quality ?? 500;
+
+        Log.Information("AddShipComponent {CallerId} itemId={ItemId} ownerUserId={OwnerUserId} location={Location} quantity={Quantity} quality={Quality}",
+            callerId, body.ItemId, ownerUserId, body.Location, body.Quantity, quality);
+
+        try
+        {
+            var (row, isNew) = await handler.HandleAsync(
+                new AddInventoryItemCommand(body.ItemId, ownerUserId, body.Location, body.Quantity, quality), ct);
+
+            Log.Information("AddShipComponent {CallerId} {Action} rowId={RowId}", callerId, isNew ? "created" : "incremented", row.Id);
+
+            return isNew
+                ? Results.Created($"/api/warehouse/items/{row.Id}", MapRow(row))
+                : Results.Ok(MapRow(row));
+        }
+        catch (ItemNotFoundException ex)
+        {
+            Log.Warning("AddShipComponent 404 {CallerId} itemId={ItemId}: {Message}", callerId, body.ItemId, ex.Message);
+            return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status404NotFound, title: "Item not found.");
+        }
+        catch (OwnerNotFoundException ex)
+        {
+            Log.Warning("AddShipComponent 404 {CallerId} ownerUserId={OwnerId}: {Message}", callerId, ownerUserId, ex.Message);
+            return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status404NotFound, title: "Owner not found.");
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            Log.Warning("AddShipComponent 400 {CallerId}: {Message}", callerId, ex.Message);
+            return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status400BadRequest, title: "Validation error.");
+        }
+        catch (ArgumentException ex)
+        {
+            Log.Warning("AddShipComponent 400 {CallerId}: {Message}", callerId, ex.Message);
             return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status400BadRequest, title: "Validation error.");
         }
     }
@@ -284,7 +335,7 @@ public static class WarehouseEndpoints
     }
 
     private static InventoryRowResponse MapRow(Application.Features.Warehouse.GetInventory.InventoryRowDto r) =>
-        new(r.Id, r.ItemId, r.Name, r.Type, r.Subtype, r.Quantity, r.OwnerUserId, r.OwnerDisplayName, r.Location);
+        new(r.Id, r.ItemId, r.Name, r.Type, r.Subtype, r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location);
 
     private static CatalogItemResponse MapCatalog(Application.Features.Warehouse.SearchCatalogItems.CatalogItemResultDto r) =>
         new(r.ItemId, r.Name, r.Type, r.Subtype);

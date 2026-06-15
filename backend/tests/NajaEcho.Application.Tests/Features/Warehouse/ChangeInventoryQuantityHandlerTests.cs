@@ -27,7 +27,7 @@ public sealed class ChangeInventoryQuantityHandlerTests
                 throw new InventoryRowNotFoundException(id);
             _storedQuantity = quantity;
             _storedUpdatedAt = DateTimeOffset.UtcNow;
-            return Task.FromResult(new InventoryRowDto(id, KnownItemId, "Test Item", null, null, quantity, KnownOwnerId, "Alice", "Bay 1"));
+            return Task.FromResult(new InventoryRowDto(id, KnownItemId, "Test Item", null, null, quantity, 500, KnownOwnerId, "Alice", "Bay 1"));
         }
 
         public Task<IReadOnlyList<InventoryRowDto>> GetInventoryAsync(string? name, string? type, string? subtype, Guid? ownerUserId, string? location, CancellationToken ct) =>
@@ -36,7 +36,7 @@ public sealed class ChangeInventoryQuantityHandlerTests
             Task.FromResult(new InventoryFiltersDto([], [], []));
         public Task<IReadOnlyList<CatalogItemResultDto>> SearchCatalogItemsAsync(string? search, int limit, CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<CatalogItemResultDto>>([]);
-        public Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(Guid itemId, Guid ownerUserId, string location, int quantity, CancellationToken ct) =>
+        public Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(Guid itemId, Guid ownerUserId, string location, int quantity, int quality, CancellationToken ct) =>
             throw new NotImplementedException();
         public Task RemoveAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
     }

@@ -11,6 +11,7 @@ const mockRows = [
     type: 'Weapons',
     subtype: 'Laser',
     quantity: 3,
+    quality: 750,
     ownerUserId: 'c0eebc99-9c0b-4ef8-bb6d-6bb9bd380a33',
     ownerDisplayName: 'Alice',
     location: 'Bay 1',
@@ -22,6 +23,7 @@ const mockRows = [
     type: 'Weapons',
     subtype: 'Ballistic',
     quantity: 10,
+    quality: 500,
     ownerUserId: 'f0eebc99-9c0b-4ef8-bb6d-6bb9bd380a66',
     ownerDisplayName: 'Bob',
     location: 'Dock 3',
@@ -51,6 +53,14 @@ describe('InventoryTable', () => {
     })
     expect(screen.getByText('3')).toBeDefined()
     expect(screen.getByText('10')).toBeDefined()
+  })
+
+  it('renders quality values', () => {
+    render(<InventoryTable rows={mockRows} isQuartermaster={false} onRemove={() => Promise.resolve()} />, {
+      wrapper: createWrapper(),
+    })
+    expect(screen.getByText('750')).toBeDefined()
+    expect(screen.getByText('500')).toBeDefined()
   })
 
   it('renders owner display names', () => {

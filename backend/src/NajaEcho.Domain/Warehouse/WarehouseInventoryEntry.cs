@@ -7,6 +7,7 @@ public sealed class WarehouseInventoryEntry
     public Guid OwnerUserId { get; set; }
     public string Location { get; set; } = string.Empty;
     public int Quantity { get; set; }
+    public int Quality { get; set; } = 500;
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 }
