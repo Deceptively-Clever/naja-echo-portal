@@ -20,6 +20,16 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
         GetShipComponentsQuery query, CancellationToken ct)
     {
         var namePattern = string.IsNullOrWhiteSpace(query.Name) ? null : $"%{query.Name.Trim()}%";
+        var types = NormalizeTextFilter(query.Types);
+        var classes = NormalizeTextFilter(query.Classes);
+        var sizes = NormalizeNumericFilter(query.Sizes);
+        var grades = NormalizeTextFilter(query.Grades);
+        var ownerUserIds = NormalizeNumericFilter(query.OwnerUserIds);
+        var locations = NormalizeTextFilter(query.Locations);
+
+        var applyClassFilter = classes is not null || query.UnknownClass;
+        var applySizeFilter = sizes is not null || query.UnknownSize;
+        var applyGradeFilter = grades is not null || query.UnknownGrade;
 
         var rows = await db.Database.SqlQuery<ScRow>($"""
             SELECT
@@ -41,42 +51,28 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
             JOIN "AspNetUsers" u         ON u.id = w.owner_user_id
             WHERE LOWER(i.section) IN ({SystemsSectionLower}, {VehicleWeaponsSectionLower})
               AND ({namePattern}::text IS NULL OR i.name ILIKE {namePattern})
+              AND ({types}::text[] IS NULL OR i.category ILIKE ANY(SELECT unnest({types}::text[])))
+              AND (
+                    NOT {applyClassFilter}
+                    OR ({query.UnknownClass} AND sca.class IS NULL)
+                    OR ({classes}::text[] IS NOT NULL AND sca.class ILIKE ANY(SELECT unnest({classes}::text[])))
+                  )
+              AND (
+                    NOT {applySizeFilter}
+                    OR ({query.UnknownSize} AND sca.size IS NULL)
+                    OR ({sizes}::integer[] IS NOT NULL AND sca.size = ANY({sizes}::integer[]))
+                  )
+              AND (
+                    NOT {applyGradeFilter}
+                    OR ({query.UnknownGrade} AND sca.grade IS NULL)
+                    OR ({grades}::text[] IS NOT NULL AND sca.grade ILIKE ANY(SELECT unnest({grades}::text[])))
+                  )
+              AND ({ownerUserIds}::uuid[] IS NULL OR w.owner_user_id = ANY({ownerUserIds}::uuid[]))
+              AND ({locations}::text[] IS NULL OR w.location ILIKE ANY(SELECT unnest({locations}::text[])))
             ORDER BY i.name, i.category, sca.size NULLS LAST, sca.class NULLS LAST, sca.grade NULLS LAST
             """).ToListAsync(ct);
 
-        var result = rows.AsEnumerable();
-
-        if (query.Types is { Count: > 0 })
-            result = result.Where(r => query.Types.Contains(r.Type, StringComparer.OrdinalIgnoreCase));
-
-        if (query.Classes is { Count: > 0 } || query.UnknownClass)
-        {
-            result = result.Where(r =>
-                (query.UnknownClass && r.Class is null) ||
-                (query.Classes is { Count: > 0 } && query.Classes.Contains(r.Class ?? "", StringComparer.OrdinalIgnoreCase)));
-        }
-
-        if (query.Sizes is { Count: > 0 } || query.UnknownSize)
-        {
-            result = result.Where(r =>
-                (query.UnknownSize && r.Size is null) ||
-                (query.Sizes is { Count: > 0 } && r.Size.HasValue && query.Sizes.Contains(r.Size.Value)));
-        }
-
-        if (query.Grades is { Count: > 0 } || query.UnknownGrade)
-        {
-            result = result.Where(r =>
-                (query.UnknownGrade && r.Grade is null) ||
-                (query.Grades is { Count: > 0 } && query.Grades.Contains(r.Grade ?? "", StringComparer.OrdinalIgnoreCase)));
-        }
-
-        if (query.OwnerUserIds is { Count: > 0 })
-            result = result.Where(r => query.OwnerUserIds.Contains(r.OwnerUserId));
-
-        if (query.Locations is { Count: > 0 })
-            result = result.Where(r => query.Locations.Contains(r.Location, StringComparer.OrdinalIgnoreCase));
-
-        return result.Select(r => new ShipComponentRowDto(
+        return rows.Select(r => new ShipComponentRowDto(
             r.Id, r.ItemId, r.Name, r.Type, r.Class, r.Size, r.Grade,
             r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location)).ToList();
     }
@@ -227,12 +223,22 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
 
     public async Task SaveItemAttributesAsync(IReadOnlyList<ItemAttribute> attributes, CancellationToken ct)
     {
+        if (attributes.Count == 0)
+            return;
+
+        var itemIds = NormalizeNumericFilter(attributes.Select(a => a.ItemId).ToArray())!;
+        var categoryAttributeIds = NormalizeNumericFilter(attributes.Select(a => a.UexCategoryAttributeId).ToArray())!;
+
+        var existingAttributes = await db.ItemAttributes
+            .Where(a => itemIds.Contains(a.ItemId) && categoryAttributeIds.Contains(a.UexCategoryAttributeId))
+            .ToListAsync(ct);
+
+        var existingByKey = existingAttributes.ToDictionary(a => (a.ItemId, a.UexCategoryAttributeId));
+
         foreach (var attr in attributes)
         {
-            var existing = await db.ItemAttributes
-                .FirstOrDefaultAsync(a => a.ItemId == attr.ItemId && a.UexCategoryAttributeId == attr.UexCategoryAttributeId, ct);
-
-            if (existing is not null)
+            var key = (attr.ItemId, attr.UexCategoryAttributeId);
+            if (existingByKey.TryGetValue(key, out var existing))
             {
                 existing.Value = attr.Value;
                 existing.Unit = attr.Unit;
@@ -242,8 +248,36 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
             else
             {
                 db.ItemAttributes.Add(attr);
+                existingByKey[key] = attr;
             }
         }
+
         await db.SaveChangesAsync(ct);
+    }
+
+    private static string[]? NormalizeTextFilter(IReadOnlyList<string>? values)
+    {
+        if (values is null || values.Count == 0)
+            return null;
+
+        var normalized = values
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .Select(v => v.Trim())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        return normalized.Length == 0 ? null : normalized;
+    }
+
+    private static T[]? NormalizeNumericFilter<T>(IReadOnlyList<T>? values) where T : struct
+    {
+        if (values is null || values.Count == 0)
+            return null;
+
+        var normalized = values
+            .Distinct()
+            .ToArray();
+
+        return normalized.Length == 0 ? null : normalized;
     }
 }

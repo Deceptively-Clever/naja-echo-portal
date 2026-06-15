@@ -116,62 +116,32 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
     public async Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(
         Guid itemId, Guid ownerUserId, string location, int quantity, int quality, CancellationToken ct)
     {
-        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        var now = DateTimeOffset.UtcNow;
 
-        var existing = await db.WarehouseInventory
-            .FirstOrDefaultAsync(w => w.ItemId == itemId && w.OwnerUserId == ownerUserId && w.Location == location, ct);
+        var results = await db.Database.SqlQuery<UpsertResult>($"""
+            INSERT INTO warehouse_inventory (
+                id, item_id, owner_user_id, location, quantity, quality, created_at, updated_at
+            )
+            VALUES (
+                {Guid.NewGuid()}, {itemId}, {ownerUserId}, {location}, {quantity}, {quality}, {now}, {now}
+            )
+            ON CONFLICT (item_id, owner_user_id, location)
+            DO UPDATE SET
+                quantity = warehouse_inventory.quantity + EXCLUDED.quantity,
+                quality = EXCLUDED.quality,
+                updated_at = EXCLUDED.updated_at
+            RETURNING
+                id AS id,
+                (xmax = 0) AS is_new
+            """).ToListAsync(ct);
 
-        bool isNew;
-        WarehouseInventoryEntry entry;
+        var result = results.Single();
 
-        if (existing is not null)
-        {
-            existing.Quantity += quantity;
-            existing.Quality = quality;
-            existing.UpdatedAt = DateTimeOffset.UtcNow;
-            entry = existing;
-            isNew = false;
-        }
-        else
-        {
-            entry = new WarehouseInventoryEntry
-            {
-                Id = Guid.NewGuid(),
-                ItemId = itemId,
-                OwnerUserId = ownerUserId,
-                Location = location,
-                Quantity = quantity,
-                Quality = quality,
-                CreatedAt = DateTimeOffset.UtcNow,
-                UpdatedAt = DateTimeOffset.UtcNow,
-            };
-            db.WarehouseInventory.Add(entry);
-            isNew = true;
-        }
-
-        try
-        {
-            await db.SaveChangesAsync(ct);
-            await tx.CommitAsync(ct);
-        }
-        catch (DbUpdateException ex)
-            when (isNew && ex.InnerException?.Message.Contains("ux_warehouse_inventory_item_owner_location") == true)
-        {
-            // Concurrent insert — reload and increment
-            await tx.RollbackAsync(ct);
-            var row = await db.WarehouseInventory
-                .FirstAsync(w => w.ItemId == itemId && w.OwnerUserId == ownerUserId && w.Location == location, ct);
-            row.Quantity += quantity;
-            row.Quality = quality;
-            row.UpdatedAt = DateTimeOffset.UtcNow;
-            await db.SaveChangesAsync(ct);
-            entry = row;
-            isNew = false;
-        }
-
-        var dto = await LoadRowDtoAsync(entry.Id, ct);
-        return (dto, isNew);
+        var dto = await LoadRowDtoAsync(result.Id, ct);
+        return (dto, result.IsNew);
     }
+
+    private sealed record UpsertResult(Guid Id, bool IsNew);
 
     public async Task<InventoryRowDto> UpdateQuantityAsync(Guid id, int quantity, CancellationToken ct)
     {
