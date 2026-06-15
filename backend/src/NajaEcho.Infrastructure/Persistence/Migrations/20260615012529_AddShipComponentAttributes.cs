@@ -41,29 +41,6 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
-            migrationBuilder.CreateTable(
-                name: "ship_component_attributes",
-                schema: "sc",
-                columns: table => new
-                {
-                    item_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    @class = table.Column<string>(name: "class", type: "character varying(128)", maxLength: 128, nullable: true),
-                    size = table.Column<int>(type: "integer", nullable: true),
-                    grade = table.Column<string>(type: "character varying(128)", maxLength: 128, nullable: true),
-                    attributes_fetched_at = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("pk_ship_component_attributes", x => x.item_id);
-                    table.ForeignKey(
-                        name: "fk_ship_component_attributes_item_id",
-                        column: x => x.item_id,
-                        principalSchema: "sc",
-                        principalTable: "items",
-                        principalColumn: "id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
             migrationBuilder.CreateIndex(
                 name: "ix_item_attributes_item_id",
                 schema: "sc",
@@ -77,34 +54,36 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                 columns: new[] { "item_id", "uex_category_attribute_id" },
                 unique: true);
 
-            migrationBuilder.CreateIndex(
-                name: "ix_ship_component_attributes_class",
-                schema: "sc",
-                table: "ship_component_attributes",
-                column: "class");
-
-            migrationBuilder.CreateIndex(
-                name: "ix_ship_component_attributes_grade",
-                schema: "sc",
-                table: "ship_component_attributes",
-                column: "grade");
-
-            migrationBuilder.CreateIndex(
-                name: "ix_ship_component_attributes_size",
-                schema: "sc",
-                table: "ship_component_attributes",
-                column: "size");
+            // Read-only projection derived live from sc.item_attributes (pivot by attribute name,
+            // one row per item). Size mirrors int.TryParse(value.Trim()): optional sign + digits
+            // only; non-numeric/decimal/overflow -> NULL. attributes_fetched_at = MAX(fetched_at).
+            migrationBuilder.Sql("""
+                CREATE VIEW sc.ship_component_attributes AS
+                SELECT
+                    ia.item_id AS item_id,
+                    max(ia.value) FILTER (WHERE lower(btrim(ia.attribute_name)) = 'class') AS class,
+                    CASE
+                        WHEN btrim(max(ia.value) FILTER (WHERE lower(btrim(ia.attribute_name)) = 'size')) ~ '^[+-]?\d+$'
+                         AND length(regexp_replace(
+                               btrim(max(ia.value) FILTER (WHERE lower(btrim(ia.attribute_name)) = 'size')),
+                               '[^0-9]', '', 'g')) <= 9
+                        THEN btrim(max(ia.value) FILTER (WHERE lower(btrim(ia.attribute_name)) = 'size'))::int
+                    END AS size,
+                    max(ia.value) FILTER (WHERE lower(btrim(ia.attribute_name)) = 'grade') AS grade,
+                    max(ia.fetched_at) AS attributes_fetched_at
+                FROM sc.item_attributes ia
+                GROUP BY ia.item_id;
+                """);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "item_attributes",
-                schema: "sc");
+            // Drop the view first — it depends on sc.item_attributes.
+            migrationBuilder.Sql("DROP VIEW IF EXISTS sc.ship_component_attributes;");
 
             migrationBuilder.DropTable(
-                name: "ship_component_attributes",
+                name: "item_attributes",
                 schema: "sc");
         }
     }

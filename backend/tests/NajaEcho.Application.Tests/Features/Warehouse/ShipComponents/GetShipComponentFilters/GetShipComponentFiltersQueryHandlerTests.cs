@@ -24,7 +24,6 @@ public sealed class GetShipComponentFiltersQueryHandlerTests
             Task.FromResult<IReadOnlyList<SystemsCatalogItemDto>>([]);
         public Task<bool> HasCachedAttributesAsync(Guid id, CancellationToken ct) => Task.FromResult(false);
         public Task SaveItemAttributesAsync(IReadOnlyList<ItemAttribute> attrs, CancellationToken ct) => Task.CompletedTask;
-        public Task UpsertShipComponentAttributesAsync(Guid id, DateTimeOffset at, CancellationToken ct) => Task.CompletedTask;
     }
 
     private static GetShipComponentFiltersQueryHandler MakeHandler(ShipComponentFiltersDto dto)

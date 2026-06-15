@@ -31,24 +31,26 @@ attribute per item. All attributes are stored, including those not displayed (e.
 - Index: `item_id` → `ix_item_attributes_item_id`.
 - FK `item_id` → `sc.items.id`, `OnDelete(Cascade)` (cache is meaningless without its item).
 
-## Entity: ShipComponentAttributes (`sc.ship_component_attributes`)
+## Read model: ShipComponentAttributes (`sc.ship_component_attributes` — **view**)
 
-Typed projection built from `sc.item_attributes`, one row per item.
+A **read-only SQL view** (not a table), one row per item that has any cached attribute. It derives
+its columns live from `sc.item_attributes` by pivoting on `attribute_name`, so it can never drift
+from the raw cache and needs no upsert/refresh step. Mapped via `ToView(...)`.
 
-| Field                | Type (C#)          | Column (snake_case)     | Notes |
-|----------------------|--------------------|-------------------------|-------|
-| ItemId               | `Guid`             | `item_id` (PK)          | PK and FK → `sc.items.id`, `OnDelete(Cascade)` |
-| Class                | `string?`          | `class`                 | from attribute_name "Class"; `HasMaxLength(128)`; null = Unknown |
-| Size                 | `int?`             | `size`                  | parsed from "Size" text; null on parse failure / absent = Unknown |
-| Grade                | `string?`          | `grade`                 | from attribute_name "Grade"; `HasMaxLength(128)`; null = Unknown |
-| AttributesFetchedAt  | `DateTimeOffset`   | `attributes_fetched_at` | required; when the projection was last built |
+| Field                | Type (C#)          | Column (snake_case)     | Derivation |
+|----------------------|--------------------|-------------------------|------------|
+| ItemId               | `Guid`             | `item_id` (key)         | `item_attributes.item_id` (GROUP BY) |
+| Class                | `string?`          | `class`                 | `max(value) FILTER (attribute_name = 'Class')`; null = Unknown |
+| Size                 | `int?`             | `size`                  | "Size" value cast to int when it matches `^[+-]?\d+$` (≤ 9 digits); else null (mirrors `int.TryParse`) |
+| Grade                | `string?`          | `grade`                 | `max(value) FILTER (attribute_name = 'Grade')`; null = Unknown |
+| AttributesFetchedAt  | `DateTimeOffset`   | `attributes_fetched_at` | `max(item_attributes.fetched_at)` |
 
-**Indexes / constraints**
+**Notes**
 
-- PK = `item_id` (one projection row per item; enforces uniqueness).
-- FK `item_id` → `sc.items.id`, `OnDelete(Cascade)`.
-- Index: `class`, `size`, `grade` each indexed to support filter/sort (`ix_ship_component_attributes_class`,
-  `_size`, `_grade`).
+- No PK/FK/indexes (plain view). `attribute_name` matching is case-insensitive and trimmed.
+- Reads (`GET /api/warehouse/ship-components` + filters) LEFT JOIN this view unchanged; items with no
+  cached attributes simply yield null Class/Size/Grade ("Unknown").
+- DDL lives in migration `AddShipComponentAttributes` (`CREATE VIEW` / `DROP VIEW`).
 
 ## Read model: ShipComponentRow (DTO, not a table)
 
@@ -95,7 +97,7 @@ Returned by `GET /api/warehouse/ship-components/filters`, derived from current S
 
 ```text
 sc.items (1) ──< sc.item_attributes              (cascade delete)
-sc.items (1) ──1 sc.ship_component_attributes    (cascade delete; 0..1 — only built after fetch)
+sc.item_attributes ──> sc.ship_component_attributes  (VIEW; derived projection, 1 row per item with attributes)
 sc.items (1) ──< public.warehouse_inventory      (restrict delete; from feature 011, unchanged)
 AspNetUsers (1) ──< public.warehouse_inventory   (owner)
 ```
@@ -106,9 +108,10 @@ AspNetUsers (1) ──< public.warehouse_inventory   (owner)
   **and** `Item.Section = 'Systems'`; otherwise reject (400/404 as appropriate).
 - **Lazy fetch (research R5)**: fetch attributes from UEX only when no `sc.item_attributes` rows
   exist for the item and `Item.UexId > 0`. Never re-fetch when present.
-- **Size parse**: `int.TryParse(value)` → `size`; failure or absence → `null`.
-- **Projection upsert**: keyed by `item_id`; (re)write `class`/`size`/`grade` from the latest raw
-  rows and set `attributes_fetched_at`.
+- **Size parse**: the view casts the "Size" value to int only when it matches `^[+-]?\d+$` (≤ 9
+  digits); failure or absence → `null` (mirrors `int.TryParse`).
+- **Projection**: derived live by the `sc.ship_component_attributes` view from the latest raw rows;
+  no upsert/refresh step — caching raw `sc.item_attributes` is sufficient.
 - **Non-blocking failure**: any UEX/fetch/parse error is logged and swallowed; the inventory row is
   still created with attributes left Unknown.
 - **Inventory identity / quantity / location**: unchanged from 011 (`item_id` + `owner_user_id` +

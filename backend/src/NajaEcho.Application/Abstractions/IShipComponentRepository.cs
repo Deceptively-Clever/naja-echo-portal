@@ -16,6 +16,4 @@ public interface IShipComponentRepository
     Task<bool> HasCachedAttributesAsync(Guid itemId, CancellationToken ct);
 
     Task SaveItemAttributesAsync(IReadOnlyList<ItemAttribute> attributes, CancellationToken ct);
-
-    Task UpsertShipComponentAttributesAsync(Guid itemId, DateTimeOffset fetchedAt, CancellationToken ct);
 }

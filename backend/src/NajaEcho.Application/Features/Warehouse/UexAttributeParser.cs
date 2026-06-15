@@ -18,13 +18,13 @@ internal static class UexAttributeParser
                 if (!root.TryGetProperty("id_category_attribute", out var idCatAttrEl) ||
                     !idCatAttrEl.TryGetInt32(out var catAttrId)) continue;
 
-                root.TryGetProperty("name", out var nameEl);
                 root.TryGetProperty("value", out var valueEl);
                 root.TryGetProperty("unit", out var unitEl);
                 root.TryGetProperty("id", out var idEl);
                 root.TryGetProperty("id_category", out var idCatEl);
                 root.TryGetProperty("date_added", out var dateAddedEl);
                 root.TryGetProperty("date_modified", out var dateModifiedEl);
+                root.TryGetProperty("attribute_name", out var attrName);
 
                 var attr = new ItemAttribute
                 {
@@ -32,7 +32,7 @@ internal static class UexAttributeParser
                     ItemId = itemId,
                     UexItemId = uexItemId,
                     UexCategoryAttributeId = catAttrId,
-                    AttributeName = nameEl.ValueKind == JsonValueKind.String ? nameEl.GetString() ?? string.Empty : string.Empty,
+                    AttributeName = attrName.ValueKind == JsonValueKind.String ? attrName.GetString() ?? string.Empty : string.Empty,
                     Value = valueEl.ValueKind == JsonValueKind.String ? valueEl.GetString() : null,
                     Unit = unitEl.ValueKind == JsonValueKind.String ? unitEl.GetString() : null,
                     FetchedAt = fetchedAt,

@@ -254,7 +254,6 @@ internal sealed class FakeScRepo : IShipComponentRepository
 
     public Task<bool> HasCachedAttributesAsync(Guid itemId, CancellationToken ct) => Task.FromResult(false);
     public Task SaveItemAttributesAsync(IReadOnlyList<NajaEcho.Domain.Warehouse.ItemAttribute> attributes, CancellationToken ct) => Task.CompletedTask;
-    public Task UpsertShipComponentAttributesAsync(Guid itemId, DateTimeOffset fetchedAt, CancellationToken ct) => Task.CompletedTask;
 }
 
 internal sealed class ScFakeItemRepo : IItemRepository

@@ -91,6 +91,22 @@ public sealed class ShipComponentRepositoryTests : IAsyncLifetime
         return entry;
     }
 
+    private ItemAttribute AddAttr(Guid itemId, string name, string? value, int uexCategoryAttributeId)
+    {
+        var attr = new ItemAttribute
+        {
+            Id = Guid.NewGuid(),
+            ItemId = itemId,
+            UexItemId = Random.Shared.Next(1, 100000),
+            UexCategoryAttributeId = uexCategoryAttributeId,
+            AttributeName = name,
+            Value = value,
+            FetchedAt = DateTimeOffset.UtcNow,
+        };
+        _db.ItemAttributes.Add(attr);
+        return attr;
+    }
+
     private ShipComponentRepository MakeRepo() => new(_db);
 
     // ── Systems-only list ────────────────────────────────────────────────
@@ -137,14 +153,9 @@ public sealed class ShipComponentRepositoryTests : IAsyncLifetime
         var user = AddUser();
         var item = AddItem("Shield Z", section: "Systems");
         AddInventoryEntry(item.Id, user.Id);
-        _db.ShipComponentAttributes.Add(new ShipComponentAttributes
-        {
-            ItemId = item.Id,
-            Class = "Military",
-            Size = 3,
-            Grade = "A",
-            AttributesFetchedAt = DateTimeOffset.UtcNow,
-        });
+        AddAttr(item.Id, "Class", "Military", 1);
+        AddAttr(item.Id, "Size", "3", 2);
+        AddAttr(item.Id, "Grade", "A", 3);
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();
@@ -193,50 +204,19 @@ public sealed class ShipComponentRepositoryTests : IAsyncLifetime
         await act.Should().NotThrowAsync("upsert semantics should handle duplicate");
     }
 
-    // ── Projection upsert ────────────────────────────────────────────────
+    // ── View derivation (sc.ship_component_attributes) ───────────────────
 
     [Fact]
-    public async Task UpsertShipComponentAttributesAsync_InsertsProjection()
+    public async Task ShipComponentAttributesView_DerivesClassSizeGradeFromRawAttributes()
     {
         var item = AddItem("Missile M");
+        AddAttr(item.Id, "Class", "Civilian", 10);
+        AddAttr(item.Id, "Size", "2", 11);
+        AddAttr(item.Id, "Grade", "B", 12);
         await _db.SaveChangesAsync();
-
-        _db.ItemAttributes.Add(new ItemAttribute
-        {
-            Id = Guid.NewGuid(),
-            ItemId = item.Id,
-            UexItemId = item.UexId,
-            UexCategoryAttributeId = 10,
-            AttributeName = "Class",
-            Value = "Civilian",
-            FetchedAt = DateTimeOffset.UtcNow,
-        });
-        _db.ItemAttributes.Add(new ItemAttribute
-        {
-            Id = Guid.NewGuid(),
-            ItemId = item.Id,
-            UexItemId = item.UexId,
-            UexCategoryAttributeId = 11,
-            AttributeName = "Size",
-            Value = "2",
-            FetchedAt = DateTimeOffset.UtcNow,
-        });
-        _db.ItemAttributes.Add(new ItemAttribute
-        {
-            Id = Guid.NewGuid(),
-            ItemId = item.Id,
-            UexItemId = item.UexId,
-            UexCategoryAttributeId = 12,
-            AttributeName = "Grade",
-            Value = "B",
-            FetchedAt = DateTimeOffset.UtcNow,
-        });
-        await _db.SaveChangesAsync();
-
-        var repo = MakeRepo();
-        await repo.UpsertShipComponentAttributesAsync(item.Id, DateTimeOffset.UtcNow, default);
 
         var projection = await _db.ShipComponentAttributes.FirstOrDefaultAsync(s => s.ItemId == item.Id);
+
         projection.Should().NotBeNull();
         projection!.Class.Should().Be("Civilian");
         projection.Size.Should().Be(2);
@@ -244,27 +224,14 @@ public sealed class ShipComponentRepositoryTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task UpsertShipComponentAttributesAsync_NonNumericSize_SetsNull()
+    public async Task ShipComponentAttributesView_NonNumericSize_DerivesNull()
     {
         var item = AddItem("Rocket R");
+        AddAttr(item.Id, "Size", "large", 20);
         await _db.SaveChangesAsync();
-
-        _db.ItemAttributes.Add(new ItemAttribute
-        {
-            Id = Guid.NewGuid(),
-            ItemId = item.Id,
-            UexItemId = item.UexId,
-            UexCategoryAttributeId = 20,
-            AttributeName = "Size",
-            Value = "large",
-            FetchedAt = DateTimeOffset.UtcNow,
-        });
-        await _db.SaveChangesAsync();
-
-        var repo = MakeRepo();
-        await repo.UpsertShipComponentAttributesAsync(item.Id, DateTimeOffset.UtcNow, default);
 
         var projection = await _db.ShipComponentAttributes.FirstOrDefaultAsync(s => s.ItemId == item.Id);
+
         projection.Should().NotBeNull();
         projection!.Size.Should().BeNull();
     }
@@ -335,12 +302,7 @@ public sealed class ShipComponentRepositoryTests : IAsyncLifetime
         var item2 = AddItem("Classed Item", section: "Systems");
         AddInventoryEntry(item1.Id, user.Id);
         AddInventoryEntry(item2.Id, user.Id);
-        _db.ShipComponentAttributes.Add(new ShipComponentAttributes
-        {
-            ItemId = item2.Id,
-            Class = "Military",
-            AttributesFetchedAt = DateTimeOffset.UtcNow,
-        });
+        AddAttr(item2.Id, "Class", "Military", 1);
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();
@@ -405,9 +367,9 @@ public sealed class ShipComponentRepositoryTests : IAsyncLifetime
         AddInventoryEntry(item1.Id, user.Id);
         AddInventoryEntry(item2.Id, user.Id);
         AddInventoryEntry(item3.Id, user.Id);
-        _db.ShipComponentAttributes.Add(new ShipComponentAttributes { ItemId = item1.Id, Class = "Military", AttributesFetchedAt = DateTimeOffset.UtcNow });
-        _db.ShipComponentAttributes.Add(new ShipComponentAttributes { ItemId = item2.Id, Class = "Civilian", AttributesFetchedAt = DateTimeOffset.UtcNow });
-        _db.ShipComponentAttributes.Add(new ShipComponentAttributes { ItemId = item3.Id, Class = "Military", AttributesFetchedAt = DateTimeOffset.UtcNow });
+        AddAttr(item1.Id, "Class", "Military", 1);
+        AddAttr(item2.Id, "Class", "Civilian", 1);
+        AddAttr(item3.Id, "Class", "Military", 1);
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();

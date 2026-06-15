@@ -22,7 +22,6 @@ public sealed class SearchSystemsCatalogQueryHandlerTests
         public Task<ShipComponentFiltersDto> GetShipComponentFiltersAsync(CancellationToken ct) => Task.FromResult(new ShipComponentFiltersDto([], [], [], [], [], [], false, false, false));
         public Task<bool> HasCachedAttributesAsync(Guid id, CancellationToken ct) => Task.FromResult(false);
         public Task SaveItemAttributesAsync(IReadOnlyList<ItemAttribute> attrs, CancellationToken ct) => Task.CompletedTask;
-        public Task UpsertShipComponentAttributesAsync(Guid id, DateTimeOffset at, CancellationToken ct) => Task.CompletedTask;
     }
 
     private static SearchSystemsCatalogQueryHandler MakeHandler(IReadOnlyList<SystemsCatalogItemDto>? items = null)

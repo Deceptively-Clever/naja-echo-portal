@@ -35,7 +35,6 @@ public sealed class GetShipComponentsQueryHandlerTests
 
         public Task<bool> HasCachedAttributesAsync(Guid itemId, CancellationToken ct) => Task.FromResult(false);
         public Task SaveItemAttributesAsync(IReadOnlyList<ItemAttribute> attributes, CancellationToken ct) => Task.CompletedTask;
-        public Task UpsertShipComponentAttributesAsync(Guid itemId, DateTimeOffset fetchedAt, CancellationToken ct) => Task.CompletedTask;
     }
 
     private static GetShipComponentsQueryHandler MakeHandler(IReadOnlyList<ShipComponentRowDto>? rows = null)

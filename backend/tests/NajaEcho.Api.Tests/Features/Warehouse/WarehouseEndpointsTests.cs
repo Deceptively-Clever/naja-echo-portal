@@ -410,7 +410,6 @@ internal sealed class WarehouseFakeShipComponentRepo : IShipComponentRepository
 {
     public Task<bool> HasCachedAttributesAsync(Guid itemId, CancellationToken ct) => Task.FromResult(true);
     public Task SaveItemAttributesAsync(IReadOnlyList<ItemAttribute> attributes, CancellationToken ct) => Task.CompletedTask;
-    public Task UpsertShipComponentAttributesAsync(Guid itemId, DateTimeOffset fetchedAt, CancellationToken ct) => Task.CompletedTask;
     public Task<IReadOnlyList<ShipComponentRowDto>> GetShipComponentsAsync(GetShipComponentsQuery query, CancellationToken ct) =>
         Task.FromResult<IReadOnlyList<ShipComponentRowDto>>([]);
     public Task<ShipComponentFiltersDto> GetShipComponentFiltersAsync(CancellationToken ct) =>

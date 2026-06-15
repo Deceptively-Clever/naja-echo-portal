@@ -69,11 +69,9 @@ public sealed class AddInventoryItemHandlerTests
     {
         public bool HasCache { get; set; }
         public bool SaveCalled { get; private set; }
-        public bool UpsertCalled { get; private set; }
 
         public Task<bool> HasCachedAttributesAsync(Guid id, CancellationToken ct) => Task.FromResult(HasCache);
         public Task SaveItemAttributesAsync(IReadOnlyList<ItemAttribute> attrs, CancellationToken ct) { SaveCalled = true; return Task.CompletedTask; }
-        public Task UpsertShipComponentAttributesAsync(Guid id, DateTimeOffset at, CancellationToken ct) { UpsertCalled = true; return Task.CompletedTask; }
         public Task<IReadOnlyList<ShipComponentRowDto>> GetShipComponentsAsync(GetShipComponentsQuery q, CancellationToken ct) => Task.FromResult<IReadOnlyList<ShipComponentRowDto>>([]);
         public Task<ShipComponentFiltersDto> GetShipComponentFiltersAsync(CancellationToken ct) => Task.FromResult(new ShipComponentFiltersDto([], [], [], [], [], [], false, false, false));
         public Task<IReadOnlyList<SystemsCatalogItemDto>> SearchSystemsCatalogAsync(string? s, int l, CancellationToken ct) => Task.FromResult<IReadOnlyList<SystemsCatalogItemDto>>([]);

@@ -244,40 +244,4 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
         }
         await db.SaveChangesAsync(ct);
     }
-
-    public async Task UpsertShipComponentAttributesAsync(Guid itemId, DateTimeOffset fetchedAt, CancellationToken ct)
-    {
-        var rawAttrs = await db.ItemAttributes
-            .Where(a => a.ItemId == itemId)
-            .ToListAsync(ct);
-
-        var classAttr = rawAttrs.FirstOrDefault(a => string.Equals(a.AttributeName.Trim(), "Class", StringComparison.OrdinalIgnoreCase));
-        var sizeAttr = rawAttrs.FirstOrDefault(a => string.Equals(a.AttributeName.Trim(), "Size", StringComparison.OrdinalIgnoreCase));
-        var gradeAttr = rawAttrs.FirstOrDefault(a => string.Equals(a.AttributeName.Trim(), "Grade", StringComparison.OrdinalIgnoreCase));
-
-        int? size = null;
-        if (sizeAttr?.Value is not null && int.TryParse(sizeAttr.Value.Trim(), out var parsedSize))
-            size = parsedSize;
-
-        var existing = await db.ShipComponentAttributes.FirstOrDefaultAsync(s => s.ItemId == itemId, ct);
-        if (existing is not null)
-        {
-            existing.Class = classAttr?.Value;
-            existing.Size = size;
-            existing.Grade = gradeAttr?.Value;
-            existing.AttributesFetchedAt = fetchedAt;
-        }
-        else
-        {
-            db.ShipComponentAttributes.Add(new ShipComponentAttributes
-            {
-                ItemId = itemId,
-                Class = classAttr?.Value,
-                Size = size,
-                Grade = gradeAttr?.Value,
-                AttributesFetchedAt = fetchedAt,
-            });
-        }
-        await db.SaveChangesAsync(ct);
-    }
 }

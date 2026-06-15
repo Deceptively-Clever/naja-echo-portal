@@ -13,7 +13,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace NajaEcho.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260614233757_AddShipComponentAttributes")]
+    [Migration("20260615012529_AddShipComponentAttributes")]
     partial class AddShipComponentAttributes
     {
         /// <inheritdoc />
@@ -859,19 +859,11 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("size");
 
-                    b.HasKey("ItemId")
-                        .HasName("pk_ship_component_attributes");
+                    b.HasKey("ItemId");
 
-                    b.HasIndex("Class")
-                        .HasDatabaseName("ix_ship_component_attributes_class");
+                    b.ToTable((string)null);
 
-                    b.HasIndex("Grade")
-                        .HasDatabaseName("ix_ship_component_attributes_grade");
-
-                    b.HasIndex("Size")
-                        .HasDatabaseName("ix_ship_component_attributes_size");
-
-                    b.ToTable("ship_component_attributes", "sc");
+                    b.ToView("ship_component_attributes", "sc");
                 });
 
             modelBuilder.Entity("NajaEcho.Domain.Warehouse.WarehouseInventoryEntry", b =>
@@ -1094,16 +1086,6 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_item_attributes_item_id");
-                });
-
-            modelBuilder.Entity("NajaEcho.Domain.Warehouse.ShipComponentAttributes", b =>
-                {
-                    b.HasOne("NajaEcho.Domain.Items.Item", null)
-                        .WithMany()
-                        .HasForeignKey("ItemId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_ship_component_attributes_item_id");
                 });
 
             modelBuilder.Entity("NajaEcho.Domain.Warehouse.WarehouseInventoryEntry", b =>

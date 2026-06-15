@@ -63,7 +63,6 @@ public sealed class AddInventoryItemHandler(
             if (attrs.Count > 0)
             {
                 await shipComponentRepository.SaveItemAttributesAsync(attrs, ct);
-                await shipComponentRepository.UpsertShipComponentAttributesAsync(itemId, fetchedAt, ct);
                 logger.LogInformation("AddInventoryItem cached {Count} attributes for itemId={ItemId}", attrs.Count, itemId);
             }
         }
