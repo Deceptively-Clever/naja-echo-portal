@@ -30,12 +30,26 @@ dotnet_naming_style.begins_with_i.required_suffix =
 dotnet_naming_style.begins_with_i.word_separator =
 dotnet_naming_style.begins_with_i.capitalization = pascal_case
 
-# StyleCop rules
-dotnet_diagnostic.SA0001.severity = silent
-dotnet_diagnostic.SA1101.severity = none
-dotnet_diagnostic.SA1309.severity = none
-dotnet_diagnostic.SA1600.severity = none
-dotnet_diagnostic.SA1601.severity = none
+# StyleCop rules - suppress overly strict or opinionated rules
+dotnet_diagnostic.SA0001.severity = silent      # XML comment analysis disabled
+dotnet_diagnostic.SA1010.severity = none        # Opening square bracket spacing
+dotnet_diagnostic.SA1011.severity = none        # Closing square bracket spacing
+dotnet_diagnostic.SA1025.severity = none        # Multiple whitespace characters
+dotnet_diagnostic.SA1101.severity = none        # Use base class name
+dotnet_diagnostic.SA1116.severity = none        # Parameter alignment (line breaks)
+dotnet_diagnostic.SA1117.severity = none        # Parameter alignment (same/separate lines)
+dotnet_diagnostic.SA1309.severity = none        # Field names should not begin with underscore
+dotnet_diagnostic.SA1512.severity = none        # Comment followed by blank line
+dotnet_diagnostic.SA1513.severity = none        # Brace followed by blank line
+dotnet_diagnostic.SA1515.severity = none        # Comment preceded by blank line
+dotnet_diagnostic.SA1600.severity = none        # Missing documentation
+dotnet_diagnostic.SA1601.severity = none        # Partial elements missing documentation
+dotnet_diagnostic.SA1633.severity = none        # File header required
+
+# StyleCop rules - enforce
+dotnet_diagnostic.SA1503.severity = warning     # Braces required (prevents bugs)
+dotnet_diagnostic.SA1000.severity = warning     # Keyword spacing (readability)
+dotnet_diagnostic.SA1122.severity = warning     # Use string.Empty (best practice)
 
 # Code quality
 csharp_style_var_for_built_in_types = false:suggestion
