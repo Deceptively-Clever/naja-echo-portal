@@ -27,15 +27,14 @@ fi
 # Check if files changed in backend
 if git diff --cached --name-only --diff-filter=ACM | grep -q "^backend/"; then
   echo -e "${YELLOW}Running backend code analysis...${NC}"
-  if cd backend && dotnet build NajaEcho.slnx -c Release /p:EnforceCodeStyleInBuild=true /p:EnableNETAnalyzers=true > /dev/null 2>&1; then
+  if (cd backend && dotnet build NajaEcho.slnx -c Release /p:EnforceCodeStyleInBuild=true /p:EnableNETAnalyzers=true > /dev/null 2>&1); then
     echo -e "${GREEN}✓ Backend analysis passed${NC}"
   else
     echo -e "${RED}✗ Backend analysis failed${NC}"
     echo "Fix code analysis issues before committing:"
-    cd backend && dotnet build NajaEcho.slnx -c Release /p:EnforceCodeStyleInBuild=true /p:EnableNETAnalyzers=true
+    (cd backend && dotnet build NajaEcho.slnx -c Release /p:EnforceCodeStyleInBuild=true /p:EnableNETAnalyzers=true)
     FAILED=1
   fi
-  cd ..
 fi
 
 if [ $FAILED -ne 0 ]; then
