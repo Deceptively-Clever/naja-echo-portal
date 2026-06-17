@@ -923,6 +923,66 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("NajaEcho.Domain.Warehouse.WarehouseMaterialEntry", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("CommodityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("commodity_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Location")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("location");
+
+                    b.Property<Guid>("OwnerUserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("owner_user_id");
+
+                    b.Property<int>("Quality")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(500)
+                        .HasColumnName("quality");
+
+                    b.Property<decimal>("Quantity")
+                        .HasColumnType("decimal(18,2)")
+                        .HasColumnName("quantity");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_warehouse_material_inventory");
+
+                    b.HasIndex("CommodityId")
+                        .HasDatabaseName("ix_warehouse_material_inventory_commodity_id");
+
+                    b.HasIndex("OwnerUserId")
+                        .HasDatabaseName("ix_warehouse_material_inventory_owner_user_id");
+
+                    b.HasIndex("CommodityId", "OwnerUserId", "Location", "Quality")
+                        .IsUnique()
+                        .HasDatabaseName("ux_warehouse_material_inventory_commodity_owner_location_quality");
+
+                    b.ToTable("warehouse_material_inventory", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_warehouse_material_inventory_quality", "quality >= 1 AND quality <= 1000");
+
+                            t.HasCheckConstraint("ck_warehouse_material_inventory_quantity", "quantity > 0");
+                        });
+                });
+
             modelBuilder.Entity("NajaEcho.Infrastructure.Identity.ApplicationUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1101,6 +1161,16 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_warehouse_inventory_item_id");
+                });
+
+            modelBuilder.Entity("NajaEcho.Domain.Warehouse.WarehouseMaterialEntry", b =>
+                {
+                    b.HasOne("NajaEcho.Domain.Commodities.Commodity", null)
+                        .WithMany()
+                        .HasForeignKey("CommodityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_warehouse_material_inventory_commodity_id");
                 });
 #pragma warning restore 612, 618
         }

@@ -182,6 +182,9 @@ internal sealed class FakeApiCommodityRepository : ICommodityRepository
     public Task<(IReadOnlyList<CommodityListItem> Items, int TotalCount)> GetPagedAsync(
         int page, int pageSize, CancellationToken ct = default) =>
         Task.FromResult(((IReadOnlyList<CommodityListItem>)[], 0));
+
+    public Task<Commodity?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
+        Task.FromResult<Commodity?>(null);
 }
 
 internal sealed class FakeCommodityTestLoginService : IExternalLoginService

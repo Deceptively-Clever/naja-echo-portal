@@ -1,0 +1,8 @@
+namespace NajaEcho.Application.Features.Warehouse.Materials.AddMaterial;
+
+public sealed record AddMaterialCommand(
+    Guid CommodityId,
+    Guid OwnerUserId,
+    string Location,
+    decimal Quantity,
+    int Quality = 500);

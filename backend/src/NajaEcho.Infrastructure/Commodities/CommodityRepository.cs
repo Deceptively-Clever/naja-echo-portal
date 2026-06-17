@@ -8,6 +8,9 @@ namespace NajaEcho.Infrastructure.Commodities;
 
 public sealed class CommodityRepository(AppDbContext db) : ICommodityRepository
 {
+    public Task<Commodity?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
+        db.Commodities.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id, ct);
+
     public async Task<(IReadOnlyList<CommodityListItem> Items, int TotalCount)> GetPagedAsync(
         int page, int pageSize, CancellationToken ct = default)
     {
