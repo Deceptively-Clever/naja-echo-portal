@@ -32,13 +32,16 @@ dotnet_naming_style.begins_with_i.capitalization = pascal_case
 
 # StyleCop rules - suppress overly strict or opinionated rules
 dotnet_diagnostic.SA0001.severity = silent      # XML comment analysis disabled
+dotnet_diagnostic.SA1009.severity = none        # Parenthesis spacing
 dotnet_diagnostic.SA1010.severity = none        # Opening square bracket spacing
 dotnet_diagnostic.SA1011.severity = none        # Closing square bracket spacing
 dotnet_diagnostic.SA1025.severity = none        # Multiple whitespace characters
 dotnet_diagnostic.SA1101.severity = none        # Use base class name
 dotnet_diagnostic.SA1116.severity = none        # Parameter alignment (line breaks)
 dotnet_diagnostic.SA1117.severity = none        # Parameter alignment (same/separate lines)
+dotnet_diagnostic.SA1200.severity = none        # Using directives outside namespace
 dotnet_diagnostic.SA1309.severity = none        # Field names should not begin with underscore
+dotnet_diagnostic.SA1313.severity = none        # Record parameter names (PascalCase fine for DTOs)
 dotnet_diagnostic.SA1512.severity = none        # Comment followed by blank line
 dotnet_diagnostic.SA1513.severity = none        # Brace followed by blank line
 dotnet_diagnostic.SA1515.severity = none        # Comment preceded by blank line
