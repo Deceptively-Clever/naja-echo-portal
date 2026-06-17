@@ -40,6 +40,9 @@ jobs:
         working-directory: backend
         run: dotnet build NajaEcho.slnx --no-restore -c Release
 
+      - name: Check Code Analysis
+        working-directory: backend
+        run: dotnet build NajaEcho.slnx -c Release /p:EnforceCodeStyleInBuild=true /p:EnableNETAnalyzers=true
 
       - name: Test
         working-directory: backend
@@ -49,6 +52,8 @@ jobs:
           -c Release
           --results-directory TestResults
           --logger "trx;LogFileName=test-results.trx"
+          --collect:"XPlat Code Coverage"
+          --settings:backend/coverlet.runsettings
 
       - name: Upload backend test results
         if: always()
@@ -56,6 +61,14 @@ jobs:
         with:
           name: backend-test-results
           path: backend/TestResults/*.trx
+          if-no-files-found: ignore
+
+      - name: Upload code coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: backend/TestResults/coverage.cobertura.xml
           if-no-files-found: ignore
 
   frontend:
@@ -82,11 +95,19 @@ jobs:
 
       - name: Test
         working-directory: frontend
-        run: npm run test:run
+        run: npm run test:run -- --coverage
 
       - name: Build
         working-directory: frontend
         run: npm run build
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage
+          if-no-files-found: ignore
 
       - name: Package frontend dist
         if: github.event_name != 'pull_request'
