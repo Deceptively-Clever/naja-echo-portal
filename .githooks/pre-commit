@@ -14,15 +14,14 @@ FAILED=0
 # Check if files changed in frontend
 if git diff --cached --name-only --diff-filter=ACM | grep -q "^frontend/"; then
   echo -e "${YELLOW}Running frontend linting...${NC}"
-  if cd frontend && npm run lint > /dev/null 2>&1; then
+  if (cd frontend && npm run lint > /dev/null 2>&1); then
     echo -e "${GREEN}✓ Frontend lint passed${NC}"
   else
     echo -e "${RED}✗ Frontend lint failed${NC}"
     echo "Fix linting errors before committing:"
-    cd frontend && npm run lint
+    (cd frontend && npm run lint)
     FAILED=1
   fi
-  cd ..
 fi
 
 # Check if files changed in backend
