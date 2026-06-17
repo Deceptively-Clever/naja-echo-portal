@@ -63,7 +63,7 @@ public static class WarehouseEndpoints
         bool unknownGrade = false,
         CancellationToken ct = default)
     {
-        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
 
         Log.Information("GetShipComponents {CallerId} name={Name}", callerId, name);
 
@@ -83,7 +83,7 @@ public static class WarehouseEndpoints
         GetShipComponentFiltersQueryHandler handler,
         CancellationToken ct = default)
     {
-        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
 
         Log.Information("GetShipComponentFilters {CallerId}", callerId);
 
@@ -111,7 +111,7 @@ public static class WarehouseEndpoints
         int limit = 25,
         CancellationToken ct = default)
     {
-        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
 
         Log.Information("SearchSystemsCatalog {CallerId} search={Search}", callerId, search);
 
@@ -133,7 +133,7 @@ public static class WarehouseEndpoints
         string? location = null,
         CancellationToken ct = default)
     {
-        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
 
         Log.Information("GetInventory {CallerId} name={Name} type={Type} subtype={Subtype} owner={Owner} location={Location}",
             callerId, name, type, subtype, ownerUserId, location);
@@ -152,7 +152,7 @@ public static class WarehouseEndpoints
         GetInventoryFiltersHandler handler,
         CancellationToken ct = default)
     {
-        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
 
         Log.Information("GetInventoryFilters {CallerId}", callerId);
 
@@ -174,7 +174,7 @@ public static class WarehouseEndpoints
         int limit = 25,
         CancellationToken ct = default)
     {
-        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
 
         Log.Information("SearchCatalogItems {CallerId} search={Search}", callerId, search);
 
@@ -192,7 +192,7 @@ public static class WarehouseEndpoints
         AddInventoryItemHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
 
         var ownerUserId = body.OwnerUserId ?? callerId;
         var quality = body.Quality ?? 500;
@@ -241,7 +241,7 @@ public static class WarehouseEndpoints
         AddInventoryItemHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
 
         var ownerUserId = body.OwnerUserId ?? callerId;
         var quality = body.Quality ?? 500;
@@ -291,7 +291,7 @@ public static class WarehouseEndpoints
         ChangeInventoryQuantityHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
 
         Log.Information("ChangeInventoryQuantity {CallerId} rowId={Id} quantity={Quantity}", callerId, id, body.Quantity);
 
@@ -321,7 +321,7 @@ public static class WarehouseEndpoints
         RemoveInventoryItemHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
 
         Log.Information("RemoveInventoryItem {CallerId} rowId={Id}", callerId, id);
 
@@ -350,7 +350,7 @@ public static class WarehouseEndpoints
         int? qualityMax = null,
         CancellationToken ct = default)
     {
-        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
 
         Log.Information("GetMaterials {CallerId} material={Material} owner={Owner} location={Location} qualityMin={QualityMin} qualityMax={QualityMax}",
             callerId, material, ownerUserId, location, qualityMin, qualityMax);
@@ -369,7 +369,7 @@ public static class WarehouseEndpoints
         GetMaterialFiltersQueryHandler handler,
         CancellationToken ct = default)
     {
-        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
 
         Log.Information("GetMaterialFilters {CallerId}", callerId);
 
@@ -390,7 +390,7 @@ public static class WarehouseEndpoints
         int limit = 25,
         CancellationToken ct = default)
     {
-        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
 
         Log.Information("SearchCommoditiesCatalog {CallerId} search={Search}", callerId, search);
 
@@ -408,7 +408,7 @@ public static class WarehouseEndpoints
         AddMaterialHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
 
         var ownerUserId = body.OwnerUserId ?? callerId;
         var quality = body.Quality ?? 500;
@@ -458,7 +458,7 @@ public static class WarehouseEndpoints
         ChangeMaterialQuantityHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
 
         Log.Information("ChangeMaterialQuantity {CallerId} rowId={Id} quantity={Quantity}", callerId, id, body.Quantity);
 
@@ -488,7 +488,7 @@ public static class WarehouseEndpoints
         RemoveMaterialHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
 
         Log.Information("RemoveMaterial {CallerId} rowId={Id}", callerId, id);
 

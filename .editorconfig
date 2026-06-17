@@ -39,12 +39,19 @@ dotnet_diagnostic.SA1025.severity = none        # Multiple whitespace characters
 dotnet_diagnostic.SA1101.severity = none        # Use base class name
 dotnet_diagnostic.SA1116.severity = none        # Parameter alignment (line breaks)
 dotnet_diagnostic.SA1117.severity = none        # Parameter alignment (same/separate lines)
+dotnet_diagnostic.SA1127.severity = none        # Generic constraint formatting
 dotnet_diagnostic.SA1200.severity = none        # Using directives outside namespace
+dotnet_diagnostic.SA1202.severity = none        # Element ordering by access level
+dotnet_diagnostic.SA1210.severity = none        # Using directives ordering
 dotnet_diagnostic.SA1309.severity = none        # Field names should not begin with underscore
 dotnet_diagnostic.SA1313.severity = none        # Record parameter names (PascalCase fine for DTOs)
+dotnet_diagnostic.SA1413.severity = none        # Multi-line initializer trailing comma
+dotnet_diagnostic.SA1502.severity = none        # Element on same line
 dotnet_diagnostic.SA1512.severity = none        # Comment followed by blank line
 dotnet_diagnostic.SA1513.severity = none        # Brace followed by blank line
 dotnet_diagnostic.SA1515.severity = none        # Comment preceded by blank line
+dotnet_diagnostic.SA1516.severity = none        # Elements separated by blank line
+dotnet_diagnostic.SA1519.severity = none        # Braces for single statement block
 dotnet_diagnostic.SA1600.severity = none        # Missing documentation
 dotnet_diagnostic.SA1601.severity = none        # Partial elements missing documentation
 dotnet_diagnostic.SA1633.severity = none        # File header required
@@ -85,3 +92,6 @@ dotnet_diagnostic.CA1820.severity = none
 dotnet_diagnostic.CA1822.severity = none
 dotnet_diagnostic.CA1823.severity = none
 dotnet_diagnostic.CA2201.severity = none
+
+# NuGet warnings
+dotnet_diagnostic.NU1603.severity = none        # Package version mismatch
