@@ -126,7 +126,7 @@ try
             opts.Events.OnTicketReceived = async ctx =>
             {
                 var cfg = ctx.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
-                var origin = cfg["Frontend:Origin"] ?? "";
+                var origin = cfg["Frontend:Origin"] ?? string.Empty;
 
                 var claims = ctx.Principal?.Claims.ToList() ?? [];
                 var discordId = claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
@@ -196,7 +196,7 @@ try
             opts.Events.OnRemoteFailure = ctx =>
             {
                 var cfg = ctx.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
-                var origin = cfg["Frontend:Origin"] ?? "";
+                var origin = cfg["Frontend:Origin"] ?? string.Empty;
 
                 var reason = ctx.Failure?.Message?.Contains("Correlation",
                     StringComparison.OrdinalIgnoreCase) == true
