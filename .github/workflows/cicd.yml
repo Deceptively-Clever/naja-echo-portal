@@ -53,7 +53,7 @@ jobs:
           --results-directory TestResults
           --logger "trx;LogFileName=test-results.trx"
           --collect:"XPlat Code Coverage"
-          --settings:backend/coverlet.runsettings
+          --settings:coverlet.runsettings
 
       - name: Upload backend test results
         if: always()
