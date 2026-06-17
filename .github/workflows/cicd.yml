@@ -42,7 +42,7 @@ jobs:
 
       - name: Check Code Analysis
         working-directory: backend
-        run: dotnet build NajaEcho.slnx -c Release /p:EnforceCodeStyleInBuild=true /p:EnableNETAnalyzers=true
+        run: dotnet build NajaEcho.slnx --no-restore -c Release /p:EnforceCodeStyleInBuild=true /p:EnableNETAnalyzers=true
 
       - name: Test
         working-directory: backend
@@ -68,7 +68,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: backend-coverage
-          path: backend/TestResults/coverage.cobertura.xml
+          path: backend/TestResults/**/coverage.cobertura.xml
           if-no-files-found: ignore
 
   frontend:
