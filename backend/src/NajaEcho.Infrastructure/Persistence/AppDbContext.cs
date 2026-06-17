@@ -21,6 +21,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<Item> Items => Set<Item>();
     public DbSet<Commodity> Commodities => Set<Commodity>();
     public DbSet<WarehouseInventoryEntry> WarehouseInventory => Set<WarehouseInventoryEntry>();
+    public DbSet<WarehouseMaterialEntry> WarehouseMaterialInventory => Set<WarehouseMaterialEntry>();
     public DbSet<ItemAttribute> ItemAttributes => Set<ItemAttribute>();
     public DbSet<ShipComponentAttributes> ShipComponentAttributes => Set<ShipComponentAttributes>();
 
@@ -34,6 +35,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         modelBuilder.ApplyConfiguration(new ItemConfiguration());
         modelBuilder.ApplyConfiguration(new CommodityConfiguration());
         modelBuilder.ApplyConfiguration(new WarehouseInventoryEntryConfiguration());
+        modelBuilder.ApplyConfiguration(new WarehouseMaterialEntryConfiguration());
         modelBuilder.ApplyConfiguration(new ItemAttributeConfiguration());
         modelBuilder.ApplyConfiguration(new ShipComponentAttributesConfiguration());
     }

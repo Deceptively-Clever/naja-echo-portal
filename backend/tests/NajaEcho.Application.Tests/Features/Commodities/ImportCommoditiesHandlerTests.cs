@@ -25,6 +25,9 @@ public sealed class ImportCommoditiesHandlerTests
         public Task<(IReadOnlyList<CommodityListItem> Items, int TotalCount)> GetPagedAsync(
             int page, int pageSize, CancellationToken ct = default) =>
             Task.FromResult(((IReadOnlyList<CommodityListItem>)[], 0));
+
+        public Task<Commodity?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
+            Task.FromResult<Commodity?>(null);
     }
 
     private sealed class FakeCommodityClient : IUexCommodityClient

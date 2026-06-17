@@ -1,0 +1,231 @@
+openapi: 3.0.3
+info:
+  title: NajaEchoPortal — Warehouse Materials API
+  version: 1.0.0
+  description: >
+    Six new endpoints added to the existing /api/warehouse group for the Warehouse → Materials
+    sub-page (feature 014). Reads require authentication; writes and catalog search require the
+    Quartermaster policy (which also admits Admin). Anonymous requests receive the same
+    redirect/401 behaviour as the Items page.
+servers:
+  - url: /
+tags:
+  - name: Warehouse Materials
+paths:
+  /api/warehouse/materials:
+    get:
+      tags: [Warehouse Materials]
+      operationId: getMaterials
+      summary: List material inventory (filterable, multi-key sorted).
+      description: >
+        Returns material rows sorted by Material name asc, Quality desc, Owner name asc, Location asc.
+        All filters are optional and combine with AND; empty filters are ignored.
+      parameters:
+        - { name: material, in: query, required: false, schema: { type: string }, description: "Case-insensitive partial match over commodity name and code." }
+        - { name: ownerUserId, in: query, required: false, schema: { type: string, format: uuid }, description: "Single owner filter." }
+        - { name: location, in: query, required: false, schema: { type: string }, description: "Single known location filter." }
+        - { name: qualityMin, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 1000, default: 1 } }
+        - { name: qualityMax, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 1000, default: 1000 } }
+      responses:
+        '200':
+          description: Material inventory list.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MaterialListResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/warehouse/materials/filters:
+    get:
+      tags: [Warehouse Materials]
+      operationId: getMaterialFilters
+      summary: Selectable Owner and Location options derived from current material inventory.
+      responses:
+        '200':
+          description: Available filter options.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MaterialFiltersResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+  /api/warehouse/materials/catalog/search:
+    get:
+      tags: [Warehouse Materials]
+      operationId: searchMaterialCatalog
+      summary: Search sc.commodities for the add flow (Quartermaster).
+      parameters:
+        - { name: search, in: query, required: false, schema: { type: string } }
+        - { name: limit, in: query, required: false, schema: { type: integer, minimum: 1, maximum: 100, default: 25 } }
+      responses:
+        '200':
+          description: Matching commodities.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CommodityCatalogResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+  /api/warehouse/materials/{id}/quantity:
+    put:
+      tags: [Warehouse Materials]
+      operationId: changeMaterialQuantity
+      summary: Set a material row's quantity to a new absolute total (Quartermaster).
+      description: >
+        Absolute set — the value is the new total quantity, not a delta. Rounded half-up to 2
+        decimal places; values <= 0.00 are rejected and the row keeps its prior quantity. Quality,
+        Material, Owner, and Location are never changed.
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ChangeMaterialQuantityRequest' }
+      responses:
+        '200':
+          description: Updated row.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MaterialRowResponse' }
+        '400': { $ref: '#/components/responses/ValidationProblem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/warehouse/materials/{id}:
+    delete:
+      tags: [Warehouse Materials]
+      operationId: removeMaterial
+      summary: Delete a material inventory row (Quartermaster).
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      responses:
+        '204': { description: Removed. }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  # POST is declared on the collection path; documented separately for clarity.
+  /api/warehouse/materials#add:
+    post:
+      tags: [Warehouse Materials]
+      operationId: addMaterial
+      summary: Add a material row, or increment an existing matching row (Quartermaster).
+      description: >
+        Real path is POST /api/warehouse/materials (this synthetic path id avoids an OpenAPI
+        path collision with the GET above). Selects a commodity from sc.commodities, assigns owner
+        (defaults to caller), location, quantity (> 0.00), and quality (1..1000, default 500). If a
+        row with the same Material+Owner+Location+Quality exists, its quantity is incremented and 200
+        is returned; otherwise a new row is created and 201 is returned.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AddMaterialRequest' }
+      responses:
+        '201':
+          description: New row created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MaterialRowResponse' }
+        '200':
+          description: Existing matching row incremented.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MaterialRowResponse' }
+        '400': { $ref: '#/components/responses/ValidationProblem' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404':
+          description: Commodity or owner not found.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+components:
+  schemas:
+    MaterialRowResponse:
+      type: object
+      required: [id, commodityId, materialName, quantity, quality, ownerUserId, ownerDisplayName, location]
+      properties:
+        id: { type: string, format: uuid }
+        commodityId: { type: string, format: uuid }
+        materialName: { type: string }
+        materialCode: { type: string, nullable: true }
+        quantity: { type: number, format: double, description: "Decimal with 2 places, > 0.00." }
+        quality: { type: integer, minimum: 1, maximum: 1000 }
+        ownerUserId: { type: string, format: uuid }
+        ownerDisplayName: { type: string }
+        location: { type: string }
+    MaterialListResponse:
+      type: object
+      required: [rows]
+      properties:
+        rows:
+          type: array
+          items: { $ref: '#/components/schemas/MaterialRowResponse' }
+    MaterialFiltersResponse:
+      type: object
+      required: [owners, locations]
+      properties:
+        owners:
+          type: array
+          items: { $ref: '#/components/schemas/OwnerOption' }
+        locations:
+          type: array
+          items: { type: string }
+    OwnerOption:
+      type: object
+      required: [userId, displayName]
+      properties:
+        userId: { type: string, format: uuid }
+        displayName: { type: string }
+    CommodityCatalogResponse:
+      type: object
+      required: [commodities]
+      properties:
+        commodities:
+          type: array
+          items: { $ref: '#/components/schemas/CommodityCatalogItem' }
+    CommodityCatalogItem:
+      type: object
+      required: [commodityId, name]
+      properties:
+        commodityId: { type: string, format: uuid }
+        name: { type: string }
+        code: { type: string, nullable: true }
+    AddMaterialRequest:
+      type: object
+      required: [commodityId, location, quantity]
+      properties:
+        commodityId: { type: string, format: uuid }
+        ownerUserId: { type: string, format: uuid, nullable: true, description: "Defaults to the authenticated caller when omitted." }
+        location: { type: string, minLength: 1, maxLength: 200 }
+        quantity: { type: number, format: double, description: "> 0.00; rounded half-up to 2 places." }
+        quality: { type: integer, minimum: 1, maximum: 1000, nullable: true, description: "Defaults to 500 when omitted." }
+    ChangeMaterialQuantityRequest:
+      type: object
+      required: [quantity]
+      properties:
+        quantity: { type: number, format: double, description: "New absolute total; > 0.00, rounded half-up to 2 places." }
+    ProblemDetails:
+      type: object
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+  responses:
+    Unauthorized:
+      description: Not authenticated.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    Forbidden:
+      description: Authenticated but lacks the Quartermaster policy.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    NotFound:
+      description: Resource not found.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    ValidationProblem:
+      description: Validation failed (e.g. quantity <= 0.00 or quality outside 1..1000).
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }

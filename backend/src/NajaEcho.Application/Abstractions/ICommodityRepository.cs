@@ -5,6 +5,8 @@ namespace NajaEcho.Application.Abstractions;
 
 public interface ICommodityRepository
 {
+    Task<Commodity?> GetByIdAsync(Guid id, CancellationToken ct = default);
+
     Task<(IReadOnlyList<CommodityListItem> Items, int TotalCount)> GetPagedAsync(
         int page, int pageSize, CancellationToken ct = default);
 
