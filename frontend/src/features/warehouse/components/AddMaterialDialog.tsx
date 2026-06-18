@@ -164,8 +164,9 @@ export function AddMaterialDialog({
               id="add-material-quantity"
               aria-label="Quantity"
               type="number"
-              step="0.01"
-              min={0.01}
+              inputMode="decimal"
+              step="0.001"
+              min={0.001}
               className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
               value={quantity}
               onChange={(e) => setQuantity(Number(e.target.value))}

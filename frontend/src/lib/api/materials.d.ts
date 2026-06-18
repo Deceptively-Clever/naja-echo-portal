@@ -68,7 +68,7 @@ export interface paths {
         get?: never;
         /**
          * Set a material row's quantity to a new absolute total (Quartermaster).
-         * @description Absolute set — the value is the new total quantity, not a delta. Rounded half-up to 2 decimal places; values <= 0.00 are rejected and the row keeps its prior quantity. Quality, Material, Owner, and Location are never changed.
+         * @description Absolute set — the value is the new total quantity, not a delta. Rounded half-up to 3 decimal places; values <= 0.000 are rejected and the row keeps its prior quantity. Quality, Material, Owner, and Location are never changed.
          */
         put: operations["changeMaterialQuantity"];
         post?: never;
@@ -106,7 +106,7 @@ export interface paths {
         put?: never;
         /**
          * Add a material row, or increment an existing matching row (Quartermaster).
-         * @description Real path is POST /api/warehouse/materials (this synthetic path id avoids an OpenAPI path collision with the GET above). Selects a commodity from sc.commodities, assigns owner (defaults to caller), location, quantity (> 0.00), and quality (1..1000, default 500). If a row with the same Material+Owner+Location+Quality exists, its quantity is incremented and 200 is returned; otherwise a new row is created and 201 is returned.
+         * @description Real path is POST /api/warehouse/materials (this synthetic path id avoids an OpenAPI path collision with the GET above). Selects a commodity from sc.commodities, assigns owner (defaults to caller), location, quantity (> 0.000), and quality (1..1000, default 500). If a row with the same Material+Owner+Location+Quality exists, its quantity is incremented and 200 is returned; otherwise a new row is created and 201 is returned.
          */
         post: operations["addMaterial"];
         delete?: never;
@@ -128,7 +128,7 @@ export interface components {
             materialCode?: string | null;
             /**
              * Format: double
-             * @description Decimal with 2 places, > 0.00.
+             * @description Decimal with 3 places, > 0.000.
              */
             quantity: number;
             quality: number;
@@ -169,7 +169,7 @@ export interface components {
             location: string;
             /**
              * Format: double
-             * @description > 0.00; rounded half-up to 2 places.
+             * @description > 0.000; rounded half-up to 3 places.
              */
             quantity: number;
             /** @description Defaults to 500 when omitted. */
@@ -178,7 +178,7 @@ export interface components {
         ChangeMaterialQuantityRequest: {
             /**
              * Format: double
-             * @description New absolute total; > 0.00, rounded half-up to 2 places.
+             * @description New absolute total; > 0.000, rounded half-up to 3 places.
              */
             quantity: number;
         };
@@ -217,7 +217,7 @@ export interface components {
                 "application/problem+json": components["schemas"]["ProblemDetails"];
             };
         };
-        /** @description Validation failed (e.g. quantity <= 0.00 or quality outside 1..1000). */
+        /** @description Validation failed (e.g. quantity <= 0.000 or quality outside 1..1000). */
         ValidationProblem: {
             headers: {
                 [name: string]: unknown;

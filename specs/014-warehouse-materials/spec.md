@@ -29,7 +29,7 @@ An authenticated member of the org wants to see all crafting material inventory 
 
 1. **Given** an authenticated user is on any page in the app, **When** they navigate to Warehouse → Materials, **Then** they land on the Materials page and see a list of material inventory rows.
 2. **Given** the Materials page is loaded, **When** the list renders, **Then** each row displays Material, Owner, Location, Quantity, and Quality.
-3. **Given** material inventory exists, **When** the list renders, **Then** Quantity is displayed as a decimal value with exactly 2 decimal places.
+3. **Given** material inventory exists, **When** the list renders, **Then** Quantity is displayed as a decimal value with exactly 3 decimal places.
 4. **Given** material inventory exists, **When** the list renders, **Then** rows are sorted by Material name ascending, then Quality descending, then Owner name ascending, then Location ascending.
 5. **Given** an unauthenticated visitor attempts to access the Materials page, **When** they navigate to the route, **Then** they are denied access using the same unauthorized behavior as the existing Inventory page.
 6. **Given** no material inventory exists, **When** the page renders, **Then** an appropriate "no material inventory" empty state is displayed.
@@ -121,7 +121,7 @@ An authenticated user wants to narrow the Materials list by material search, own
 - What happens when quality was entered incorrectly? → Quality cannot be edited after creation; the user must delete the row and re-add the material with the correct quality.
 - What happens when an Admin navigates to the Materials page? → The Admin sees the same Quartermaster controls (add, adjust quantity, delete) without a separate role assignment.
 - What happens when the same commodity exists at multiple owners, locations, or qualities? → Each distinct combination of Material, Owner, Location, and Quality appears as its own row.
-- What happens when a quantity is entered with more than 2 decimal places? → The input is rounded to 2 decimal places (half-up) before validation and storage; a rounded value that becomes `0.00` is rejected by the > 0.00 rule.
+- What happens when a quantity is entered with more than 3 decimal places? → The input is rounded to 3 decimal places (half-up) before validation and storage; a rounded value that becomes `0.000` is rejected by the > 0.000 rule.
 
 ## Requirements *(mandatory)*
 
@@ -147,7 +147,7 @@ An authenticated user wants to narrow the Materials list by material search, own
 **Displayed Fields**
 
 - **FR-009**: Each material inventory row MUST display Material, Owner, Location, Quantity, and Quality.
-- **FR-010**: Quantity MUST be displayed as a decimal value with exactly 2 decimal places.
+- **FR-010**: Quantity MUST be displayed as a decimal value with exactly 3 decimal places.
 - **FR-011**: Quality MUST be displayed as a read-only value for rows that already exist.
 
 **Field Rules — Owner**
@@ -221,7 +221,7 @@ An authenticated user wants to narrow the Materials list by material search, own
 
 ### Key Entities
 
-- **Material Inventory Row**: An inventory entry for a crafting material. Carries Material (commodity reference), Owner (registered user), Location (free text), Quantity (decimal > 0.00, 2 places), and Quality (integer 1–1000, set at creation, immutable thereafter). Unique by the combination of Material + Owner + Location + Quality.
+- **Material Inventory Row**: An inventory entry for a crafting material. Carries Material (commodity reference), Owner (registered user), Location (free text), Quantity (decimal > 0.000, 3 places), and Quality (integer 1–1000, set at creation, immutable thereafter). Unique by the combination of Material + Owner + Location + Quality.
 - **Commodity (`sc.commodities`)**: The existing source of selectable materials. Provides material name and commodity code used for selection and search. Read-only with respect to this feature; commodities are neither created nor imported here.
 - **Owner (Registered User)**: A registered application user who owns a material inventory row. Defaults to the authenticated user on add; a Quartermaster may assign another registered user.
 - **Warehouse Location**: A free-text storage location. Existing locations used elsewhere in inventory are surfaced as suggestions and as filter options.
@@ -232,7 +232,7 @@ An authenticated user wants to narrow the Materials list by material search, own
 ### Measurable Outcomes
 
 - **SC-001**: Authenticated users can navigate to the Materials page from any page in the application in two clicks or fewer.
-- **SC-002**: Every material row displays all five fields — Material, Owner, Location, Quantity (2 decimal places), and Quality — on every page load.
+- **SC-002**: Every material row displays all five fields — Material, Owner, Location, Quantity (3 decimal places), and Quality — on every page load.
 - **SC-003**: Material rows appear in the five-key default sort order (Material name asc, Quality desc, Owner name asc, Location asc) on every page load without user action.
 - **SC-004**: 100% of add-material flows restrict selection to commodities from `sc.commodities`; no custom or non-commodity material can be saved.
 - **SC-005**: 100% of attempts to save a quantity of `0.00` or less (on add or adjust) are blocked, and no row is ever persisted with a non-positive quantity.
@@ -255,6 +255,6 @@ An authenticated user wants to narrow the Materials list by material search, own
   Location filter to its own inventory rather than cross-referencing Items.
 - `sc.commodities` already exists, is populated, and exposes a material name and a commodity code suitable for search and display; this feature reads it but neither imports nor modifies it.
 - "Registered user" means any authenticated application user account; selecting an owner does not change that user's roles or permissions. Per FR-014, the Owner picker on add is populated from users who already own at least one Materials inventory row, not a search across all registered accounts.
-- Quality is stored as an integer and Quantity as a decimal; display formatting (2 decimal places for Quantity) does not change stored precision.
-- Excess Quantity precision is rounded to 2 decimal places before validation and storage.
+- Quality is stored as an integer and Quantity as a decimal; display formatting (3 decimal places for Quantity) does not change stored precision.
+- Excess Quantity precision is rounded to 3 decimal places before validation and storage.
 - Material reservation, allocation, crafting consumption, transaction history, commodity import, custom material creation, Quartermaster role assignment, and zero-quantity rows are explicitly out of scope for v1.

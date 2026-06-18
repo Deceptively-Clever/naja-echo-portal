@@ -10,9 +10,9 @@ public sealed class ChangeMaterialQuantityHandler(
 {
     public async Task<MaterialRowDto> HandleAsync(ChangeMaterialQuantityCommand command, CancellationToken ct)
     {
-        var quantity = Math.Round(command.Quantity, 2, MidpointRounding.AwayFromZero);
-        if (quantity <= 0.00m)
-            throw new ArgumentOutOfRangeException(nameof(command), "Quantity must be greater than 0.00.");
+        var quantity = Math.Round(command.Quantity, 3, MidpointRounding.AwayFromZero);
+        if (quantity <= 0.000m)
+            throw new ArgumentOutOfRangeException(nameof(command), "Quantity must be greater than 0.000.");
 
         logger.LogInformation("ChangeMaterialQuantity rowId={Id} quantity={Quantity}", command.Id, quantity);
 

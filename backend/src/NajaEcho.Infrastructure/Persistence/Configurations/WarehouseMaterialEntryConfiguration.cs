@@ -19,7 +19,7 @@ public sealed class WarehouseMaterialEntryConfiguration : IEntityTypeConfigurati
         builder.Property(w => w.CommodityId).HasColumnName("commodity_id").IsRequired();
         builder.Property(w => w.OwnerUserId).HasColumnName("owner_user_id").IsRequired();
         builder.Property(w => w.Location).HasColumnName("location").HasMaxLength(200).IsRequired();
-        builder.Property(w => w.Quantity).HasColumnName("quantity").HasColumnType("decimal(18,2)").IsRequired();
+        builder.Property(w => w.Quantity).HasColumnName("quantity").HasColumnType("decimal(18,3)").IsRequired();
         builder.Property(w => w.Quality).HasColumnName("quality").HasDefaultValue(500).IsRequired();
         builder.Property(w => w.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(w => w.UpdatedAt).HasColumnName("updated_at").IsRequired();

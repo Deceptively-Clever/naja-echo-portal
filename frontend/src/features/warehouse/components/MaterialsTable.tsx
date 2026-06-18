@@ -55,7 +55,7 @@ export function MaterialsTable({ rows, isQuartermaster = false, onRemove, hasAct
                   onCancel={() => setEditingId(null)}
                 />
               ) : (
-                <span>{row.quantity.toFixed(2)}</span>
+                <span>{row.quantity.toFixed(3)}</span>
               )}
             </TableCell>
             <TableCell>{row.quality}</TableCell>

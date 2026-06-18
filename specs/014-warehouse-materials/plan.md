@@ -13,8 +13,8 @@ Quantity, Quality**, sorted by Material name ↑ → Quality ↓ → Owner name 
 
 The two new wrinkles versus 011/012 are:
 
-1. **Decimal quantity** — material quantity is a `decimal(18,2)` greater than `0.00` (rounded
-   half-up to 2 places), where Items/Ship Components use integer quantity ≥ 1.
+1. **Decimal quantity** — material quantity is a `decimal(18,3)` greater than `0.000` (rounded
+   half-up to 3 places), where Items/Ship Components use integer quantity ≥ 1.
 2. **Quality is part of the row-uniqueness key** — a material row is unique by **(Material, Owner,
    Location, Quality)**. In 011/013, Quality exists on `warehouse_inventory` but is **not** part of
    its unique key. Because the keys differ (commodity vs item, decimal qty, quality-in-key),
@@ -76,8 +76,8 @@ SQL projection with server-side filtering suffices — no pagination in v1.
 
 **Constraints**:
 - Material is sourced exclusively from `sc.commodities`; no custom materials (FR-007, FR-008).
-- Quantity is `decimal`, displayed at exactly 2 places, must be `> 0.00` on add and adjust; excess
-  precision is rounded half-up to 2 places before validation/storage; a value rounding to `0.00` is
+- Quantity is `decimal`, displayed at exactly 3 places, must be `> 0.000` on add and adjust; excess
+  precision is rounded half-up to 3 places before validation/storage; a value rounding to `0.000` is
   rejected (FR-010, FR-017, FR-018; spec edge case).
 - Quality is an integer `1..1000`, defaults to `500`, set only at creation, never editable
   afterward — correction is delete-and-re-add (FR-020..FR-023).

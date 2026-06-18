@@ -118,15 +118,15 @@ public sealed class AddMaterialHandlerTests
     {
         var repo = new FakeMaterialRepo();
         await MakeHandler(repo).HandleAsync(
-            new AddMaterialCommand(KnownCommodityId, KnownOwnerId, "Bay 1", 1.005m), default);
-        repo.CapturedQuantity.Should().Be(1.01m);
+            new AddMaterialCommand(KnownCommodityId, KnownOwnerId, "Bay 1", 1.0005m), default);
+        repo.CapturedQuantity.Should().Be(1.001m);
     }
 
     [Fact]
     public async Task HandleAsync_QuantityRoundsToZero_RejectedAsZero()
     {
         var act = () => MakeHandler().HandleAsync(
-            new AddMaterialCommand(KnownCommodityId, KnownOwnerId, "Bay 1", 0.004m), default);
+            new AddMaterialCommand(KnownCommodityId, KnownOwnerId, "Bay 1", 0.0004m), default);
         await act.Should().ThrowAsync<ArgumentOutOfRangeException>();
     }
 

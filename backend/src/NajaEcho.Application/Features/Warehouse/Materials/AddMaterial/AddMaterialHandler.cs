@@ -17,9 +17,9 @@ public sealed class AddMaterialHandler(
         if (string.IsNullOrEmpty(location))
             throw new ArgumentException("Location must not be empty.", nameof(command));
 
-        var quantity = Math.Round(command.Quantity, 2, MidpointRounding.AwayFromZero);
-        if (quantity <= 0.00m)
-            throw new ArgumentOutOfRangeException(nameof(command), "Quantity must be greater than 0.00.");
+        var quantity = Math.Round(command.Quantity, 3, MidpointRounding.AwayFromZero);
+        if (quantity <= 0.000m)
+            throw new ArgumentOutOfRangeException(nameof(command), "Quantity must be greater than 0.000.");
         if (command.Quality < 1 || command.Quality > 1000)
             throw new ArgumentOutOfRangeException(nameof(command), "Quality must be between 1 and 1000.");
 
