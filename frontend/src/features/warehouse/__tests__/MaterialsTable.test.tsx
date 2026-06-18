@@ -50,10 +50,10 @@ describe('MaterialsTable', () => {
     expect(screen.getByText('500')).toBeDefined()
   })
 
-  it('formats quantity with exactly 2 decimal places', () => {
+  it('formats quantity with exactly 3 decimal places', () => {
     render(<MaterialsTable rows={mockRows} />, { wrapper: createWrapper() })
-    expect(screen.getByText('12.50')).toBeDefined()
-    expect(screen.getByText('3.00')).toBeDefined()
+    expect(screen.getByText('12.500')).toBeDefined()
+    expect(screen.getByText('3.000')).toBeDefined()
   })
 
   it('renders the "no material inventory" empty state when rows is empty', () => {

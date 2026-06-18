@@ -60,8 +60,8 @@ public sealed class ChangeMaterialQuantityHandlerTests
     public async Task HandleAsync_QuantityRoundedHalfUp_BeforeValidation()
     {
         var repo = new FakeMaterialRepo();
-        await MakeHandler(repo).HandleAsync(new ChangeMaterialQuantityCommand(KnownRowId, 1.005m), default);
-        repo.CapturedQuantity.Should().Be(1.01m);
+        await MakeHandler(repo).HandleAsync(new ChangeMaterialQuantityCommand(KnownRowId, 1.0005m), default);
+        repo.CapturedQuantity.Should().Be(1.001m);
     }
 
     [Fact]

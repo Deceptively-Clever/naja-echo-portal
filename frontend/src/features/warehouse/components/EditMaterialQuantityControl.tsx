@@ -29,7 +29,9 @@ export function EditMaterialQuantityControl({ currentQuantity, onConfirm, onCanc
           id="edit-material-qty-input"
           aria-label="Quantity"
           type="number"
-          step="0.01"
+          inputMode="decimal"
+          step="0.001"
+          min={0.001}
           className="h-8 w-24 rounded-md border border-input bg-background px-2 text-sm text-foreground"
           value={value}
           onChange={(e) => setValue(Number(e.target.value))}

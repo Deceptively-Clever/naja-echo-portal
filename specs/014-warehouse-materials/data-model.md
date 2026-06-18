@@ -12,7 +12,7 @@ uses a decimal quantity, and includes Quality in its uniqueness key.
 | `CommodityId` | `Guid` | `commodity_id` | Required. FK → `sc.commodities(id)`, `ON DELETE RESTRICT`. The selected material (FR-007, FR-008). |
 | `OwnerUserId` | `Guid` | `owner_user_id` | Required. FK → `AspNetUsers(id)`. Defaults to caller on add; a Quartermaster may pick another user (FR-012..FR-014). |
 | `Location` | `string` | `location` | Required, free text, `HasMaxLength(200)`, trimmed (FR-015, FR-016). |
-| `Quantity` | `decimal` | `quantity` `decimal(18,2)` | Required, `> 0.00`. Rounded half-up to 2 places before validation/storage (FR-010, FR-017, FR-018). |
+| `Quantity` | `decimal` | `quantity` `decimal(18,3)` | Required, `> 0.000`. Rounded half-up to 3 places before validation/storage (FR-010, FR-017, FR-018). |
 | `Quality` | `int` | `quality` | Required, `1..1000`, default `500`. Set only at creation; immutable thereafter (FR-020..FR-023). Part of the unique key. |
 | `CreatedAt` | `DateTimeOffset` | `created_at` | Set on insert. |
 | `UpdatedAt` | `DateTimeOffset` | `updated_at` | Set on insert and on every increment/adjust. |

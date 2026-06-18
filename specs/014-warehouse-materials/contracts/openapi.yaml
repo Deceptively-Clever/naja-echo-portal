@@ -67,8 +67,8 @@ paths:
       operationId: changeMaterialQuantity
       summary: Set a material row's quantity to a new absolute total (Quartermaster).
       description: >
-        Absolute set — the value is the new total quantity, not a delta. Rounded half-up to 2
-        decimal places; values <= 0.00 are rejected and the row keeps its prior quantity. Quality,
+        Absolute set — the value is the new total quantity, not a delta. Rounded half-up to 3
+        decimal places; values <= 0.000 are rejected and the row keeps its prior quantity. Quality,
         Material, Owner, and Location are never changed.
       parameters:
         - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
@@ -108,7 +108,7 @@ paths:
       description: >
         Real path is POST /api/warehouse/materials (this synthetic path id avoids an OpenAPI
         path collision with the GET above). Selects a commodity from sc.commodities, assigns owner
-        (defaults to caller), location, quantity (> 0.00), and quality (1..1000, default 500). If a
+        (defaults to caller), location, quantity (> 0.000), and quality (1..1000, default 500). If a
         row with the same Material+Owner+Location+Quality exists, its quantity is incremented and 200
         is returned; otherwise a new row is created and 201 is returned.
       requestBody:
@@ -145,7 +145,7 @@ components:
         commodityId: { type: string, format: uuid }
         materialName: { type: string }
         materialCode: { type: string, nullable: true }
-        quantity: { type: number, format: double, description: "Decimal with 2 places, > 0.00." }
+        quantity: { type: number, format: double, description: "Decimal with 3 places, > 0.000." }
         quality: { type: integer, minimum: 1, maximum: 1000 }
         ownerUserId: { type: string, format: uuid }
         ownerDisplayName: { type: string }
@@ -194,13 +194,13 @@ components:
         commodityId: { type: string, format: uuid }
         ownerUserId: { type: string, format: uuid, nullable: true, description: "Defaults to the authenticated caller when omitted." }
         location: { type: string, minLength: 1, maxLength: 200 }
-        quantity: { type: number, format: double, description: "> 0.00; rounded half-up to 2 places." }
+        quantity: { type: number, format: double, description: "> 0.000; rounded half-up to 3 places." }
         quality: { type: integer, minimum: 1, maximum: 1000, nullable: true, description: "Defaults to 500 when omitted." }
     ChangeMaterialQuantityRequest:
       type: object
       required: [quantity]
       properties:
-        quantity: { type: number, format: double, description: "New absolute total; > 0.00, rounded half-up to 2 places." }
+        quantity: { type: number, format: double, description: "New absolute total; > 0.000, rounded half-up to 3 places." }
     ProblemDetails:
       type: object
       properties:
@@ -225,7 +225,7 @@ components:
         application/problem+json:
           schema: { $ref: '#/components/schemas/ProblemDetails' }
     ValidationProblem:
-      description: Validation failed (e.g. quantity <= 0.00 or quality outside 1..1000).
+      description: Validation failed (e.g. quantity <= 0.000 or quality outside 1..1000).
       content:
         application/problem+json:
           schema: { $ref: '#/components/schemas/ProblemDetails' }
