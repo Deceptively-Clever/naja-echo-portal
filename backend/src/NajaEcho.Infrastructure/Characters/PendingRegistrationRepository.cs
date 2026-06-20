@@ -22,7 +22,6 @@ public sealed class PendingRegistrationRepository(AppDbContext db) : IPendingReg
         }
         else
         {
-            existing.Id = pending.Id;
             existing.Token = pending.Token;
             existing.ExpiresAt = pending.ExpiresAt;
             existing.CreatedAt = pending.CreatedAt;
