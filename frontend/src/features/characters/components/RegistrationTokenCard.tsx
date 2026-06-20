@@ -42,7 +42,7 @@ export function RegistrationTokenCard({ registration }: Props) {
         <CardTitle className="text-base flex items-center gap-2">
           Verification Token
           {isExpired ? (
-            <Badge variant="destructive">Expired</Badge>
+            <Badge className="border-transparent bg-destructive text-destructive-foreground">Expired</Badge>
           ) : (
             <Badge variant="secondary">{timeRemaining}</Badge>
           )}
