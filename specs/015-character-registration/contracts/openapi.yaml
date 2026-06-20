@@ -1,0 +1,156 @@
+openapi: 3.0.3
+info:
+  title: NajaEchoPortal — Character Registration API
+  version: 1.0.0
+  description: >
+    Four new endpoints in a new /api/characters group for the Character Registration & RSI
+    Verification feature (015). All endpoints require an authenticated session (cookie auth) and are
+    scoped to the calling member. There are no role/policy gates beyond authentication. Anonymous
+    requests receive the same redirect/401 behaviour as the rest of the portal.
+servers:
+  - url: /
+tags:
+  - name: Characters
+paths:
+  /api/characters:
+    get:
+      tags: [Characters]
+      operationId: getCharacters
+      summary: List the calling member's verified characters.
+      description: >
+        Returns the authenticated member's verified characters. Empty array when the member has
+        registered none (US3 empty state).
+      responses:
+        '200':
+          description: The caller's verified characters.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CharacterListResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/characters/registration:
+    get:
+      tags: [Characters]
+      operationId: getRegistration
+      summary: Get the caller's current (non-expired) pending registration, if any.
+      description: >
+        Rehydrates an in-flight token + countdown on page load. Returns the pending token and its
+        expiry when one exists and has not expired; otherwise null.
+      responses:
+        '200':
+          description: The caller's pending registration (or null when none/expired).
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/PendingRegistrationResponse'
+                  - type: 'null'
+        '401': { $ref: '#/components/responses/Unauthorized' }
+    post:
+      tags: [Characters]
+      operationId: startRegistration
+      summary: Start (or resume) a character registration and obtain a verification token.
+      description: >
+        Returns the caller's existing non-expired token if one exists (FR-010 — no orphaned tokens),
+        otherwise generates a fresh high-entropy token valid for 30 minutes (FR-001, FR-002).
+      responses:
+        '200':
+          description: The pending verification token to paste into the RSI citizen bio.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PendingRegistrationResponse' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /api/characters/verify:
+    post:
+      tags: [Characters]
+      operationId: verifyCharacter
+      summary: Verify RSI handle ownership and create the character.
+      description: >
+        Fetches the public RSI citizen page for the submitted handle and searches it for the caller's
+        pending token. On success, creates a character linked to the caller — storing the scraped RSI
+        Community Moniker as the character name (falling back to the handle if the moniker can't be
+        parsed) — and discards the pending token. The duplicate-handle check runs before the RSI fetch,
+        so a claimed handle is rejected regardless of whether the token would have been found (US2
+        scenario 4).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/VerifyCharacterRequest' }
+      responses:
+        '201':
+          description: Character verified and created.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/CharacterResponse' }
+        '400':
+          description: Validation error (e.g. empty handle).
+          content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '404':
+          description: RSI citizen profile not found for that handle (US2 scenario 5).
+          content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+        '409':
+          description: >
+            Token expired (start a new registration — US2 scenario 3) OR the handle is already claimed
+            by some account (US2 scenario 4). Distinguished by the problem `title`/`detail`.
+          content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+        '422':
+          description: Token not found on the RSI profile page (US2 scenario 2) — retryable.
+          content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+        '502':
+          description: RSI was unreachable; the token remains valid, retry shortly (edge case).
+          content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+
+components:
+  responses:
+    Unauthorized:
+      description: No authenticated session.
+      content: { application/problem+json: { schema: { $ref: '#/components/schemas/Problem' } } }
+  schemas:
+    CharacterListResponse:
+      type: object
+      required: [characters]
+      properties:
+        characters:
+          type: array
+          items: { $ref: '#/components/schemas/CharacterResponse' }
+    CharacterResponse:
+      type: object
+      required: [id, name, handle, createdAt]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string, description: "RSI Community Moniker scraped at verification (falls back to handle)." }
+        handle: { type: string, description: "RSI handle, stored exactly as the member entered it." }
+        createdAt: { type: string, format: date-time }
+    PendingRegistrationResponse:
+      type: object
+      required: [token, expiresAt]
+      properties:
+        token:
+          type: string
+          description: "High-entropy verification token to paste into the RSI citizen bio."
+        expiresAt:
+          type: string
+          format: date-time
+          description: "When the token expires (issued time + 30 minutes)."
+    VerifyCharacterRequest:
+      type: object
+      required: [handle]
+      properties:
+        handle:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: >
+            The RSI handle to verify. The only member-supplied value; the character name is scraped
+            from the RSI page (Community Moniker), not provided here.
+    Problem:
+      type: object
+      description: RFC 7807 problem details.
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }

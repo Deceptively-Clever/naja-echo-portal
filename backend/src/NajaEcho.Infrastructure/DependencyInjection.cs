@@ -35,6 +35,11 @@ using NajaEcho.Application.Features.Warehouse.RemoveInventoryItem;
 using NajaEcho.Application.Features.Warehouse.ShipComponents.GetShipComponentFilters;
 using NajaEcho.Application.Features.Warehouse.ShipComponents.GetShipComponents;
 using NajaEcho.Application.Features.Warehouse.ShipComponents.SearchSystemsCatalog;
+using NajaEcho.Application.Features.Characters.GetCharacters;
+using NajaEcho.Application.Features.Characters.GetRegistration;
+using NajaEcho.Application.Features.Characters.StartRegistration;
+using NajaEcho.Application.Features.Characters.VerifyCharacter;
+using NajaEcho.Infrastructure.Characters;
 using NajaEcho.Infrastructure.Commodities;
 using NajaEcho.Infrastructure.Hangar;
 using NajaEcho.Infrastructure.Identity;
@@ -147,6 +152,19 @@ public static class DependencyInjection
             var baseUrl = configuration["UexVehicleClient:BaseUrl"] ?? "https://api.uexcorp.uk/2.0/";
             client.BaseAddress = new Uri(baseUrl);
         });
+
+        // Characters
+        services.AddScoped<ICharacterRepository, CharacterRepository>();
+        services.AddScoped<IPendingRegistrationRepository, PendingRegistrationRepository>();
+        services.AddHttpClient<IRsiCitizenClient, RsiCitizenClient>(client =>
+        {
+            client.BaseAddress = new Uri("https://robertsspaceindustries.com/");
+            client.Timeout = TimeSpan.FromSeconds(10);
+        });
+        services.AddScoped<StartRegistrationHandler>();
+        services.AddScoped<GetRegistrationHandler>();
+        services.AddScoped<VerifyCharacterHandler>();
+        services.AddScoped<GetCharactersHandler>();
 
         // Role seeder (Admin + Quartermaster)
         services.AddScoped<RoleSeeder>();
