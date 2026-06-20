@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using NajaEcho.Domain.Characters;
 using NajaEcho.Domain.Commodities;
 using NajaEcho.Domain.Hangar;
 using NajaEcho.Domain.ItemCategories;
@@ -24,6 +25,8 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<WarehouseMaterialEntry> WarehouseMaterialInventory => Set<WarehouseMaterialEntry>();
     public DbSet<ItemAttribute> ItemAttributes => Set<ItemAttribute>();
     public DbSet<ShipComponentAttributes> ShipComponentAttributes => Set<ShipComponentAttributes>();
+    public DbSet<Character> Characters => Set<Character>();
+    public DbSet<PendingCharacterRegistration> PendingCharacterRegistrations => Set<PendingCharacterRegistration>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -38,5 +41,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         modelBuilder.ApplyConfiguration(new WarehouseMaterialEntryConfiguration());
         modelBuilder.ApplyConfiguration(new ItemAttributeConfiguration());
         modelBuilder.ApplyConfiguration(new ShipComponentAttributesConfiguration());
+        modelBuilder.ApplyConfiguration(new CharacterConfiguration());
+        modelBuilder.ApplyConfiguration(new PendingCharacterRegistrationConfiguration());
     }
 }

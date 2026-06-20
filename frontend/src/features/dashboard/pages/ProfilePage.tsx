@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { PageHeader } from '../components/PageHeader'
 import { useCurrentUser } from '@/features/auth/hooks/useCurrentUser'
+import { CharacterRegistrationSection } from '@/features/characters/components/CharacterRegistrationSection'
 
 export function ProfilePage() {
   const { data: session } = useCurrentUser()
@@ -46,6 +47,7 @@ export function ProfilePage() {
           )}
         </CardContent>
       </Card>
+      <CharacterRegistrationSection />
     </div>
   )
 }
