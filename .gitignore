@@ -28,6 +28,9 @@ Thumbs.db
 # Claude Code local settings
 **/.claude/settings.local.json
 
+# Speckit local session memory (brainstorms, etc.)
+.specify/memory/brainstorms/
+
 # Logs
 *.log
 
