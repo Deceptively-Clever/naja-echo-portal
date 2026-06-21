@@ -1,4 +1,4 @@
-import { apiFetch, ApiError } from '@/lib/apiClient'
+import { apiFetch } from '@/lib/apiClient'
 import {
   pendingRegistrationResponseSchema,
   characterResponseSchema,
@@ -20,23 +20,11 @@ export async function startRegistration(): Promise<PendingRegistrationResponse> 
 }
 
 export async function verifyCharacter(handle: string): Promise<CharacterResponse> {
-  const response = await fetch('/api/characters/verify', {
+  const data = await apiFetch<unknown>('/api/characters/verify', {
     method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ handle }),
   })
-
-  if (!response.ok) {
-    let title = `Request failed: ${response.status}`
-    try {
-      const body = await response.json() as { title?: string }
-      if (body.title) title = body.title
-    } catch { /* ignore parse errors */ }
-    throw new ApiError(response.status, title)
-  }
-
-  return characterResponseSchema.parse(await response.json())
+  return characterResponseSchema.parse(data)
 }
 
 export async function getCharacters(): Promise<CharacterListResponse> {
