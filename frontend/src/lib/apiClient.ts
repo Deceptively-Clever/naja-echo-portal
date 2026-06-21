@@ -19,7 +19,12 @@ export async function apiFetch<T>(url: string, init?: RequestInit): Promise<T> {
   })
 
   if (!response.ok) {
-    throw new ApiError(response.status, `Request failed: ${response.status}`)
+    let message = `Request failed: ${response.status}`
+    try {
+      const body = await response.json() as { title?: string }
+      if (body.title) message = body.title
+    } catch { /* response had no/invalid JSON body */ }
+    throw new ApiError(response.status, message)
   }
 
   if (response.status === 204 || response.headers.get('content-length') === '0') {

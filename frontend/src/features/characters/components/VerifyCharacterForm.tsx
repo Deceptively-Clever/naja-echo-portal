@@ -51,6 +51,10 @@ export function VerifyCharacterForm() {
             {...register('handle', {
               required: 'Handle is required',
               maxLength: { value: 100, message: 'Handle must be 100 characters or fewer' },
+              onChange: () => {
+                if (serverError) setServerError(null)
+                if (success) setSuccess(false)
+              },
             })}
             placeholder="e.g. g8r"
             className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
@@ -68,7 +72,7 @@ export function VerifyCharacterForm() {
         <p className="text-sm text-destructive" role="alert">{serverError}</p>
       )}
       {success && (
-        <p className="text-sm text-green-600" role="status">Character verified and registered successfully!</p>
+        <p className="text-sm text-green-600 dark:text-green-400" role="status">Character verified and registered successfully!</p>
       )}
     </form>
   )

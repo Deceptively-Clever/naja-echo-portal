@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button'
+import { StatusMessage } from '@/components/StatusMessage'
 import { ApiError } from '@/lib/apiClient'
 import { useImportShips } from '../hooks/useImportShips'
 
@@ -32,21 +33,7 @@ export function ImportShipsButton() {
         {isPending ? 'Importing…' : 'Import Ships'}
       </Button>
 
-      {message && (
-        <p
-          role="status"
-          aria-live="polite"
-          className={
-            message.type === 'success'
-              ? 'text-sm text-green-600 dark:text-green-400'
-              : message.type === 'warning'
-                ? 'text-sm text-yellow-600 dark:text-yellow-400'
-                : 'text-sm text-destructive'
-          }
-        >
-          {message.text}
-        </p>
-      )}
+      {message && <StatusMessage type={message.type}>{message.text}</StatusMessage>}
     </div>
   )
 }

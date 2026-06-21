@@ -50,6 +50,11 @@ export function ShipCardGallery({
     [onSearchChange]
   )
 
+  // Cancel any pending debounced search on unmount.
+  useEffect(() => () => {
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+  }, [])
+
   // IntersectionObserver for infinite scroll sentinel
   useEffect(() => {
     if (!sentinelRef.current || !onLoadMore) return

@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { characterKeys } from '../hooks/characterQueryKeys'
 import type { PendingRegistrationResponse } from '../schemas/characterSchemas'
 
 interface Props {
@@ -18,23 +20,43 @@ function formatTimeRemaining(expiresAt: string): string {
 }
 
 export function RegistrationTokenCard({ registration }: Props) {
+  const queryClient = useQueryClient()
   const [timeRemaining, setTimeRemaining] = useState(() => formatTimeRemaining(registration.expiresAt))
   const [copied, setCopied] = useState(false)
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const isExpired = timeRemaining === 'Expired'
 
   useEffect(() => {
+    if (isExpired) {
+      // Token has lapsed client-side — drop the cached registration so the
+      // section reverts to the "Register Character" call to action.
+      queryClient.setQueryData(characterKeys.registration(), null)
+      return
+    }
     const interval = setInterval(() => {
       setTimeRemaining(formatTimeRemaining(registration.expiresAt))
     }, 1000)
     return () => clearInterval(interval)
-  }, [registration.expiresAt])
+  }, [registration.expiresAt, isExpired, queryClient])
+
+  // Clear any pending "Copied!" reset on unmount.
+  useEffect(() => () => {
+    if (copiedTimer.current) clearTimeout(copiedTimer.current)
+  }, [])
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(registration.token)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    if (!navigator.clipboard) return
+    try {
+      await navigator.clipboard.writeText(registration.token)
+      setCopied(true)
+      if (copiedTimer.current) clearTimeout(copiedTimer.current)
+      copiedTimer.current = setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Write rejected (denied permission) — leave the button in its idle state.
+      setCopied(false)
+    }
   }
-
-  const isExpired = timeRemaining === 'Expired'
 
   return (
     <Card>
