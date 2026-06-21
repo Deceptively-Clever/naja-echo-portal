@@ -72,6 +72,9 @@ public sealed class AddInventoryItemHandlerTests
         public Task<bool> ExistsAsync(Guid userId, CancellationToken ct) => Task.FromResult(UserExists);
         public Task<IReadOnlyList<(Guid Id, string DisplayName)>> GetAllAsync(CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<(Guid, string)>>([]);
+        public Task<IReadOnlyList<NajaEcho.Application.Features.Admin.Users.GetUsers.AdminUserDto>> GetUsersWithRolesAndCharactersAsync(CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<NajaEcho.Application.Features.Admin.Users.GetUsers.AdminUserDto>>([]);
+        public Task SetRolesAsync(Guid userId, IReadOnlyList<string> roles, CancellationToken ct) => Task.CompletedTask;
     }
 
     private sealed class FakeScRepo : IShipComponentRepository
