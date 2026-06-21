@@ -9,13 +9,15 @@ import { InventoryTable } from '../components/InventoryTable'
 import { InventoryFilters, type FilterValues } from '../components/InventoryFilters'
 import { AddInventoryDialog } from '../components/AddInventoryDialog'
 import { Skeleton } from '@/components/ui/skeleton'
+import type { StationOption } from '../schemas/stationSchemas'
 
 const emptyFilters: FilterValues = {
   name: '',
   type: '',
   subtype: '',
   ownerUserId: '',
-  location: '',
+  station: '',
+  stationId: '',
 }
 
 export function WarehouseItemsView() {
@@ -24,7 +26,7 @@ export function WarehouseItemsView() {
 
   const [filterValues, setFilterValues] = useState<FilterValues>(emptyFilters)
   const [addOpen, setAddOpen] = useState(false)
-  const [rememberedLocation, setRememberedLocation] = useState('')
+  const [rememberedStation, setRememberedStation] = useState<StationOption | undefined>(undefined)
   const [rememberedOwnerId, setRememberedOwnerId] = useState('')
 
   const activeFilters = {
@@ -32,7 +34,7 @@ export function WarehouseItemsView() {
     type: filterValues.type || undefined,
     subtype: filterValues.subtype || undefined,
     ownerUserId: filterValues.ownerUserId || undefined,
-    location: filterValues.location || undefined,
+    location: filterValues.station || undefined,
   }
 
   const { data: inventoryData, isLoading } = useInventory(activeFilters)
@@ -45,9 +47,9 @@ export function WarehouseItemsView() {
   const currentUserId =
     session?.authenticated === true ? session.user.id : ''
 
-  function handleAddClose(opts?: { rememberedLocation?: string; rememberedOwnerId?: string }) {
+  function handleAddClose(opts?: { rememberedStation?: StationOption; rememberedOwnerId?: string }) {
     setAddOpen(false)
-    if (opts?.rememberedLocation) setRememberedLocation(opts.rememberedLocation)
+    if (opts?.rememberedStation) setRememberedStation(opts.rememberedStation)
     if (opts?.rememberedOwnerId) setRememberedOwnerId(opts.rememberedOwnerId)
   }
 
@@ -89,7 +91,7 @@ export function WarehouseItemsView() {
           open={addOpen}
           onClose={handleAddClose}
           currentUserId={currentUserId}
-          rememberedLocation={rememberedLocation}
+          rememberedStation={rememberedStation}
           rememberedOwnerId={rememberedOwnerId}
         />
       )}

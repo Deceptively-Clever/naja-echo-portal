@@ -24,5 +24,11 @@ public interface IMaterialInventoryRepository
 
     Task<MaterialRowDto> UpdateQuantityAsync(Guid id, decimal quantity, CancellationToken ct);
 
+    Task<MaterialRowDto> UpdateMaterialAsync(Guid id, Guid ownerUserId, Guid stationId, decimal quantity, CancellationToken ct);
+
+    Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct);
+
+    Task<bool> ExistsAsync(Guid id, CancellationToken ct);
+
     Task RemoveAsync(Guid id, CancellationToken ct);
 }

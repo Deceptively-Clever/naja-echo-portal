@@ -8,12 +8,17 @@ using NajaEcho.Application.Features.Warehouse.GetInventoryFilters;
 using NajaEcho.Application.Features.Warehouse.GetStations;
 using NajaEcho.Application.Features.Warehouse.Materials.AddMaterial;
 using NajaEcho.Application.Features.Warehouse.Materials.ChangeMaterialQuantity;
+using MaterialRowNotFoundException = NajaEcho.Application.Features.Warehouse.Materials.ChangeMaterialQuantity.MaterialRowNotFoundException;
 using NajaEcho.Application.Features.Warehouse.Materials.GetMaterialFilters;
 using NajaEcho.Application.Features.Warehouse.Materials.GetMaterials;
 using NajaEcho.Application.Features.Warehouse.Materials.RemoveMaterial;
 using NajaEcho.Application.Features.Warehouse.Materials.SearchCommodities;
 using NajaEcho.Application.Features.Warehouse.RemoveInventoryItem;
 using NajaEcho.Application.Features.Warehouse.SearchCatalogItems;
+using NajaEcho.Application.Features.Warehouse.UpdateInventoryItem;
+using NajaEcho.Application.Features.Warehouse.TransferInventoryItem;
+using NajaEcho.Application.Features.Warehouse.Materials.TransferMaterial;
+using NajaEcho.Application.Features.Warehouse.Materials.UpdateMaterial;
 using NajaEcho.Application.Features.Warehouse.ShipComponents.GetShipComponentFilters;
 using NajaEcho.Application.Features.Warehouse.ShipComponents.GetShipComponents;
 using NajaEcho.Application.Features.Warehouse.ShipComponents.SearchSystemsCatalog;
@@ -37,13 +42,17 @@ public static class WarehouseEndpoints
         group.MapGet("/items/filters", GetInventoryFilters);
         group.MapGet("/catalog/search", SearchCatalogItems).RequireAuthorization(AuthorizationPolicies.Quartermaster);
         group.MapPut("/items/{id:guid}/quantity", ChangeInventoryQuantity).RequireAuthorization(AuthorizationPolicies.Quartermaster);
+        group.MapPut("/items/{id:guid}", UpdateInventoryItem).RequireAuthorization(AuthorizationPolicies.Quartermaster);
         group.MapDelete("/items/{id:guid}", RemoveInventoryItem).RequireAuthorization(AuthorizationPolicies.Quartermaster);
         group.MapGet("/materials", GetMaterials);
         group.MapGet("/materials/filters", GetMaterialFilters);
         group.MapGet("/materials/catalog/search", SearchCommoditiesCatalog).RequireAuthorization(AuthorizationPolicies.Quartermaster);
         group.MapPost("/materials", AddMaterial).RequireAuthorization(AuthorizationPolicies.Quartermaster);
         group.MapPut("/materials/{id:guid}/quantity", ChangeMaterialQuantity).RequireAuthorization(AuthorizationPolicies.Quartermaster);
+        group.MapPut("/materials/{id:guid}", UpdateMaterial).RequireAuthorization(AuthorizationPolicies.Quartermaster);
         group.MapDelete("/materials/{id:guid}", RemoveMaterial).RequireAuthorization(AuthorizationPolicies.Quartermaster);
+        group.MapPut("/items/{id:guid}/station", TransferItemStation).RequireAuthorization(AuthorizationPolicies.Quartermaster);
+        group.MapPut("/materials/{id:guid}/station", TransferMaterialStation).RequireAuthorization(AuthorizationPolicies.Quartermaster);
 
         return app;
     }
@@ -72,7 +81,7 @@ public static class WarehouseEndpoints
         var query = new GetShipComponentsQuery(name, type, @class, size, grade, ownerUserId, location, unknownClass, unknownSize, unknownGrade);
         var rows = await handler.HandleAsync(query, ct);
         var dto = new ShipComponentListResponse(rows.Select(r =>
-            new ShipComponentRowResponse(r.Id, r.ItemId, r.Name, r.Type, r.Class, r.Size, r.Grade, r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location)).ToList());
+            new ShipComponentRowResponse(r.Id, r.ItemId, r.Name, r.Type, r.Class, r.Size, r.Grade, r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location, r.StationId)).ToList());
 
         Log.Information("GetShipComponents {CallerId} returned {Count} rows", callerId, rows.Count);
         return Results.Ok(dto);
@@ -315,6 +324,43 @@ public static class WarehouseEndpoints
         }
     }
 
+    // ── PUT /api/warehouse/items/{id} ────────────────────────────────────
+
+    private static async Task<IResult> UpdateInventoryItem(
+        ClaimsPrincipal user,
+        Guid id,
+        UpdateInventoryItemRequest body,
+        UpdateInventoryItemHandler handler,
+        CancellationToken ct)
+    {
+        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+
+        Log.Information("UpdateInventoryItem {CallerId} rowId={Id} ownerUserId={OwnerUserId} stationId={StationId} quantity={Quantity}",
+            callerId, id, body.OwnerUserId, body.StationId, body.Quantity);
+
+        try
+        {
+            var row = await handler.HandleAsync(new UpdateInventoryItemCommand(id, body.OwnerUserId, body.StationId, body.Quantity), ct);
+            Log.Information("UpdateInventoryItem {CallerId} succeeded rowId={Id}", callerId, id);
+            return Results.Ok(MapRow(row));
+        }
+        catch (InventoryRowNotFoundException ex)
+        {
+            Log.Warning("UpdateInventoryItem 404 {CallerId} rowId={Id}: {Message}", callerId, id, ex.Message);
+            return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status404NotFound, title: "Inventory row not found.");
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            Log.Warning("UpdateInventoryItem 400 {CallerId} rowId={Id}: {Message}", callerId, id, ex.Message);
+            return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status400BadRequest, title: "Validation error.");
+        }
+        catch (ArgumentException ex)
+        {
+            Log.Warning("UpdateInventoryItem 400 {CallerId} rowId={Id}: {Message}", callerId, id, ex.Message);
+            return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status400BadRequest, title: "Validation error.");
+        }
+    }
+
     // ── DELETE /api/warehouse/items/{id} ─────────────────────────────────
 
     private static async Task<IResult> RemoveInventoryItem(
@@ -482,6 +528,38 @@ public static class WarehouseEndpoints
         }
     }
 
+    // ── PUT /api/warehouse/materials/{id} ───────────────────────────────────
+
+    private static async Task<IResult> UpdateMaterial(
+        ClaimsPrincipal user,
+        Guid id,
+        UpdateMaterialRequest body,
+        UpdateMaterialHandler handler,
+        CancellationToken ct)
+    {
+        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+
+        Log.Information("UpdateMaterial {CallerId} rowId={Id} ownerUserId={OwnerUserId} stationId={StationId} quantity={Quantity}",
+            callerId, id, body.OwnerUserId, body.StationId, body.Quantity);
+
+        try
+        {
+            var row = await handler.HandleAsync(new UpdateMaterialCommand(id, body.OwnerUserId, body.StationId, body.Quantity), ct);
+            Log.Information("UpdateMaterial {CallerId} succeeded rowId={Id}", callerId, id);
+            return Results.Ok(MapMaterialRow(row));
+        }
+        catch (MaterialRowNotFoundException ex)
+        {
+            Log.Warning("UpdateMaterial 404 {CallerId} rowId={Id}: {Message}", callerId, id, ex.Message);
+            return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status404NotFound, title: "Material row not found.");
+        }
+        catch (ArgumentOutOfRangeException ex)
+        {
+            Log.Warning("UpdateMaterial 400 {CallerId} rowId={Id}: {Message}", callerId, id, ex.Message);
+            return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status400BadRequest, title: "Validation error.");
+        }
+    }
+
     // ── DELETE /api/warehouse/materials/{id} ────────────────────────────────
 
     private static async Task<IResult> RemoveMaterial(
@@ -529,6 +607,68 @@ public static class WarehouseEndpoints
         return Results.Ok(response);
     }
 
+    // ── PUT /api/warehouse/items/{id}/station ─────────────────────────────
+
+    private static async Task<IResult> TransferItemStation(
+        ClaimsPrincipal user,
+        Guid id,
+        TransferStationRequest body,
+        TransferInventoryItemHandler handler,
+        CancellationToken ct)
+    {
+        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+
+        Log.Information("TransferItemStation {CallerId} rowId={Id} stationId={StationId}", callerId, id, body.StationId);
+
+        try
+        {
+            await handler.HandleAsync(new TransferInventoryItemCommand(id, body.StationId), ct);
+            Log.Information("TransferItemStation {CallerId} succeeded rowId={Id}", callerId, id);
+            return Results.NoContent();
+        }
+        catch (InventoryRowNotFoundException ex)
+        {
+            Log.Warning("TransferItemStation 404 {CallerId} rowId={Id}: {Message}", callerId, id, ex.Message);
+            return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status404NotFound, title: "Inventory row not found.");
+        }
+        catch (InvalidOperationException ex)
+        {
+            Log.Warning("TransferItemStation 400 {CallerId} rowId={Id}: {Message}", callerId, id, ex.Message);
+            return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status400BadRequest, title: "Validation error.");
+        }
+    }
+
+    // ── PUT /api/warehouse/materials/{id}/station ──────────────────────────
+
+    private static async Task<IResult> TransferMaterialStation(
+        ClaimsPrincipal user,
+        Guid id,
+        TransferStationRequest body,
+        TransferMaterialHandler handler,
+        CancellationToken ct)
+    {
+        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+
+        Log.Information("TransferMaterialStation {CallerId} rowId={Id} stationId={StationId}", callerId, id, body.StationId);
+
+        try
+        {
+            await handler.HandleAsync(new TransferMaterialCommand(id, body.StationId), ct);
+            Log.Information("TransferMaterialStation {CallerId} succeeded rowId={Id}", callerId, id);
+            return Results.NoContent();
+        }
+        catch (MaterialRowNotFoundException ex)
+        {
+            Log.Warning("TransferMaterialStation 404 {CallerId} rowId={Id}: {Message}", callerId, id, ex.Message);
+            return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status404NotFound, title: "Material row not found.");
+        }
+        catch (InvalidOperationException ex)
+        {
+            Log.Warning("TransferMaterialStation 400 {CallerId} rowId={Id}: {Message}", callerId, id, ex.Message);
+            return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status400BadRequest, title: "Validation error.");
+        }
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────
 
     private static bool TryGetUserId(ClaimsPrincipal user, out Guid userId)
@@ -538,11 +678,11 @@ public static class WarehouseEndpoints
     }
 
     private static InventoryRowResponse MapRow(Application.Features.Warehouse.GetInventory.InventoryRowDto r) =>
-        new(r.Id, r.ItemId, r.Name, r.Type, r.Subtype, r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location);
+        new(r.Id, r.ItemId, r.Name, r.Type, r.Subtype, r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location, r.StationId);
 
     private static CatalogItemResponse MapCatalog(Application.Features.Warehouse.SearchCatalogItems.CatalogItemResultDto r) =>
         new(r.ItemId, r.Name, r.Type, r.Subtype);
 
     private static MaterialRowResponse MapMaterialRow(Application.Features.Warehouse.Materials.GetMaterials.MaterialRowDto r) =>
-        new(r.Id, r.CommodityId, r.MaterialName, r.MaterialCode, r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location);
+        new(r.Id, r.CommodityId, r.MaterialName, r.MaterialCode, r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location, r.StationId);
 }

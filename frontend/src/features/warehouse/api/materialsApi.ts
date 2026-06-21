@@ -48,6 +48,7 @@ export async function addMaterial(body: {
   location: string
   quantity: number
   quality?: number
+  stationId?: string
 }): Promise<MaterialRow> {
   const data = await apiFetch<unknown>('/api/warehouse/materials', {
     method: 'POST',
@@ -60,6 +61,17 @@ export async function changeMaterialQuantity(id: string, quantity: number): Prom
   const data = await apiFetch<unknown>(`/api/warehouse/materials/${id}/quantity`, {
     method: 'PUT',
     body: JSON.stringify({ quantity }),
+  })
+  return materialRowSchema.parse(data)
+}
+
+export async function updateMaterial(
+  id: string,
+  body: { ownerUserId: string; stationId: string; quantity: number }
+): Promise<MaterialRow> {
+  const data = await apiFetch<unknown>(`/api/warehouse/materials/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
   })
   return materialRowSchema.parse(data)
 }

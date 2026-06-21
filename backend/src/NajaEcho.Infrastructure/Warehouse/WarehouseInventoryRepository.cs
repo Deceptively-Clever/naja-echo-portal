@@ -26,35 +26,37 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
 
         var rows = await db.Database.SqlQuery<InventoryRow>($"""
             SELECT
-              w.id                  AS id,
-              w.item_id             AS item_id,
-              i.name                AS name,
-              i.section             AS type,
-              i.category            AS subtype,
-              w.quantity            AS quantity,
-              w.quality             AS quality,
-              w.owner_user_id       AS owner_user_id,
-              u.display_name        AS owner_display_name,
-              w.location            AS location
+              w.id                                  AS id,
+              w.item_id                             AS item_id,
+              i.name                                AS name,
+              i.section                             AS type,
+              i.category                            AS subtype,
+              w.quantity                            AS quantity,
+              w.quality                             AS quality,
+              w.owner_user_id                       AS owner_user_id,
+              u.display_name                        AS owner_display_name,
+              COALESCE(ss.name, w.location)         AS location,
+              w.station_id                          AS station_id
             FROM warehouse_inventory w
-            JOIN sc.items i       ON i.id = w.item_id
-            JOIN "AspNetUsers" u  ON u.id = w.owner_user_id
+            JOIN sc.items i           ON i.id = w.item_id
+            JOIN "AspNetUsers" u      ON u.id = w.owner_user_id
+            LEFT JOIN sc.space_stations ss ON ss.id = w.station_id
             WHERE ({namePattern}::text IS NULL OR i.name ILIKE {namePattern})
               AND ({type}::text        IS NULL OR i.section   = {type})
               AND ({subtype}::text     IS NULL OR i.category  = {subtype})
               AND ({ownerUserId}::uuid IS NULL OR w.owner_user_id = {ownerUserId})
-              AND ({locationPattern}::text IS NULL OR w.location ILIKE {locationPattern})
+              AND ({locationPattern}::text IS NULL OR COALESCE(ss.name, w.location) ILIKE {locationPattern})
             ORDER BY i.name
             """).ToListAsync(ct);
 
         return rows.Select(r => new InventoryRowDto(
             r.Id, r.ItemId, r.Name, r.Type, r.Subtype, r.Quantity, r.Quality,
-            r.OwnerUserId, r.OwnerDisplayName, r.Location)).ToList();
+            r.OwnerUserId, r.OwnerDisplayName, r.Location, r.StationId)).ToList();
     }
 
     private sealed record InventoryRow(
         Guid Id, Guid ItemId, string Name, string? Type, string? Subtype,
-        int Quantity, int Quality, Guid OwnerUserId, string OwnerDisplayName, string Location);
+        int Quantity, int Quality, Guid OwnerUserId, string OwnerDisplayName, string Location, Guid? StationId);
 
     public async Task<InventoryFiltersDto> GetInventoryFiltersAsync(CancellationToken ct)
     {
@@ -156,6 +158,35 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
         return await LoadRowDtoAsync(id, ct);
     }
 
+    public async Task<InventoryRowDto> UpdateItemAsync(Guid id, Guid ownerUserId, Guid stationId, int quantity, CancellationToken ct)
+    {
+        var entry = await db.WarehouseInventory.FirstOrDefaultAsync(w => w.Id == id, ct);
+        if (entry is null)
+            throw new InventoryRowNotFoundException(id);
+
+        entry.OwnerUserId = ownerUserId;
+        entry.StationId = stationId;
+        entry.Quantity = quantity;
+        entry.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+
+        return await LoadRowDtoAsync(id, ct);
+    }
+
+    public async Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct)
+    {
+        var entry = await db.WarehouseInventory.FirstOrDefaultAsync(w => w.Id == id, ct);
+        if (entry is null)
+            throw new InventoryRowNotFoundException(id);
+
+        entry.StationId = stationId;
+        entry.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task<bool> ExistsAsync(Guid id, CancellationToken ct)
+        => await db.WarehouseInventory.AnyAsync(w => w.Id == id, ct);
+
     public async Task RemoveAsync(Guid id, CancellationToken ct)
     {
         var entry = await db.WarehouseInventory.FirstOrDefaultAsync(w => w.Id == id, ct);
@@ -170,24 +201,26 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
     {
         var rows = await db.Database.SqlQuery<InventoryRow>($"""
             SELECT
-              w.id                  AS id,
-              w.item_id             AS item_id,
-              i.name                AS name,
-              i.section             AS type,
-              i.category            AS subtype,
-              w.quantity            AS quantity,
-              w.quality             AS quality,
-              w.owner_user_id       AS owner_user_id,
-              u.display_name        AS owner_display_name,
-              w.location            AS location
+              w.id                                  AS id,
+              w.item_id                             AS item_id,
+              i.name                                AS name,
+              i.section                             AS type,
+              i.category                            AS subtype,
+              w.quantity                            AS quantity,
+              w.quality                             AS quality,
+              w.owner_user_id                       AS owner_user_id,
+              u.display_name                        AS owner_display_name,
+              COALESCE(ss.name, w.location)         AS location,
+              w.station_id                          AS station_id
             FROM warehouse_inventory w
-            JOIN sc.items i       ON i.id = w.item_id
-            JOIN "AspNetUsers" u  ON u.id = w.owner_user_id
+            JOIN sc.items i           ON i.id = w.item_id
+            JOIN "AspNetUsers" u      ON u.id = w.owner_user_id
+            LEFT JOIN sc.space_stations ss ON ss.id = w.station_id
             WHERE w.id = {id}
             """).FirstAsync(ct);
 
         return new InventoryRowDto(
             rows.Id, rows.ItemId, rows.Name, rows.Type, rows.Subtype,
-            rows.Quantity, rows.Quality, rows.OwnerUserId, rows.OwnerDisplayName, rows.Location);
+            rows.Quantity, rows.Quality, rows.OwnerUserId, rows.OwnerDisplayName, rows.Location, rows.StationId);
     }
 }

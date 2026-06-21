@@ -24,5 +24,11 @@ public interface IWarehouseInventoryRepository
 
     Task<InventoryRowDto> UpdateQuantityAsync(Guid id, int quantity, CancellationToken ct);
 
+    Task<InventoryRowDto> UpdateItemAsync(Guid id, Guid ownerUserId, Guid stationId, int quantity, CancellationToken ct);
+
+    Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct);
+
+    Task<bool> ExistsAsync(Guid id, CancellationToken ct);
+
     Task RemoveAsync(Guid id, CancellationToken ct);
 }

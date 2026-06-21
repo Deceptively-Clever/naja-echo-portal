@@ -21,6 +21,7 @@ using NajaEcho.Infrastructure.Persistence;
 
 namespace NajaEcho.Api.Tests.Features.Warehouse;
 
+[Collection("ApiTests")]
 public sealed class ShipComponentsEndpointTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly WebApplicationFactory<Program> _factory;
@@ -44,10 +45,7 @@ public sealed class ShipComponentsEndpointTests : IClassFixture<WebApplicationFa
 
             b.ConfigureTestServices(services =>
             {
-                services.RemoveAll<DbContextOptions<AppDbContext>>();
-                services.RemoveAll<AppDbContext>();
-                services.AddDbContext<AppDbContext>(opts =>
-                    opts.UseInMemoryDatabase("ScTestDb_" + Guid.NewGuid()));
+                services.ReplaceWithInMemoryDb("ScTestDb_" + Guid.NewGuid());
 
                 services.RemoveAll<IExternalLoginService>();
                 services.AddSingleton<IExternalLoginService, ScFakeLoginService>();

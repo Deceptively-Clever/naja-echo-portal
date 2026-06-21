@@ -11,6 +11,7 @@ interface StationComboboxProps {
   onValueChange: (id: string, name: string) => void
   placeholder?: string
   disabled?: boolean
+  allowClear?: boolean
 }
 
 export function StationCombobox({
@@ -18,6 +19,7 @@ export function StationCombobox({
   onValueChange,
   placeholder = 'Select a station…',
   disabled = false,
+  allowClear = false,
 }: StationComboboxProps) {
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -47,19 +49,26 @@ export function StationCombobox({
           <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-full p-0" align="start">
+      <PopoverContent className="w-full p-0" align="start" onWheelCapture={(e) => e.stopPropagation()}>
         <Command shouldFilter={false}>
           <CommandInput
             placeholder="Search stations…"
             value={search}
             onValueChange={setSearch}
-            disabled={isLoading}
           />
           <CommandList>
             {isLoading && <CommandEmpty>Loading stations…</CommandEmpty>}
             {!isLoading && stations.length === 0 && <CommandEmpty>No stations found.</CommandEmpty>}
-            {stations.length > 0 && (
+            {(allowClear || stations.length > 0) && (
               <CommandGroup>
+                {allowClear && (
+                  <CommandItem
+                    value="__clear__"
+                    onSelect={() => { onValueChange('', ''); setOpen(false); setSearch('') }}
+                  >
+                    All stations
+                  </CommandItem>
+                )}
                 {stations.map((station) => (
                   <CommandItem
                     key={station.id}

@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { useChangeInventoryQuantity } from '../hooks/useChangeInventoryQuantity'
-import { EditQuantityControl } from './EditQuantityControl'
-import { RemoveInventoryButton } from './RemoveInventoryButton'
+import { ConfirmDeleteDialog } from './ConfirmDeleteDialog'
+import { EditInventoryDialog } from './EditInventoryDialog'
+import { RowActions } from './RowActions'
 import type { InventoryRow } from '../schemas/inventorySchemas'
 
 interface Props {
@@ -13,8 +12,20 @@ interface Props {
 }
 
 export function InventoryTable({ rows, isQuartermaster, onRemove }: Props) {
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const changeQty = useChangeInventoryQuantity()
+  const [editRow, setEditRow] = useState<InventoryRow | null>(null)
+  const [removeRow, setRemoveRow] = useState<InventoryRow | null>(null)
+  const [removePending, setRemovePending] = useState(false)
+
+  const handleRemoveConfirm = async () => {
+    if (!removeRow) return
+    setRemovePending(true)
+    try {
+      await onRemove(removeRow.id)
+      setRemoveRow(null)
+    } finally {
+      setRemovePending(false)
+    }
+  }
 
   if (rows.length === 0) {
     return (
@@ -25,62 +36,65 @@ export function InventoryTable({ rows, isQuartermaster, onRemove }: Props) {
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Name</TableHead>
-          <TableHead>Type</TableHead>
-          <TableHead>Subtype</TableHead>
-          <TableHead>Qty</TableHead>
-          <TableHead>Quality</TableHead>
-          <TableHead>Owner</TableHead>
-          <TableHead>Location</TableHead>
-          {isQuartermaster && <TableHead>Actions</TableHead>}
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {rows.map((row) => (
-          <TableRow key={row.id}>
-            <TableCell>{row.name}</TableCell>
-            <TableCell>{row.type ?? '—'}</TableCell>
-            <TableCell>{row.subtype ?? '—'}</TableCell>
-            <TableCell>
-              {isQuartermaster && editingId === row.id ? (
-                <EditQuantityControl
-                  currentQuantity={row.quantity}
-                  isPending={changeQty.isPending}
-                  onConfirm={async (qty) => {
-                    await changeQty.mutateAsync({ id: row.id, quantity: qty })
-                    setEditingId(null)
-                  }}
-                  onCancel={() => setEditingId(null)}
-                />
-              ) : (
-                <span>{row.quantity}</span>
-              )}
-            </TableCell>
-            <TableCell>{row.quality}</TableCell>
-            <TableCell>{row.ownerDisplayName}</TableCell>
-            <TableCell>{row.location}</TableCell>
-            {isQuartermaster && (
-              <TableCell>
-                <div className="flex gap-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label="Change quantity"
-                    className="h-auto p-0 text-xs underline hover:bg-transparent hover:no-underline"
-                    onClick={() => setEditingId(editingId === row.id ? null : row.id)}
-                  >
-                    Edit Qty
-                  </Button>
-                  <RemoveInventoryButton row={row} onRemove={onRemove} />
-                </div>
-              </TableCell>
-            )}
+    <>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>Type</TableHead>
+            <TableHead>Subtype</TableHead>
+            <TableHead>Qty</TableHead>
+            <TableHead>Quality</TableHead>
+            <TableHead>Owner</TableHead>
+            <TableHead>Station</TableHead>
+            {isQuartermaster && <TableHead>Actions</TableHead>}
           </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+        </TableHeader>
+        <TableBody>
+          {rows.map((row) => (
+            <TableRow key={row.id}>
+              <TableCell>{row.name}</TableCell>
+              <TableCell>{row.type ?? '—'}</TableCell>
+              <TableCell>{row.subtype ?? '—'}</TableCell>
+              <TableCell>{row.quantity}</TableCell>
+              <TableCell>{row.quality}</TableCell>
+              <TableCell>{row.ownerDisplayName}</TableCell>
+              <TableCell>{row.location}</TableCell>
+              {isQuartermaster && (
+                <TableCell>
+                  <RowActions
+                    onEdit={() => setEditRow(row)}
+                    onRemove={() => setRemoveRow(row)}
+                    removePending={removePending && removeRow?.id === row.id}
+                  />
+                </TableCell>
+              )}
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      {editRow && (
+        <EditInventoryDialog
+          open={!!editRow}
+          onOpenChange={(o) => {
+            if (!o) setEditRow(null)
+          }}
+          row={editRow}
+          onSuccess={() => setEditRow(null)}
+        />
+      )}
+      {removeRow && (
+        <ConfirmDeleteDialog
+          open={!!removeRow}
+          onOpenChange={(o) => {
+            if (!o) setRemoveRow(null)
+          }}
+          title="Delete Item"
+          description={`Are you sure you want to remove "${removeRow.name}" from inventory?`}
+          isPending={removePending}
+          onConfirm={handleRemoveConfirm}
+        />
+      )}
+    </>
   )
 }

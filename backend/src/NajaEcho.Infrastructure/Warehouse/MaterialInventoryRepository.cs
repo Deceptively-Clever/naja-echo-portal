@@ -25,34 +25,36 @@ public sealed class MaterialInventoryRepository(AppDbContext db) : IMaterialInve
 
         var rows = await db.Database.SqlQuery<MaterialRow>($"""
             SELECT
-              w.id                  AS id,
-              w.commodity_id        AS commodity_id,
-              c.name                AS material_name,
-              c.code                AS material_code,
-              w.quantity            AS quantity,
-              w.quality             AS quality,
-              w.owner_user_id       AS owner_user_id,
-              u.display_name        AS owner_display_name,
-              w.location            AS location
+              w.id                                  AS id,
+              w.commodity_id                        AS commodity_id,
+              c.name                                AS material_name,
+              c.code                                AS material_code,
+              w.quantity                            AS quantity,
+              w.quality                             AS quality,
+              w.owner_user_id                       AS owner_user_id,
+              u.display_name                        AS owner_display_name,
+              COALESCE(ss.name, w.location)         AS location,
+              w.station_id                          AS station_id
             FROM warehouse_material_inventory w
-            JOIN sc.commodities c ON c.id = w.commodity_id
-            JOIN "AspNetUsers" u  ON u.id = w.owner_user_id
+            JOIN sc.commodities c     ON c.id = w.commodity_id
+            JOIN "AspNetUsers" u      ON u.id = w.owner_user_id
+            LEFT JOIN sc.space_stations ss ON ss.id = w.station_id
             WHERE ({materialPattern}::text IS NULL OR c.name ILIKE {materialPattern} OR c.code ILIKE {materialPattern})
               AND ({ownerUserId}::uuid IS NULL OR w.owner_user_id = {ownerUserId})
-              AND ({locationPattern}::text IS NULL OR w.location ILIKE {locationPattern})
+              AND ({locationPattern}::text IS NULL OR COALESCE(ss.name, w.location) ILIKE {locationPattern})
               AND ({qualityMin}::int IS NULL OR w.quality >= {qualityMin})
               AND ({qualityMax}::int IS NULL OR w.quality <= {qualityMax})
-            ORDER BY c.name ASC, w.quality DESC, u.display_name ASC, w.location ASC
+            ORDER BY c.name ASC, w.quality DESC, u.display_name ASC, COALESCE(ss.name, w.location) ASC
             """).ToListAsync(ct);
 
         return rows.Select(r => new MaterialRowDto(
             r.Id, r.CommodityId, r.MaterialName, r.MaterialCode, r.Quantity, r.Quality,
-            r.OwnerUserId, r.OwnerDisplayName, r.Location)).ToList();
+            r.OwnerUserId, r.OwnerDisplayName, r.Location, r.StationId)).ToList();
     }
 
     private sealed record MaterialRow(
         Guid Id, Guid CommodityId, string MaterialName, string? MaterialCode,
-        decimal Quantity, int Quality, Guid OwnerUserId, string OwnerDisplayName, string Location);
+        decimal Quantity, int Quality, Guid OwnerUserId, string OwnerDisplayName, string Location, Guid? StationId);
 
     public async Task<MaterialFiltersDto> GetMaterialFiltersAsync(CancellationToken ct)
     {
@@ -66,8 +68,9 @@ public sealed class MaterialInventoryRepository(AppDbContext db) : IMaterialInve
             """).ToListAsync(ct);
 
         var locations = await db.Database.SqlQuery<StringValue>($"""
-            SELECT DISTINCT location AS value
-            FROM warehouse_material_inventory
+            SELECT DISTINCT COALESCE(ss.name, w.location) AS value
+            FROM warehouse_material_inventory w
+            LEFT JOIN sc.space_stations ss ON ss.id = w.station_id
             ORDER BY value
             """).ToListAsync(ct);
 
@@ -147,6 +150,35 @@ public sealed class MaterialInventoryRepository(AppDbContext db) : IMaterialInve
         return await LoadRowDtoAsync(id, ct);
     }
 
+    public async Task<MaterialRowDto> UpdateMaterialAsync(Guid id, Guid ownerUserId, Guid stationId, decimal quantity, CancellationToken ct)
+    {
+        var entry = await db.WarehouseMaterialInventory.FirstOrDefaultAsync(w => w.Id == id, ct);
+        if (entry is null)
+            throw new MaterialRowNotFoundException(id);
+
+        entry.OwnerUserId = ownerUserId;
+        entry.StationId = stationId;
+        entry.Quantity = quantity;
+        entry.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+
+        return await LoadRowDtoAsync(id, ct);
+    }
+
+    public async Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct)
+    {
+        var entry = await db.WarehouseMaterialInventory.FirstOrDefaultAsync(w => w.Id == id, ct);
+        if (entry is null)
+            throw new MaterialRowNotFoundException(id);
+
+        entry.StationId = stationId;
+        entry.UpdatedAt = DateTimeOffset.UtcNow;
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task<bool> ExistsAsync(Guid id, CancellationToken ct)
+        => await db.WarehouseMaterialInventory.AnyAsync(w => w.Id == id, ct);
+
     public async Task RemoveAsync(Guid id, CancellationToken ct)
     {
         var entry = await db.WarehouseMaterialInventory.FirstOrDefaultAsync(w => w.Id == id, ct);
@@ -161,23 +193,25 @@ public sealed class MaterialInventoryRepository(AppDbContext db) : IMaterialInve
     {
         var row = await db.Database.SqlQuery<MaterialRow>($"""
             SELECT
-              w.id                  AS id,
-              w.commodity_id        AS commodity_id,
-              c.name                AS material_name,
-              c.code                AS material_code,
-              w.quantity            AS quantity,
-              w.quality             AS quality,
-              w.owner_user_id       AS owner_user_id,
-              u.display_name        AS owner_display_name,
-              w.location            AS location
+              w.id                                  AS id,
+              w.commodity_id                        AS commodity_id,
+              c.name                                AS material_name,
+              c.code                                AS material_code,
+              w.quantity                            AS quantity,
+              w.quality                             AS quality,
+              w.owner_user_id                       AS owner_user_id,
+              u.display_name                        AS owner_display_name,
+              COALESCE(ss.name, w.location)         AS location,
+              w.station_id                          AS station_id
             FROM warehouse_material_inventory w
-            JOIN sc.commodities c ON c.id = w.commodity_id
-            JOIN "AspNetUsers" u  ON u.id = w.owner_user_id
+            JOIN sc.commodities c     ON c.id = w.commodity_id
+            JOIN "AspNetUsers" u      ON u.id = w.owner_user_id
+            LEFT JOIN sc.space_stations ss ON ss.id = w.station_id
             WHERE w.id = {id}
             """).FirstAsync(ct);
 
         return new MaterialRowDto(
             row.Id, row.CommodityId, row.MaterialName, row.MaterialCode,
-            row.Quantity, row.Quality, row.OwnerUserId, row.OwnerDisplayName, row.Location);
+            row.Quantity, row.Quality, row.OwnerUserId, row.OwnerDisplayName, row.Location, row.StationId);
     }
 }

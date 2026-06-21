@@ -20,6 +20,7 @@ using Xunit;
 
 namespace NajaEcho.Api.Tests.Features.Characters;
 
+[Collection("ApiTests")]
 public sealed class CharacterEndpointTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly WebApplicationFactory<Program> _factory;
@@ -41,10 +42,7 @@ public sealed class CharacterEndpointTests : IClassFixture<WebApplicationFactory
 
             b.ConfigureTestServices(services =>
             {
-                services.RemoveAll<DbContextOptions<AppDbContext>>();
-                services.RemoveAll<AppDbContext>();
-                services.AddDbContext<AppDbContext>(opts =>
-                    opts.UseInMemoryDatabase("CharacterTestDb_" + Guid.NewGuid()));
+                services.ReplaceWithInMemoryDb("CharacterTestDb_" + Guid.NewGuid());
 
                 services.RemoveAll<IExternalLoginService>();
                 services.AddSingleton<IExternalLoginService, CharFakeLoginService>();

@@ -40,6 +40,10 @@ public sealed class SearchCommoditiesQueryHandlerTests
         public Task<MaterialRowDto> UpdateQuantityAsync(Guid id, decimal quantity, CancellationToken ct) =>
             throw new NotImplementedException();
 
+        
+        public Task<MaterialRowDto> UpdateMaterialAsync(Guid id, Guid ownerUserId, Guid stationId, decimal quantity, CancellationToken ct) => throw new NotImplementedException();
+        public Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct) => Task.CompletedTask;
+        public Task<bool> ExistsAsync(Guid id, CancellationToken ct) => Task.FromResult(true);
         public Task RemoveAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
     }
 

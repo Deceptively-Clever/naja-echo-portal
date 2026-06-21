@@ -21,6 +21,7 @@ using Xunit;
 
 namespace NajaEcho.Api.Tests.Features.Admin;
 
+[Collection("ApiTests")]
 public class ShipAdminEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly WebApplicationFactory<Program> _factory;
@@ -43,10 +44,7 @@ public class ShipAdminEndpointsTests : IClassFixture<WebApplicationFactory<Progr
 
             b.ConfigureTestServices(services =>
             {
-                services.RemoveAll<DbContextOptions<AppDbContext>>();
-                services.RemoveAll<AppDbContext>();
-                services.AddDbContext<AppDbContext>(opts =>
-                    opts.UseInMemoryDatabase("ShipApiTestDb_" + Guid.NewGuid()));
+                services.ReplaceWithInMemoryDb("ShipApiTestDb_" + Guid.NewGuid());
 
                 services.RemoveAll<IExternalLoginService>();
                 services.AddSingleton<IExternalLoginService, FakeShipExternalLoginService>();

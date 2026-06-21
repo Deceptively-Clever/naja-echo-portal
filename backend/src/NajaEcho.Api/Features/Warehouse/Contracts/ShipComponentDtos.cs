@@ -14,7 +14,8 @@ public sealed record ShipComponentRowResponse(
     int Quality,
     Guid OwnerUserId,
     string OwnerDisplayName,
-    string Location);
+    string Location,
+    Guid? StationId = null);
 
 public sealed record ShipComponentListResponse(IReadOnlyList<ShipComponentRowResponse> Items);
 

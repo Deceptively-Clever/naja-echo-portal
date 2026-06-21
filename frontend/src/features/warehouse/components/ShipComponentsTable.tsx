@@ -1,9 +1,8 @@
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
-import { useChangeInventoryQuantity } from '../hooks/useChangeInventoryQuantity'
-import { EditQuantityControl } from './EditQuantityControl'
-import { RemoveInventoryButton } from './RemoveInventoryButton'
+import { ConfirmDeleteDialog } from './ConfirmDeleteDialog'
+import { EditShipComponentDialog } from './EditShipComponentDialog'
+import { RowActions } from './RowActions'
 import type { ShipComponentRow } from '../schemas/shipComponentSchemas'
 
 interface Props {
@@ -13,8 +12,20 @@ interface Props {
 }
 
 export function ShipComponentsTable({ rows, isQuartermaster, onRemove }: Props) {
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const changeQty = useChangeInventoryQuantity()
+  const [editRow, setEditRow] = useState<ShipComponentRow | null>(null)
+  const [removeRow, setRemoveRow] = useState<ShipComponentRow | null>(null)
+  const [removePending, setRemovePending] = useState(false)
+
+  const handleRemoveConfirm = async () => {
+    if (!removeRow) return
+    setRemovePending(true)
+    try {
+      await onRemove(removeRow.id)
+      setRemoveRow(null)
+    } finally {
+      setRemovePending(false)
+    }
+  }
 
   if (rows.length === 0) {
     return (
@@ -25,6 +36,13 @@ export function ShipComponentsTable({ rows, isQuartermaster, onRemove }: Props) 
   }
 
   return (
+    <>
+      <EditShipComponentDialog
+        open={!!editRow}
+        onOpenChange={(o) => { if (!o) setEditRow(null) }}
+        row={editRow}
+        onSuccess={() => setEditRow(null)}
+      />
     <Table>
       <TableHeader>
         <TableRow>
@@ -36,7 +54,7 @@ export function ShipComponentsTable({ rows, isQuartermaster, onRemove }: Props) 
           <TableHead>Qty</TableHead>
           <TableHead>Quality</TableHead>
           <TableHead>Owner</TableHead>
-          <TableHead>Location</TableHead>
+          <TableHead>Station</TableHead>
           {isQuartermaster && <TableHead>Actions</TableHead>}
         </TableRow>
       </TableHeader>
@@ -48,43 +66,35 @@ export function ShipComponentsTable({ rows, isQuartermaster, onRemove }: Props) 
             <TableCell>{row.class ?? 'Unknown'}</TableCell>
             <TableCell>{row.size != null ? String(row.size) : 'Unknown'}</TableCell>
             <TableCell>{row.grade ?? 'Unknown'}</TableCell>
-            <TableCell>
-              {isQuartermaster && editingId === row.id ? (
-                <EditQuantityControl
-                  currentQuantity={row.quantity}
-                  isPending={changeQty.isPending}
-                  onConfirm={async (qty) => {
-                    await changeQty.mutateAsync({ id: row.id, quantity: qty })
-                    setEditingId(null)
-                  }}
-                  onCancel={() => setEditingId(null)}
-                />
-              ) : (
-                <span>{row.quantity}</span>
-              )}
-            </TableCell>
+            <TableCell>{row.quantity}</TableCell>
             <TableCell>{row.quality}</TableCell>
             <TableCell>{row.ownerDisplayName}</TableCell>
             <TableCell>{row.location}</TableCell>
             {isQuartermaster && (
               <TableCell>
-                <div className="flex gap-3">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    aria-label="Change quantity"
-                    className="h-auto p-0 text-xs underline hover:bg-transparent hover:no-underline"
-                    onClick={() => setEditingId(editingId === row.id ? null : row.id)}
-                  >
-                    Edit Qty
-                  </Button>
-                  <RemoveInventoryButton row={row} onRemove={onRemove} />
-                </div>
+                <RowActions
+                  onEdit={() => setEditRow(row)}
+                  onRemove={() => setRemoveRow(row)}
+                  removePending={removePending && removeRow?.id === row.id}
+                />
               </TableCell>
             )}
           </TableRow>
         ))}
       </TableBody>
     </Table>
+    {removeRow && (
+      <ConfirmDeleteDialog
+        open={!!removeRow}
+        onOpenChange={(o) => {
+          if (!o) setRemoveRow(null)
+        }}
+        title="Delete Ship Component"
+        description={`Are you sure you want to remove "${removeRow.name}" from inventory?`}
+        isPending={removePending}
+        onConfirm={handleRemoveConfirm}
+      />
+    )}
+    </>
   )
 }

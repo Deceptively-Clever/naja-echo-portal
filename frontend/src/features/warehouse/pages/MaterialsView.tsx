@@ -10,11 +10,13 @@ import { MaterialsFilters } from '../components/MaterialsFilters'
 import { AddMaterialDialog } from '../components/AddMaterialDialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { MaterialFilterFormValues } from '../schemas/materialSchemas'
+import type { StationOption } from '../schemas/stationSchemas'
 
 const emptyFilters: MaterialFilterFormValues = {
   material: '',
   ownerUserId: '',
-  location: '',
+  station: '',
+  stationId: '',
   qualityMin: 1,
   qualityMax: 1000,
 }
@@ -24,14 +26,14 @@ export function MaterialsView() {
   const isQuartermaster = useIsQuartermaster()
 
   const [addOpen, setAddOpen] = useState(false)
-  const [rememberedLocation, setRememberedLocation] = useState('')
+  const [rememberedStation, setRememberedStation] = useState<StationOption | undefined>(undefined)
   const [rememberedOwnerId, setRememberedOwnerId] = useState('')
   const [filterValues, setFilterValues] = useState<MaterialFilterFormValues>(emptyFilters)
 
   const activeFilters = {
     material: filterValues.material || undefined,
     ownerUserId: filterValues.ownerUserId || undefined,
-    location: filterValues.location || undefined,
+    location: filterValues.station || undefined,
     qualityMin: filterValues.qualityMin !== 1 ? filterValues.qualityMin : undefined,
     qualityMax: filterValues.qualityMax !== 1000 ? filterValues.qualityMax : undefined,
   }
@@ -45,9 +47,9 @@ export function MaterialsView() {
 
   const currentUserId = session?.authenticated === true ? session.user.id : ''
 
-  function handleAddClose(opts?: { rememberedLocation?: string; rememberedOwnerId?: string }) {
+  function handleAddClose(opts?: { rememberedStation?: StationOption; rememberedOwnerId?: string }) {
     setAddOpen(false)
-    if (opts?.rememberedLocation) setRememberedLocation(opts.rememberedLocation)
+    if (opts?.rememberedStation) setRememberedStation(opts.rememberedStation)
     if (opts?.rememberedOwnerId) setRememberedOwnerId(opts.rememberedOwnerId)
   }
 
@@ -86,7 +88,7 @@ export function MaterialsView() {
           open={addOpen}
           onClose={handleAddClose}
           currentUserId={currentUserId}
-          rememberedLocation={rememberedLocation}
+          rememberedStation={rememberedStation}
           rememberedOwnerId={rememberedOwnerId}
         />
       )}

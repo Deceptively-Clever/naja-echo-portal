@@ -48,6 +48,7 @@ export async function addInventoryItem(body: {
   location: string
   quantity: number
   quality?: number
+  stationId?: string
 }): Promise<InventoryRow> {
   const data = await apiFetch<unknown>('/api/warehouse/items', {
     method: 'POST',
@@ -60,6 +61,17 @@ export async function changeInventoryQuantity(id: string, quantity: number): Pro
   const data = await apiFetch<unknown>(`/api/warehouse/items/${id}/quantity`, {
     method: 'PUT',
     body: JSON.stringify({ quantity }),
+  })
+  return inventoryRowSchema.parse(data)
+}
+
+export async function updateInventoryItem(
+  id: string,
+  body: { ownerUserId: string; stationId: string; quantity: number }
+): Promise<InventoryRow> {
+  const data = await apiFetch<unknown>(`/api/warehouse/items/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(body),
   })
   return inventoryRowSchema.parse(data)
 }

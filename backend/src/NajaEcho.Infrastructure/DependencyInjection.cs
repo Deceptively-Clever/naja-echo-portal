@@ -22,6 +22,7 @@ using NajaEcho.Application.Features.ItemCategories.RefreshCategories;
 using NajaEcho.Application.Features.Items.ImportItems;
 using NajaEcho.Application.Features.Warehouse.GetInventory;
 using NajaEcho.Application.Features.Warehouse.GetInventoryFilters;
+using NajaEcho.Application.Features.Warehouse.GetStations;
 using NajaEcho.Application.Features.Warehouse.Materials.AddMaterial;
 using NajaEcho.Application.Features.Warehouse.Materials.ChangeMaterialQuantity;
 using NajaEcho.Application.Features.Warehouse.Materials.GetMaterialFilters;
@@ -32,6 +33,7 @@ using NajaEcho.Application.Features.Warehouse.SearchCatalogItems;
 using NajaEcho.Application.Features.Warehouse.AddInventoryItem;
 using NajaEcho.Application.Features.Warehouse.ChangeInventoryQuantity;
 using NajaEcho.Application.Features.Warehouse.RemoveInventoryItem;
+using NajaEcho.Application.Features.Warehouse.UpdateInventoryItem;
 using NajaEcho.Application.Features.Warehouse.ShipComponents.GetShipComponentFilters;
 using NajaEcho.Application.Features.Warehouse.ShipComponents.GetShipComponents;
 using NajaEcho.Application.Features.Warehouse.ShipComponents.SearchSystemsCatalog;
@@ -40,6 +42,9 @@ using NajaEcho.Application.Features.Characters.GetRegistration;
 using NajaEcho.Application.Features.Characters.StartRegistration;
 using NajaEcho.Application.Features.Characters.VerifyCharacter;
 using NajaEcho.Application.Features.Locations.ImportLocations;
+using NajaEcho.Application.Features.Warehouse.TransferInventoryItem;
+using NajaEcho.Application.Features.Warehouse.Materials.TransferMaterial;
+using NajaEcho.Application.Features.Warehouse.Materials.UpdateMaterial;
 using NajaEcho.Infrastructure.Characters;
 using NajaEcho.Infrastructure.Commodities;
 using NajaEcho.Infrastructure.Hangar;
@@ -140,10 +145,14 @@ public static class DependencyInjection
         services.AddScoped<IWarehouseInventoryRepository, WarehouseInventoryRepository>();
         services.AddScoped<GetInventoryHandler>();
         services.AddScoped<GetInventoryFiltersHandler>();
+        services.AddScoped<GetStationsHandler>();
         services.AddScoped<SearchCatalogItemsHandler>();
         services.AddScoped<AddInventoryItemHandler>();
         services.AddScoped<ChangeInventoryQuantityHandler>();
+        services.AddScoped<UpdateInventoryItemHandler>();
         services.AddScoped<RemoveInventoryItemHandler>();
+
+        services.AddScoped<TransferInventoryItemHandler>();
 
         // Warehouse Materials
         services.AddScoped<IMaterialInventoryRepository, MaterialInventoryRepository>();
@@ -152,7 +161,9 @@ public static class DependencyInjection
         services.AddScoped<SearchCommoditiesQueryHandler>();
         services.AddScoped<AddMaterialHandler>();
         services.AddScoped<ChangeMaterialQuantityHandler>();
+        services.AddScoped<UpdateMaterialHandler>();
         services.AddScoped<RemoveMaterialHandler>();
+        services.AddScoped<TransferMaterialHandler>();
 
         // Ship Components
         services.AddScoped<IShipComponentRepository, ShipComponentRepository>();

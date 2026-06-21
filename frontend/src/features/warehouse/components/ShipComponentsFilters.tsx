@@ -1,4 +1,5 @@
 import { Combobox } from '@/components/ui/combobox'
+import { StationCombobox } from './StationCombobox'
 
 export interface ShipComponentFilterValues {
   name: string
@@ -6,6 +7,8 @@ export interface ShipComponentFilterValues {
   class: string
   size: string
   grade: string
+  station: string
+  stationId: string
 }
 
 interface Props {
@@ -85,6 +88,16 @@ export function ShipComponentsFilters({ values, onFilterChange }: Props) {
           searchPlaceholder="Search grades…"
           className="w-28"
           aria-label="Grade"
+        />
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <label className="text-xs text-muted-foreground">Station</label>
+        <StationCombobox
+          value={values.stationId || undefined}
+          onValueChange={(id, name) => update({ stationId: id, station: name })}
+          placeholder="All stations"
+          allowClear
         />
       </div>
     </div>

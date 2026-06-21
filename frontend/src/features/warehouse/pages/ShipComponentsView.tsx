@@ -15,6 +15,8 @@ const emptyFilters: ShipComponentFilterValues = {
   class: '',
   size: '',
   grade: '',
+  station: '',
+  stationId: '',
 }
 
 export function ShipComponentsView() {
@@ -30,6 +32,7 @@ export function ShipComponentsView() {
     class: filterValues.class ? [filterValues.class] : undefined,
     size: filterValues.size ? [parseInt(filterValues.size, 10)] : undefined,
     grade: filterValues.grade ? [filterValues.grade] : undefined,
+    location: filterValues.station ? [filterValues.station] : undefined,
   }
 
   const { data, isLoading } = useShipComponents(activeFilters)

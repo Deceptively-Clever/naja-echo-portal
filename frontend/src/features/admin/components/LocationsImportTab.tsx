@@ -51,7 +51,7 @@ function ImportSummary({ data }: { data: ImportLocationsResponse }) {
           <CardTitle className="text-base">Star Systems</CardTitle>
           <CardDescription>Import results for star systems</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm">
+        <CardContent className="flex flex-col gap-2 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Added:</span>
             <span className="font-medium">{data.starSystems.added}</span>
@@ -80,7 +80,7 @@ function ImportSummary({ data }: { data: ImportLocationsResponse }) {
           <CardTitle className="text-base">Space Stations</CardTitle>
           <CardDescription>Import results for space stations</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-2 text-sm">
+        <CardContent className="flex flex-col gap-2 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Added:</span>
             <span className="font-medium">{data.spaceStations.added}</span>

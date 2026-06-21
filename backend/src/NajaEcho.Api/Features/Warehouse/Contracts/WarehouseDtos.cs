@@ -12,7 +12,8 @@ public sealed record InventoryRowResponse(
     int Quality,
     Guid OwnerUserId,
     string OwnerDisplayName,
-    string Location);
+    string Location,
+    Guid? StationId = null);
 
 public sealed record OwnerOptionResponse(Guid UserId, string DisplayName);
 
@@ -42,3 +43,5 @@ public sealed record AddInventoryItemRequest(
     Guid? StationId = null);
 
 public sealed record ChangeInventoryQuantityRequest(int Quantity);
+
+public sealed record UpdateInventoryItemRequest(Guid OwnerUserId, Guid StationId, int Quantity);

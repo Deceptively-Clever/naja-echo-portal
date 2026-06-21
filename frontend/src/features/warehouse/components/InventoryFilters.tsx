@@ -1,4 +1,5 @@
 import { Combobox } from '@/components/ui/combobox'
+import { StationCombobox } from './StationCombobox'
 import type { InventoryFiltersResponse } from '../schemas/inventorySchemas'
 
 export interface FilterValues {
@@ -6,7 +7,8 @@ export interface FilterValues {
   type: string
   subtype: string
   ownerUserId: string
-  location: string
+  station: string
+  stationId: string
 }
 
 interface Props {
@@ -76,14 +78,12 @@ export function InventoryFilters({ filters, values, onFilterChange }: Props) {
       </div>
 
       <div className="flex flex-col gap-1">
-        <label htmlFor="filter-location" className="text-xs text-muted-foreground">Location</label>
-        <input
-          id="filter-location"
-          aria-label="Location"
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
-          value={values.location}
-          onChange={(e) => update({ location: e.target.value })}
-          placeholder="Filter by location…"
+        <label className="text-xs text-muted-foreground">Station</label>
+        <StationCombobox
+          value={values.stationId || undefined}
+          onValueChange={(id, name) => update({ stationId: id, station: name })}
+          placeholder="All stations"
+          allowClear
         />
       </div>
     </div>

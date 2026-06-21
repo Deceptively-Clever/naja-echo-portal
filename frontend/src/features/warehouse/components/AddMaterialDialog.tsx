@@ -1,17 +1,20 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useCommoditySearch } from '../hooks/useCommoditySearch'
 import { useAddMaterial } from '../hooks/useAddMaterial'
 import { useMaterialFilters } from '../hooks/useMaterialFilters'
+import { StationCombobox } from './StationCombobox'
+import { useDebounce } from '../hooks/useDebounce'
 import type { CommodityCatalogItem } from '../schemas/materialSchemas'
+import type { StationOption } from '../schemas/stationSchemas'
 
 interface Props {
   open: boolean
-  onClose: (opts?: { rememberedLocation?: string; rememberedOwnerId?: string }) => void
+  onClose: (opts?: { rememberedStation?: StationOption; rememberedOwnerId?: string }) => void
   currentUserId: string
-  rememberedLocation?: string
+  rememberedStation?: StationOption
   rememberedOwnerId?: string
 }
 
@@ -19,14 +22,14 @@ export function AddMaterialDialog({
   open,
   onClose,
   currentUserId,
-  rememberedLocation = '',
+  rememberedStation,
   rememberedOwnerId = '',
 }: Props) {
   const [search, setSearch] = useState('')
-  const [debouncedSearch, setDebouncedSearch] = useState('')
   const [selectedCommodity, setSelectedCommodity] = useState<CommodityCatalogItem | null>(null)
   const [ownerUserId, setOwnerUserId] = useState(rememberedOwnerId || currentUserId)
-  const [location, setLocation] = useState(rememberedLocation)
+  const [stationId, setStationId] = useState<string | undefined>(rememberedStation?.id)
+  const [stationName, setStationName] = useState(rememberedStation?.name ?? '')
   const [quantity, setQuantity] = useState(1)
   const [quality, setQuality] = useState(500)
   const [error, setError] = useState('')
@@ -36,32 +39,28 @@ export function AddMaterialDialog({
     setPrevOpen(open)
     if (open) {
       setSearch('')
-      setDebouncedSearch('')
       setSelectedCommodity(null)
       setOwnerUserId(rememberedOwnerId || currentUserId)
-      setLocation(rememberedLocation)
+      setStationId(rememberedStation?.id)
+      setStationName(rememberedStation?.name ?? '')
       setQuantity(1)
       setQuality(500)
       setError('')
     }
   }
 
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 300)
-    return () => clearTimeout(timer)
-  }, [search])
+  const debouncedSearch = useDebounce(search, 300)
 
   const { data: catalogData } = useCommoditySearch(debouncedSearch || undefined)
   const { data: filtersData } = useMaterialFilters()
   const addMaterial = useAddMaterial()
 
   const owners = filtersData?.owners ?? []
-  const locations = filtersData?.locations ?? []
   const results = catalogData?.commodities ?? []
 
   async function handleSubmit() {
     if (!selectedCommodity) { setError('Select a commodity from the catalog.'); return }
-    if (!location.trim()) { setError('Location is required.'); return }
+    if (!stationId) { setError('Select a station.'); return }
     if (quantity <= 0) { setError('Quantity must be greater than 0.'); return }
     if (!Number.isInteger(quality) || quality < 1 || quality > 1000) {
       setError('Quality must be an integer between 1 and 1000.')
@@ -69,15 +68,21 @@ export function AddMaterialDialog({
     }
     setError('')
 
-    await addMaterial.mutateAsync({
-      commodityId: selectedCommodity.commodityId,
-      ownerUserId,
-      location: location.trim(),
-      quantity,
-      quality,
-    })
+    try {
+      await addMaterial.mutateAsync({
+        commodityId: selectedCommodity.commodityId,
+        ownerUserId,
+        location: stationName,
+        quantity,
+        quality,
+        stationId,
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong.')
+      return
+    }
 
-    onClose({ rememberedLocation: location.trim(), rememberedOwnerId: ownerUserId })
+    onClose({ rememberedStation: { id: stationId, name: stationName }, rememberedOwnerId: ownerUserId })
   }
 
   const isPending = addMaterial.isPending
@@ -102,14 +107,22 @@ export function AddMaterialDialog({
               onChange={(e) => { setSearch(e.target.value); setSelectedCommodity(null) }}
               placeholder="Search materials…"
             />
-            <div className="mt-1 h-[180px] overflow-auto rounded border bg-background shadow text-sm">
+            <div
+              role="listbox"
+              aria-label="Search results"
+              className="mt-1 h-[180px] overflow-auto rounded border bg-background shadow text-sm"
+            >
               {results.length > 0 && !selectedCommodity && (
                 <ul>
                   {results.map((c) => (
                     <li
                       key={c.commodityId}
-                      className="cursor-pointer px-3 py-2 hover:bg-muted"
+                      role="option"
+                      aria-selected={false}
+                      tabIndex={0}
+                      className="cursor-pointer px-3 py-2 hover:bg-muted focus-visible:bg-muted outline-none"
                       onClick={() => { setSelectedCommodity(c); setSearch(c.name) }}
+                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { setSelectedCommodity(c); setSearch(c.name) } }}
                     >
                       {c.name}
                       {c.code && <span className="ml-1 text-muted-foreground">({c.code})</span>}
@@ -137,23 +150,12 @@ export function AddMaterialDialog({
           </div>
 
           <div className="flex flex-col gap-1">
-            <label htmlFor="add-material-location" className="text-sm font-medium">
-              Location
-            </label>
-            <input
-              id="add-material-location"
-              aria-label="Location"
-              list="add-material-location-suggestions"
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-              placeholder="e.g. Bay 1"
+            <label className="text-sm font-medium">Station</label>
+            <StationCombobox
+              value={stationId}
+              onValueChange={(id, name) => { setStationId(id); setStationName(name) }}
+              placeholder="Select a station…"
             />
-            <datalist id="add-material-location-suggestions">
-              {locations.map((loc) => (
-                <option key={loc} value={loc}>{loc}</option>
-              ))}
-            </datalist>
           </div>
 
           <div className="flex flex-col gap-1">

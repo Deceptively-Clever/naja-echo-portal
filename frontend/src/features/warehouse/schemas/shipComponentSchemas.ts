@@ -13,6 +13,7 @@ export const shipComponentRowSchema = z.object({
   ownerUserId: z.string().uuid(),
   ownerDisplayName: z.string(),
   location: z.string(),
+  stationId: z.string().uuid().nullable().optional(),
 })
 
 export const shipComponentListResponseSchema = z.object({

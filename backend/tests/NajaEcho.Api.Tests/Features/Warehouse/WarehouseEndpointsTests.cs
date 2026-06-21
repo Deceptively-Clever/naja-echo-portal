@@ -26,6 +26,7 @@ using Xunit;
 
 namespace NajaEcho.Api.Tests.Features.Warehouse;
 
+[Collection("ApiTests")]
 public sealed class WarehouseEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly WebApplicationFactory<Program> _factory;
@@ -49,10 +50,7 @@ public sealed class WarehouseEndpointsTests : IClassFixture<WebApplicationFactor
 
             b.ConfigureTestServices(services =>
             {
-                services.RemoveAll<DbContextOptions<AppDbContext>>();
-                services.RemoveAll<AppDbContext>();
-                services.AddDbContext<AppDbContext>(opts =>
-                    opts.UseInMemoryDatabase("WarehouseTestDb_" + Guid.NewGuid()));
+                services.ReplaceWithInMemoryDb("WarehouseTestDb_" + Guid.NewGuid());
 
                 services.RemoveAll<IExternalLoginService>();
                 services.AddSingleton<IExternalLoginService, WarehouseFakeLoginService>();
@@ -396,6 +394,11 @@ internal sealed class FakeWarehouseRepo : IWarehouseInventoryRepository
             throw new NajaEcho.Application.Features.Warehouse.ChangeInventoryQuantity.InventoryRowNotFoundException(id);
         return Task.CompletedTask;
     }
+
+    public Task<InventoryRowDto> UpdateItemAsync(Guid id, Guid ownerUserId, Guid stationId, int quantity, CancellationToken ct) =>
+        throw new NotImplementedException();
+    public Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct) => Task.CompletedTask;
+    public Task<bool> ExistsAsync(Guid id, CancellationToken ct) => Task.FromResult(id == KnownRowId);
 }
 
 internal sealed class WarehouseFakeItemRepo : IItemRepository

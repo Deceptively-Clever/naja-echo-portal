@@ -14,6 +14,7 @@ using Xunit;
 
 namespace NajaEcho.Api.Tests.Features.Hangar;
 
+[Collection("ApiTests")]
 public sealed class AddRemoveShipEndpointTests : IClassFixture<WebApplicationFactory<Program>>
 {
     // Active ship that is NOT pre-owned → POST returns 201
@@ -40,10 +41,7 @@ public sealed class AddRemoveShipEndpointTests : IClassFixture<WebApplicationFac
 
             b.ConfigureTestServices(services =>
             {
-                services.RemoveAll<DbContextOptions<AppDbContext>>();
-                services.RemoveAll<AppDbContext>();
-                services.AddDbContext<AppDbContext>(opts =>
-                    opts.UseInMemoryDatabase("AddRemoveTestDb_" + Guid.NewGuid()));
+                services.ReplaceWithInMemoryDb("AddRemoveTestDb_" + Guid.NewGuid());
 
                 services.RemoveAll<IExternalLoginService>();
                 services.AddSingleton<IExternalLoginService, FakeHangarLoginService>();
