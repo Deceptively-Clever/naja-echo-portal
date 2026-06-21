@@ -69,6 +69,7 @@ export async function addShipComponent(body: {
   location: string
   quantity: number
   quality?: number
+  stationId?: string
 }): Promise<InventoryRow> {
   const data = await apiFetch<unknown>('/api/warehouse/ship-components', {
     method: 'POST',

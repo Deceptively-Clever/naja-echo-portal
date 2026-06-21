@@ -2,6 +2,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ShipsImportTab } from '../components/ShipsImportTab'
 import { ItemsImportTab } from '../components/ItemsImportTab'
 import { CommoditiesImportTab } from '../components/CommoditiesImportTab'
+import { LocationsImportTab } from '../components/LocationsImportTab'
 
 export function DataImportPage() {
   return (
@@ -16,6 +17,7 @@ export function DataImportPage() {
           <TabsTrigger value="ships">Ships</TabsTrigger>
           <TabsTrigger value="items">Items</TabsTrigger>
           <TabsTrigger value="commodities">Commodities</TabsTrigger>
+          <TabsTrigger value="locations">Locations</TabsTrigger>
         </TabsList>
         <TabsContent value="ships">
           <ShipsImportTab />
@@ -25,6 +27,9 @@ export function DataImportPage() {
         </TabsContent>
         <TabsContent value="commodities">
           <CommoditiesImportTab />
+        </TabsContent>
+        <TabsContent value="locations">
+          <LocationsImportTab />
         </TabsContent>
       </Tabs>
     </div>

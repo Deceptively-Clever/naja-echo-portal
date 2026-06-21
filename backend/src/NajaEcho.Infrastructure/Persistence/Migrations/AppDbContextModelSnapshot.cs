@@ -18,6 +18,7 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
+                .HasDefaultSchema("public")
                 .HasAnnotation("ProductVersion", "10.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
@@ -52,7 +53,7 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("RoleNameIndex");
 
-                    b.ToTable("AspNetRoles", (string)null);
+                    b.ToTable("AspNetRoles", "public");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
@@ -82,7 +83,7 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                     b.HasIndex("RoleId")
                         .HasDatabaseName("ix_asp_net_role_claims_role_id");
 
-                    b.ToTable("AspNetRoleClaims", (string)null);
+                    b.ToTable("AspNetRoleClaims", "public");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
@@ -112,7 +113,7 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_asp_net_user_claims_user_id");
 
-                    b.ToTable("AspNetUserClaims", (string)null);
+                    b.ToTable("AspNetUserClaims", "public");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<System.Guid>", b =>
@@ -139,7 +140,7 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                     b.HasIndex("UserId")
                         .HasDatabaseName("ix_asp_net_user_logins_user_id");
 
-                    b.ToTable("AspNetUserLogins", (string)null);
+                    b.ToTable("AspNetUserLogins", "public");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<System.Guid>", b =>
@@ -158,7 +159,7 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                     b.HasIndex("RoleId")
                         .HasDatabaseName("ix_asp_net_user_roles_role_id");
 
-                    b.ToTable("AspNetUserRoles", (string)null);
+                    b.ToTable("AspNetUserRoles", "public");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<System.Guid>", b =>
@@ -182,7 +183,7 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                     b.HasKey("UserId", "LoginProvider", "Name")
                         .HasName("pk_asp_net_user_tokens");
 
-                    b.ToTable("AspNetUserTokens", (string)null);
+                    b.ToTable("AspNetUserTokens", "public");
                 });
 
             modelBuilder.Entity("NajaEcho.Domain.Characters.Character", b =>
@@ -222,7 +223,7 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                     b.HasIndex("OwnerUserId")
                         .HasDatabaseName("ix_characters_owner_user_id");
 
-                    b.ToTable("characters", (string)null);
+                    b.ToTable("characters", "public");
                 });
 
             modelBuilder.Entity("NajaEcho.Domain.Characters.PendingCharacterRegistration", b =>
@@ -257,7 +258,7 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("ux_pending_character_registrations_owner_user_id");
 
-                    b.ToTable("pending_character_registrations", (string)null);
+                    b.ToTable("pending_character_registrations", "public");
                 });
 
             modelBuilder.Entity("NajaEcho.Domain.Commodities.Commodity", b =>
@@ -522,7 +523,7 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("ux_hangar_entries_user_ship");
 
-                    b.ToTable("hangar_entries", (string)null);
+                    b.ToTable("hangar_entries", "public");
                 });
 
             modelBuilder.Entity("NajaEcho.Domain.ItemCategories.ItemCategory", b =>
@@ -772,6 +773,160 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                     b.ToTable("items", "sc");
                 });
 
+            modelBuilder.Entity("NajaEcho.Domain.Locations.SpaceStation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("HasRefinery")
+                        .HasColumnType("boolean")
+                        .HasColumnName("has_refinery");
+
+                    b.Property<bool>("HasTradeTerminal")
+                        .HasColumnType("boolean")
+                        .HasColumnName("has_trade_terminal");
+
+                    b.Property<DateTimeOffset>("ImportedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("imported_at");
+
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_available");
+
+                    b.Property<bool>("IsDecommissioned")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_decommissioned");
+
+                    b.Property<bool>("IsLandable")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_landable");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Nickname")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("nickname");
+
+                    b.Property<JsonDocument>("RawData")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("raw_data");
+
+                    b.Property<DateTimeOffset?>("SoftDeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("soft_deleted_at");
+
+                    b.Property<Guid>("StarSystemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("star_system_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<int>("UexId")
+                        .HasColumnType("integer")
+                        .HasColumnName("uex_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_space_stations");
+
+                    b.HasIndex("StarSystemId")
+                        .HasDatabaseName("ix_space_stations_star_system_id");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("ix_space_stations_status");
+
+                    b.HasIndex("UexId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_space_stations_uex_id");
+
+                    b.HasIndex("IsAvailable", "IsDecommissioned", "Name")
+                        .HasDatabaseName("ix_space_stations_avail_decomm_name");
+
+                    b.ToTable("space_stations", "sc");
+                });
+
+            modelBuilder.Entity("NajaEcho.Domain.Locations.StarSystem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTimeOffset>("ImportedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("imported_at");
+
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_available");
+
+                    b.Property<bool>("IsVisible")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_visible");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("name");
+
+                    b.Property<JsonDocument>("RawData")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("raw_data");
+
+                    b.Property<DateTimeOffset?>("SoftDeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("soft_deleted_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<int>("UexId")
+                        .HasColumnType("integer")
+                        .HasColumnName("uex_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_star_systems");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("ix_star_systems_status");
+
+                    b.HasIndex("UexId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_star_systems_uex_id");
+
+                    b.ToTable("star_systems", "sc");
+                });
+
             modelBuilder.Entity("NajaEcho.Domain.Ships.Ship", b =>
                 {
                     b.Property<Guid>("Id")
@@ -973,6 +1128,10 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("quantity");
 
+                    b.Property<Guid?>("StationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("station_id");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -986,11 +1145,14 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                     b.HasIndex("OwnerUserId")
                         .HasDatabaseName("ix_warehouse_inventory_owner_user_id");
 
+                    b.HasIndex("StationId")
+                        .HasDatabaseName("ix_warehouse_inventory_station_id");
+
                     b.HasIndex("ItemId", "OwnerUserId", "Location")
                         .IsUnique()
                         .HasDatabaseName("ux_warehouse_inventory_item_owner_location");
 
-                    b.ToTable("warehouse_inventory", null, t =>
+                    b.ToTable("warehouse_inventory", "public", t =>
                         {
                             t.HasCheckConstraint("ck_warehouse_inventory_quality", "quality >= 1 AND quality <= 1000");
 
@@ -1033,6 +1195,10 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         .HasColumnType("decimal(18,3)")
                         .HasColumnName("quantity");
 
+                    b.Property<Guid?>("StationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("station_id");
+
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -1046,11 +1212,14 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                     b.HasIndex("OwnerUserId")
                         .HasDatabaseName("ix_warehouse_material_inventory_owner_user_id");
 
+                    b.HasIndex("StationId")
+                        .HasDatabaseName("ix_warehouse_material_inventory_station_id");
+
                     b.HasIndex("CommodityId", "OwnerUserId", "Location", "Quality")
                         .IsUnique()
                         .HasDatabaseName("ux_warehouse_material_inventory_commodity_owner_location_quality");
 
-                    b.ToTable("warehouse_material_inventory", null, t =>
+                    b.ToTable("warehouse_material_inventory", "public", t =>
                         {
                             t.HasCheckConstraint("ck_warehouse_material_inventory_quality", "quality >= 1 AND quality <= 1000");
 
@@ -1148,7 +1317,7 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex");
 
-                    b.ToTable("AspNetUsers", (string)null);
+                    b.ToTable("AspNetUsers", "public");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<System.Guid>", b =>
@@ -1238,6 +1407,18 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_hangar_entries_ship_id");
                 });
 
+            modelBuilder.Entity("NajaEcho.Domain.Locations.SpaceStation", b =>
+                {
+                    b.HasOne("NajaEcho.Domain.Locations.StarSystem", "StarSystem")
+                        .WithMany()
+                        .HasForeignKey("StarSystemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_space_stations_star_systems_star_system_id");
+
+                    b.Navigation("StarSystem");
+                });
+
             modelBuilder.Entity("NajaEcho.Domain.Warehouse.ItemAttribute", b =>
                 {
                     b.HasOne("NajaEcho.Domain.Items.Item", null)
@@ -1256,6 +1437,14 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_warehouse_inventory_item_id");
+
+                    b.HasOne("NajaEcho.Domain.Locations.SpaceStation", "Station")
+                        .WithMany()
+                        .HasForeignKey("StationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_warehouse_inventory_space_stations_station_id");
+
+                    b.Navigation("Station");
                 });
 
             modelBuilder.Entity("NajaEcho.Domain.Warehouse.WarehouseMaterialEntry", b =>
@@ -1266,6 +1455,14 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_warehouse_material_inventory_commodity_id");
+
+                    b.HasOne("NajaEcho.Domain.Locations.SpaceStation", "Station")
+                        .WithMany()
+                        .HasForeignKey("StationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_warehouse_material_inventory_space_stations_station_id");
+
+                    b.Navigation("Station");
                 });
 #pragma warning restore 612, 618
         }

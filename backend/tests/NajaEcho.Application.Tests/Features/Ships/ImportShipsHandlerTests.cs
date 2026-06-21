@@ -18,7 +18,7 @@ public sealed class ImportShipsHandlerTests
 
         public Task<(IReadOnlyList<Ship>, int)> GetPagedAsync(int page, int pageSize, CancellationToken ct)
         {
-            IReadOnlyList<Ship> items = [..Ships];
+            IReadOnlyList<Ship> items = [.. Ships];
             return Task.FromResult((items, Ships.Count));
         }
 

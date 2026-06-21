@@ -6,6 +6,7 @@ using NajaEcho.Domain.Commodities;
 using NajaEcho.Domain.Hangar;
 using NajaEcho.Domain.ItemCategories;
 using NajaEcho.Domain.Items;
+using NajaEcho.Domain.Locations;
 using NajaEcho.Domain.Ships;
 using NajaEcho.Domain.Warehouse;
 using NajaEcho.Infrastructure.Identity;
@@ -27,10 +28,13 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<ShipComponentAttributes> ShipComponentAttributes => Set<ShipComponentAttributes>();
     public DbSet<Character> Characters => Set<Character>();
     public DbSet<PendingCharacterRegistration> PendingCharacterRegistrations => Set<PendingCharacterRegistration>();
+    public DbSet<StarSystem> StarSystems => Set<StarSystem>();
+    public DbSet<SpaceStation> SpaceStations => Set<SpaceStation>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+        modelBuilder.HasDefaultSchema("public");
         modelBuilder.ApplyConfiguration(new ApplicationUserConfiguration());
         modelBuilder.ApplyConfiguration(new ShipConfiguration());
         modelBuilder.ApplyConfiguration(new HangarEntryConfiguration());
@@ -43,5 +47,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         modelBuilder.ApplyConfiguration(new ShipComponentAttributesConfiguration());
         modelBuilder.ApplyConfiguration(new CharacterConfiguration());
         modelBuilder.ApplyConfiguration(new PendingCharacterRegistrationConfiguration());
+        modelBuilder.ApplyConfiguration(new StarSystemConfiguration());
+        modelBuilder.ApplyConfiguration(new SpaceStationConfiguration());
     }
 }

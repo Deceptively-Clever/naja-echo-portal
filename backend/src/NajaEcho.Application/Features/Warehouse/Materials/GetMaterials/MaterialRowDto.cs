@@ -9,4 +9,5 @@ public sealed record MaterialRowDto(
     int Quality,
     Guid OwnerUserId,
     string OwnerDisplayName,
-    string Location);
+    string Location,
+    Guid? StationId = null);

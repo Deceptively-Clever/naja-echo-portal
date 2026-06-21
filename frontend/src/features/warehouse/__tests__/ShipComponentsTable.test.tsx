@@ -47,7 +47,7 @@ describe('ShipComponentsTable', () => {
     expect(screen.getByText('Qty')).toBeDefined()
     expect(screen.getByText('Quality')).toBeDefined()
     expect(screen.getByText('Owner')).toBeDefined()
-    expect(screen.getByText('Location')).toBeDefined()
+    expect(screen.getByText('Station')).toBeDefined()
   })
 
   it('does not render a Section column header', () => {
@@ -95,13 +95,13 @@ describe('ShipComponentsTable', () => {
     render(<ShipComponentsTable rows={mockRows} isQuartermaster={true} onRemove={() => Promise.resolve()} />, {
       wrapper: createWrapper(),
     })
-    expect(screen.getAllByLabelText(/change quantity/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByLabelText(/edit item/i).length).toBeGreaterThan(0)
   })
 
   it('hides edit controls when isQuartermaster=false', () => {
     render(<ShipComponentsTable rows={mockRows} isQuartermaster={false} onRemove={() => Promise.resolve()} />, {
       wrapper: createWrapper(),
     })
-    expect(screen.queryAllByLabelText(/change quantity/i)).toHaveLength(0)
+    expect(screen.queryAllByLabelText(/edit item/i)).toHaveLength(0)
   })
 })

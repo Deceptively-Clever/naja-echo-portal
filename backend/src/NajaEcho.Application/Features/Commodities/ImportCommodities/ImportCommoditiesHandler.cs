@@ -159,23 +159,51 @@ public sealed class ImportCommoditiesHandler(
 
     private static int? GetNullableInt(JsonElement el, string prop)
     {
-        if (!el.TryGetProperty(prop, out var v)) return null;
-        if (v.ValueKind != JsonValueKind.Number) return null;
-        if (v.TryGetInt32(out var i)) return i;
-        if (v.TryGetDouble(out var d)) return (int)d;
+        if (!el.TryGetProperty(prop, out var v))
+        {
+            return null;
+        }
+
+        if (v.ValueKind != JsonValueKind.Number)
+        {
+            return null;
+        }
+
+        if (v.TryGetInt32(out var i))
+        {
+            return i;
+        }
+
+        if (v.TryGetDouble(out var d))
+        {
+            return (int)d;
+        }
+
         return null;
     }
 
     private static double? GetNullableDouble(JsonElement el, string prop)
     {
-        if (!el.TryGetProperty(prop, out var v)) return null;
-        if (v.ValueKind == JsonValueKind.Number && v.TryGetDouble(out var d)) return d;
+        if (!el.TryGetProperty(prop, out var v))
+        {
+            return null;
+        }
+
+        if (v.ValueKind == JsonValueKind.Number && v.TryGetDouble(out var d))
+        {
+            return d;
+        }
+
         return null;
     }
 
     private static bool GetBool(JsonElement el, string prop)
     {
-        if (!el.TryGetProperty(prop, out var v)) return false;
+        if (!el.TryGetProperty(prop, out var v))
+        {
+            return false;
+        }
+
         return v.ValueKind switch
         {
             JsonValueKind.True => true,
@@ -187,37 +215,62 @@ public sealed class ImportCommoditiesHandler(
 
     private static long? GetRawLong(JsonElement el, string prop)
     {
-        if (!el.TryGetProperty(prop, out var v)) return null;
-        if (v.ValueKind == JsonValueKind.Number && v.TryGetInt64(out var val)) return val;
+        if (!el.TryGetProperty(prop, out var v))
+        {
+            return null;
+        }
+
+        if (v.ValueKind == JsonValueKind.Number && v.TryGetInt64(out var val))
+        {
+            return val;
+        }
+
         return null;
     }
 
     private static DateTimeOffset? GetDateTimeOffset(JsonElement el, string prop)
     {
-        if (!el.TryGetProperty(prop, out var v)) return null;
+        if (!el.TryGetProperty(prop, out var v))
+        {
+            return null;
+        }
+
         if (v.ValueKind == JsonValueKind.Number && v.TryGetInt64(out var unix) && unix > 0)
+        {
             return DateTimeOffset.FromUnixTimeSeconds(unix);
+        }
+
         if (v.ValueKind == JsonValueKind.String && DateTimeOffset.TryParse(
                 v.GetString(), CultureInfo.InvariantCulture,
                 DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var dto))
+        {
             return dto;
+        }
+
         return null;
     }
 
     private static int[] ParseIdList(JsonElement el, string prop)
     {
         if (!el.TryGetProperty(prop, out var v) || v.ValueKind != JsonValueKind.String)
+        {
             return [];
+        }
 
         var raw = v.GetString();
-        if (string.IsNullOrWhiteSpace(raw)) return [];
+        if (string.IsNullOrWhiteSpace(raw))
+        {
+            return [];
+        }
 
         var parts = raw.Split(',');
         var result = new List<int>(parts.Length);
         foreach (var part in parts)
         {
             if (int.TryParse(part.Trim(), out var id))
+            {
                 result.Add(id);
+            }
         }
         return [.. result];
     }

@@ -29,11 +29,11 @@ const mockRows = [
 ]
 
 describe('MaterialsTable', () => {
-  it('renders the Material, Owner, Location, Quantity, and Quality columns', () => {
+  it('renders the Material, Owner, Station, Quantity, and Quality columns', () => {
     render(<MaterialsTable rows={mockRows} />, { wrapper: createWrapper() })
     expect(screen.getByText('Material')).toBeDefined()
     expect(screen.getByText('Owner')).toBeDefined()
-    expect(screen.getByText('Location')).toBeDefined()
+    expect(screen.getByText('Station')).toBeDefined()
     expect(screen.getByText('Quantity')).toBeDefined()
     expect(screen.getByText('Quality')).toBeDefined()
   })
@@ -67,19 +67,19 @@ describe('MaterialsTable', () => {
     expect(screen.queryByText(/no material inventory/i)).toBeNull()
   })
 
-  it('shows edit-quantity controls when isQuartermaster=true', () => {
+  it('shows edit controls when isQuartermaster=true', () => {
     render(<MaterialsTable rows={mockRows} isQuartermaster={true} />, { wrapper: createWrapper() })
-    expect(screen.getAllByLabelText(/change quantity/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByLabelText(/edit item/i).length).toBeGreaterThan(0)
   })
 
-  it('hides edit-quantity controls when isQuartermaster=false', () => {
+  it('hides edit controls when isQuartermaster=false', () => {
     render(<MaterialsTable rows={mockRows} isQuartermaster={false} />, { wrapper: createWrapper() })
-    expect(screen.queryAllByLabelText(/change quantity/i)).toHaveLength(0)
+    expect(screen.queryAllByLabelText(/edit item/i)).toHaveLength(0)
   })
 
-  it('hides edit-quantity controls when isQuartermaster is omitted', () => {
+  it('hides edit controls when isQuartermaster is omitted', () => {
     render(<MaterialsTable rows={mockRows} />, { wrapper: createWrapper() })
-    expect(screen.queryAllByLabelText(/change quantity/i)).toHaveLength(0)
+    expect(screen.queryAllByLabelText(/edit item/i)).toHaveLength(0)
   })
 
   it('shows remove controls when isQuartermaster=true', () => {

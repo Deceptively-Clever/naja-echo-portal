@@ -36,7 +36,10 @@ public static class HangarEndpoints
         int pageSize = 25,
         CancellationToken ct = default)
     {
-        if (!TryGetUserId(user, out var userId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var userId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("GetMyHangar {UserId} search={Search} page={Page}", userId, search, page);
 
@@ -56,7 +59,10 @@ public static class HangarEndpoints
         AddShipToHangarHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var userId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var userId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("AddShipToHangar {UserId} shipId={ShipId}", userId, body.ShipId);
 
@@ -84,7 +90,10 @@ public static class HangarEndpoints
         RemoveShipFromHangarHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var userId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var userId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("RemoveShipFromHangar {UserId} shipId={ShipId}", userId, shipId);
 
@@ -113,7 +122,10 @@ public static class HangarEndpoints
         string sortBy = "ownerCount",
         CancellationToken ct = default)
     {
-        if (!TryGetUserId(user, out var userId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var userId))
+        {
+            return Results.Unauthorized();
+        }
 
         var validatedSortBy = sortBy == "name" ? "name" : "ownerCount";
 
@@ -136,7 +148,10 @@ public static class HangarEndpoints
         GetOwningMembersHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var userId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var userId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("GetOwningMembers {UserId}", userId);
 
@@ -155,7 +170,10 @@ public static class HangarEndpoints
         int pageSize = 25,
         CancellationToken ct = default)
     {
-        if (!TryGetUserId(user, out var userId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var userId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("SearchCatalogShips {UserId} search={Search} page={Page}", userId, search, page);
 
@@ -175,10 +193,15 @@ public static class HangarEndpoints
         ImportHangarHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var userId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var userId))
+        {
+            return Results.Unauthorized();
+        }
 
         if (body?.Items is null)
+        {
             return Results.Problem(detail: "items is required.", statusCode: StatusCodes.Status400BadRequest, title: "Bad request.");
+        }
 
         Log.Information("ImportHangar {UserId} items={Count}", userId, body.Items.Count);
 
@@ -204,12 +227,12 @@ public static class HangarEndpoints
     }
 
     private static HangarShipCardDto Map(Application.Features.Hangar.GetMyHangar.ShipCard c) =>
-        new(c.ShipId, c.Name, c.CompanyName, c.UrlPhoto, c.Scu, c.Crew);
+        new (c.ShipId, c.Name, c.CompanyName, c.UrlPhoto, c.Scu, c.Crew);
 
     private static OrgHangarShipCardDto MapOrg(Application.Features.Hangar.GetOrgHangar.OrgShipCard c) =>
-        new(c.ShipId, c.Name, c.CompanyName, c.UrlPhoto, c.Scu, c.Crew, c.OwnerCount,
+        new (c.ShipId, c.Name, c.CompanyName, c.UrlPhoto, c.Scu, c.Crew, c.OwnerCount,
             c.Owners.Select(o => new HangarOwnerDto(o.UserId, o.DisplayName)).ToList());
 
     private static CatalogSearchItemDto MapCatalog(Application.Features.Hangar.SearchCatalogShips.CatalogSearchRow r) =>
-        new(r.ShipId, r.Name, r.CompanyName, r.UrlPhoto, r.Scu, r.Crew, r.AlreadyOwned);
+        new (r.ShipId, r.Name, r.CompanyName, r.UrlPhoto, r.Scu, r.Crew, r.AlreadyOwned);
 }

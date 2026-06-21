@@ -38,13 +38,13 @@ describe('AddMaterialDialog', () => {
     expect(screen.getByRole('dialog')).toBeDefined()
   })
 
-  it('renders commodity search, location, quantity, and quality fields', () => {
+  it('renders commodity search, station combobox, quantity, and quality fields', () => {
     render(
       <AddMaterialDialog open={true} onClose={() => {}} currentUserId="user-1" />,
       { wrapper: createWrapper() }
     )
     expect(screen.getByLabelText(/search commodities/i)).toBeDefined()
-    expect(screen.getByLabelText(/location/i)).toBeDefined()
+    expect(screen.getByText('Select a station…')).toBeDefined()
     expect(screen.getByLabelText(/quantity/i)).toBeDefined()
     expect(screen.getByLabelText(/quality/i)).toBeDefined()
   })
@@ -69,19 +69,12 @@ describe('AddMaterialDialog', () => {
     expect(quality.value).toBe('500')
   })
 
-  it('Location input shows suggestions from existing locations', async () => {
-    server.use(
-      http.get('/api/warehouse/materials/filters', () => HttpResponse.json(mockFilters))
-    )
+  it('renders station combobox for selecting station', () => {
     render(
       <AddMaterialDialog open={true} onClose={() => {}} currentUserId="user-1" />,
       { wrapper: createWrapper() }
     )
-    await waitFor(() => {
-      const location = screen.getByLabelText(/location/i) as HTMLInputElement
-      const datalist = document.getElementById(location.getAttribute('list') ?? '')
-      expect(datalist?.querySelector('option[value="Bay 1"]')).not.toBeNull()
-    })
+    expect(screen.getByText('Select a station…')).toBeDefined()
   })
 
   it('shows commodity catalog results when search is typed', async () => {
@@ -101,7 +94,10 @@ describe('AddMaterialDialog', () => {
 
   it('shows a validation message for Quantity <= 0', async () => {
     server.use(
-      http.get('/api/warehouse/materials/catalog/search', () => HttpResponse.json(mockCommodityResults))
+      http.get('/api/warehouse/materials/catalog/search', () => HttpResponse.json(mockCommodityResults)),
+      http.get('/api/warehouse/stations', () =>
+        HttpResponse.json({ stations: [{ id: 'station-1', name: 'Test Station' }] })
+      )
     )
     const user = userEvent.setup()
     render(
@@ -111,7 +107,9 @@ describe('AddMaterialDialog', () => {
     await user.type(screen.getByLabelText(/search commodities/i), 'titanium')
     await waitFor(() => screen.getByText('Titanium'))
     await user.click(screen.getByText('Titanium'))
-    await user.type(screen.getByLabelText(/^location$/i), 'Bay 1')
+    await user.click(screen.getByText('Select a station…'))
+    await waitFor(() => screen.getByText('Test Station'))
+    await user.click(screen.getByText('Test Station'))
 
     const quantity = screen.getByLabelText(/quantity/i) as HTMLInputElement
     await user.clear(quantity)
@@ -123,7 +121,10 @@ describe('AddMaterialDialog', () => {
 
   it('shows a validation message for Quality outside 1..1000', async () => {
     server.use(
-      http.get('/api/warehouse/materials/catalog/search', () => HttpResponse.json(mockCommodityResults))
+      http.get('/api/warehouse/materials/catalog/search', () => HttpResponse.json(mockCommodityResults)),
+      http.get('/api/warehouse/stations', () =>
+        HttpResponse.json({ stations: [{ id: 'station-1', name: 'Test Station' }] })
+      )
     )
     const user = userEvent.setup()
     render(
@@ -133,7 +134,9 @@ describe('AddMaterialDialog', () => {
     await user.type(screen.getByLabelText(/search commodities/i), 'titanium')
     await waitFor(() => screen.getByText('Titanium'))
     await user.click(screen.getByText('Titanium'))
-    await user.type(screen.getByLabelText(/^location$/i), 'Bay 1')
+    await user.click(screen.getByText('Select a station…'))
+    await waitFor(() => screen.getByText('Test Station'))
+    await user.click(screen.getByText('Test Station'))
 
     const quality = screen.getByLabelText(/quality/i) as HTMLInputElement
     await user.clear(quality)

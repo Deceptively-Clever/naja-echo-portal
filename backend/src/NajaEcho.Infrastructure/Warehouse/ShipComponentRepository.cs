@@ -33,22 +33,24 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
 
         var rows = await db.Database.SqlQuery<ScRow>($"""
             SELECT
-              w.id                        AS id,
-              w.item_id                   AS item_id,
-              i.name                      AS name,
-              i.category                  AS type,
-              sca.class                   AS class,
-              sca.size                    AS size,
-              sca.grade                   AS grade,
-              w.quantity                  AS quantity,
-              w.quality                   AS quality,
-              w.owner_user_id             AS owner_user_id,
-              u.display_name              AS owner_display_name,
-              w.location                  AS location
+              w.id                                    AS id,
+              w.item_id                               AS item_id,
+              i.name                                  AS name,
+              i.category                              AS type,
+              sca.class                               AS class,
+              sca.size                                AS size,
+              sca.grade                               AS grade,
+              w.quantity                              AS quantity,
+              w.quality                               AS quality,
+              w.owner_user_id                         AS owner_user_id,
+              u.display_name                          AS owner_display_name,
+              COALESCE(ss.name, w.location)           AS location,
+              w.station_id                            AS station_id
             FROM warehouse_inventory w
-            JOIN sc.items i              ON i.id = w.item_id
+            JOIN sc.items i                  ON i.id = w.item_id
             LEFT JOIN sc.ship_component_attributes sca ON sca.item_id = i.id
-            JOIN "AspNetUsers" u         ON u.id = w.owner_user_id
+            JOIN "AspNetUsers" u             ON u.id = w.owner_user_id
+            LEFT JOIN sc.space_stations ss   ON ss.id = w.station_id
             WHERE LOWER(i.section) IN ({SystemsSectionLower}, {VehicleWeaponsSectionLower})
               AND ({namePattern}::text IS NULL OR i.name ILIKE {namePattern})
               AND ({types}::text[] IS NULL OR i.category ILIKE ANY(SELECT unnest({types}::text[])))
@@ -68,18 +70,18 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
                     OR ({grades}::text[] IS NOT NULL AND sca.grade ILIKE ANY(SELECT unnest({grades}::text[])))
                   )
               AND ({ownerUserIds}::uuid[] IS NULL OR w.owner_user_id = ANY({ownerUserIds}::uuid[]))
-              AND ({locations}::text[] IS NULL OR w.location ILIKE ANY(SELECT unnest({locations}::text[])))
+              AND ({locations}::text[] IS NULL OR COALESCE(ss.name, w.location) ILIKE ANY(SELECT unnest({locations}::text[])))
             ORDER BY i.name, i.category, sca.size NULLS LAST, sca.class NULLS LAST, sca.grade NULLS LAST
             """).ToListAsync(ct);
 
         return rows.Select(r => new ShipComponentRowDto(
             r.Id, r.ItemId, r.Name, r.Type, r.Class, r.Size, r.Grade,
-            r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location)).ToList();
+            r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location, r.StationId)).ToList();
     }
 
     private sealed record ScRow(
         Guid Id, Guid ItemId, string Name, string? Type, string? Class, int? Size, string? Grade,
-        int Quantity, int Quality, Guid OwnerUserId, string OwnerDisplayName, string Location);
+        int Quantity, int Quality, Guid OwnerUserId, string OwnerDisplayName, string Location, Guid? StationId);
 
     // ── Filters ──────────────────────────────────────────────────────────
 
@@ -224,7 +226,9 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
     public async Task SaveItemAttributesAsync(IReadOnlyList<ItemAttribute> attributes, CancellationToken ct)
     {
         if (attributes.Count == 0)
+        {
             return;
+        }
 
         var itemIds = NormalizeNumericFilter(attributes.Select(a => a.ItemId).ToArray())!;
         var categoryAttributeIds = NormalizeNumericFilter(attributes.Select(a => a.UexCategoryAttributeId).ToArray())!;
@@ -258,7 +262,9 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
     private static string[]? NormalizeTextFilter(IReadOnlyList<string>? values)
     {
         if (values is null || values.Count == 0)
+        {
             return null;
+        }
 
         var normalized = values
             .Where(v => !string.IsNullOrWhiteSpace(v))
@@ -272,7 +278,9 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
     private static T[]? NormalizeNumericFilter<T>(IReadOnlyList<T>? values) where T : struct
     {
         if (values is null || values.Count == 0)
+        {
             return null;
+        }
 
         var normalized = values
             .Distinct()

@@ -137,13 +137,13 @@ public sealed class ImportItemsHandler(
 
             items.Add(new Domain.Items.Item
             {
-                Uuid = GetString(el, "uuid") ?? "",
+                Uuid = GetString(el, "uuid") ?? string.Empty,
                 UexId = GetInt(el, "id"),
                 IdParent = GetNullableInt(el, "id_parent"),
                 IdCategory = categoryUexId,
                 IdCompany = GetNullableInt(el, "id_company"),
                 IdVehicle = GetNullableInt(el, "id_vehicle"),
-                Name = GetString(el, "name") ?? "",
+                Name = GetString(el, "name") ?? string.Empty,
                 Section = GetString(el, "section"),
                 Category = GetString(el, "category"),
                 CompanyName = GetString(el, "company_name"),
@@ -183,22 +183,46 @@ public sealed class ImportItemsHandler(
 
     private static int? GetNullableInt(System.Text.Json.JsonElement el, string prop)
     {
-        if (!el.TryGetProperty(prop, out var v)) return null;
-        if (v.ValueKind == System.Text.Json.JsonValueKind.Number) return v.GetInt32();
+        if (!el.TryGetProperty(prop, out var v))
+        {
+            return null;
+        }
+
+        if (v.ValueKind == System.Text.Json.JsonValueKind.Number)
+        {
+            return v.GetInt32();
+        }
+
         return null;
     }
 
     private static string? GetNullableIntAsString(System.Text.Json.JsonElement el, string prop)
     {
-        if (!el.TryGetProperty(prop, out var v)) return null;
-        if (v.ValueKind == System.Text.Json.JsonValueKind.Number) return v.GetInt32().ToString();
-        if (v.ValueKind == System.Text.Json.JsonValueKind.String) return v.GetString();
+        if (!el.TryGetProperty(prop, out var v))
+        {
+            return null;
+        }
+
+        if (v.ValueKind == System.Text.Json.JsonValueKind.Number)
+        {
+            return v.GetInt32().ToString();
+        }
+
+        if (v.ValueKind == System.Text.Json.JsonValueKind.String)
+        {
+            return v.GetString();
+        }
+
         return null;
     }
 
     private static bool GetBool(System.Text.Json.JsonElement el, string prop)
     {
-        if (!el.TryGetProperty(prop, out var v)) return false;
+        if (!el.TryGetProperty(prop, out var v))
+        {
+            return false;
+        }
+
         return v.ValueKind switch
         {
             System.Text.Json.JsonValueKind.True => true,
@@ -210,14 +234,24 @@ public sealed class ImportItemsHandler(
 
     private static DateTimeOffset? GetDateTimeOffset(System.Text.Json.JsonElement el, string prop)
     {
-        if (!el.TryGetProperty(prop, out var v)) return null;
+        if (!el.TryGetProperty(prop, out var v))
+        {
+            return null;
+        }
+
         if (v.ValueKind == System.Text.Json.JsonValueKind.Number && v.TryGetInt64(out var unix))
+        {
             return DateTimeOffset.FromUnixTimeSeconds(unix);
+        }
+
         if (v.ValueKind == System.Text.Json.JsonValueKind.String && DateTimeOffset.TryParse(
                 v.GetString(), System.Globalization.CultureInfo.InvariantCulture,
                 System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
                 out var dto))
+        {
             return dto;
+        }
+
         return null;
     }
 }

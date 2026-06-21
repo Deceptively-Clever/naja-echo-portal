@@ -26,7 +26,7 @@ public sealed class AddMaterialHandlerTests
         public FakeMaterialRepo() => _row = new(KnownRowId, KnownCommodityId, "Titanium", "TTAM", 1m, 500, KnownOwnerId, "Alice", "Bay 1");
 
         public Task<(MaterialRowDto Row, bool IsNew)> AddOrIncrementAsync(
-            Guid commodityId, Guid ownerUserId, string location, decimal quantity, int quality, CancellationToken ct)
+            Guid commodityId, Guid ownerUserId, string location, decimal quantity, int quality, Guid? stationId, CancellationToken ct)
         {
             CapturedQuantity = quantity;
             CapturedQuality = quality;
@@ -53,6 +53,10 @@ public sealed class AddMaterialHandlerTests
         public Task<MaterialRowDto> UpdateQuantityAsync(Guid id, decimal quantity, CancellationToken ct) =>
             throw new NotImplementedException();
 
+
+        public Task<MaterialRowDto> UpdateMaterialAsync(Guid id, Guid ownerUserId, Guid stationId, decimal quantity, CancellationToken ct) => throw new NotImplementedException();
+        public Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct) => Task.CompletedTask;
+        public Task<bool> ExistsAsync(Guid id, CancellationToken ct) => Task.FromResult(true);
         public Task RemoveAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
     }
 
@@ -63,9 +67,13 @@ public sealed class AddMaterialHandlerTests
         public Task<Commodity?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
             Task.FromResult(CommodityExists ? (Commodity?)new Commodity
             {
-                Id = id, Name = "Titanium", Code = "TTAM", Status = CommodityStatus.Active,
+                Id = id,
+                Name = "Titanium",
+                Code = "TTAM",
+                Status = CommodityStatus.Active,
                 RawData = JsonDocument.Parse("{}"),
-                ImportedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow,
+                ImportedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow,
             } : null);
 
         public Task<(IReadOnlyList<NajaEcho.Application.Features.Commodities.GetCommodities.CommodityListItem> Items, int TotalCount)> GetPagedAsync(
@@ -85,6 +93,16 @@ public sealed class AddMaterialHandlerTests
             Task.FromResult<IReadOnlyList<(Guid, string)>>([]);
     }
 
+    private sealed class FakeStationRepo : ISpaceStationRepository
+    {
+        public Task<(int, int, int, int, int)> BulkUpsertAsync(IReadOnlyList<JsonDocument> records, IReadOnlyDictionary<int, Guid> starSystemMap, CancellationToken ct = default) =>
+            Task.FromResult((0, 0, 0, 0, 0));
+        public Task<IReadOnlyList<StationDto>> SearchActiveStationsAsync(string? search, int limit, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<StationDto>>([]);
+        public Task<bool> ExistsAsync(Guid id, CancellationToken ct = default) =>
+            Task.FromResult(true);
+    }
+
     private static AddMaterialHandler MakeHandler(
         FakeMaterialRepo? repo = null,
         FakeCommodityRepo? commodityRepo = null,
@@ -93,6 +111,7 @@ public sealed class AddMaterialHandlerTests
             repo ?? new FakeMaterialRepo(),
             commodityRepo ?? new FakeCommodityRepo(),
             userRepo ?? new FakeUserRepo(),
+            new FakeStationRepo(),
             NullLogger<AddMaterialHandler>.Instance);
 
     [Fact]

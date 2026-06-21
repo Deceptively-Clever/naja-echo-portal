@@ -29,7 +29,10 @@ public static class CharacterEndpoints
         GetCharactersHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("GetCharacters {CallerId}", callerId);
 
@@ -54,14 +57,21 @@ public static class CharacterEndpoints
         GetRegistrationHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("GetRegistration {CallerId}", callerId);
 
         try
         {
             var dto = await handler.HandleAsync(new GetRegistrationQuery(callerId), ct);
-            if (dto is null) return Results.Ok((PendingRegistrationResponse?)null);
+            if (dto is null)
+            {
+                return Results.Ok((PendingRegistrationResponse?)null);
+            }
+
             return Results.Ok(new PendingRegistrationResponse(dto.Token, dto.ExpiresAt));
         }
         catch (Exception ex)
@@ -78,7 +88,10 @@ public static class CharacterEndpoints
         StartRegistrationHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("StartRegistration {CallerId}", callerId);
 
@@ -104,10 +117,15 @@ public static class CharacterEndpoints
         VerifyCharacterRequest request,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var callerId)) return Results.Unauthorized();
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         if (string.IsNullOrWhiteSpace(request.Handle))
+        {
             return Results.Problem("Handle must not be empty.", statusCode: 400, title: "Validation error");
+        }
 
         Log.Information("VerifyCharacter {CallerId} handle={Handle}", callerId, request.Handle);
 

@@ -21,6 +21,7 @@ public sealed class WarehouseMaterialEntryConfiguration : IEntityTypeConfigurati
         builder.Property(w => w.Location).HasColumnName("location").HasMaxLength(200).IsRequired();
         builder.Property(w => w.Quantity).HasColumnName("quantity").HasColumnType("decimal(18,3)").IsRequired();
         builder.Property(w => w.Quality).HasColumnName("quality").HasDefaultValue(500).IsRequired();
+        builder.Property(w => w.StationId).HasColumnName("station_id");
         builder.Property(w => w.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(w => w.UpdatedAt).HasColumnName("updated_at").IsRequired();
 
@@ -36,5 +37,11 @@ public sealed class WarehouseMaterialEntryConfiguration : IEntityTypeConfigurati
             .HasForeignKey(w => w.CommodityId)
             .HasConstraintName("fk_warehouse_material_inventory_commodity_id")
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(w => w.Station)
+            .WithMany()
+            .HasForeignKey(w => w.StationId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
     }
 }

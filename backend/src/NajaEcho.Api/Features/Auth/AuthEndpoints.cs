@@ -21,7 +21,7 @@ public static class AuthEndpoints
 
     private static IResult Login(HttpContext ctx, IConfiguration config)
     {
-        var frontendOrigin = config["Frontend:Origin"] ?? "";
+        var frontendOrigin = config["Frontend:Origin"] ?? string.Empty;
         Log.Information("Discord login started");
         return Results.Challenge(
             new AuthenticationProperties { RedirectUri = $"{frontendOrigin}/dashboard" },
@@ -42,11 +42,15 @@ public static class AuthEndpoints
     {
         var sub = user.FindFirstValue(ClaimTypes.NameIdentifier);
         if (!Guid.TryParse(sub, out var userId))
+        {
             return Results.Ok(new AnonymousSessionResponse());
+        }
 
         var localUser = await handler.HandleAsync(new GetCurrentUserQuery(userId), ct);
         if (localUser is null)
+        {
             return Results.Ok(new AnonymousSessionResponse());
+        }
 
         var roles = user.FindAll(ClaimTypes.Role).Select(c => c.Value).ToArray();
 

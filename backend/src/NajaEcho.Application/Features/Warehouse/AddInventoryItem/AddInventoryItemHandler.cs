@@ -10,6 +10,7 @@ public sealed class AddInventoryItemHandler(
     IUserRepository userRepository,
     IShipComponentRepository shipComponentRepository,
     IUexItemAttributeClient uexAttributeClient,
+    ISpaceStationRepository stationRepository,
     ILogger<AddInventoryItemHandler> logger)
 {
     public async Task<(InventoryRowDto Row, bool IsNew)> HandleAsync(AddInventoryItemCommand command, CancellationToken ct)
@@ -17,27 +18,47 @@ public sealed class AddInventoryItemHandler(
         var location = command.Location.Trim();
 
         if (string.IsNullOrEmpty(location))
+        {
             throw new ArgumentException("Location must not be empty.", nameof(command));
+        }
 
         if (command.Quantity < 1)
+        {
             throw new ArgumentOutOfRangeException(nameof(command), "Quantity must be at least 1.");
+        }
+
         if (command.Quality < 1 || command.Quality > 1000)
+        {
             throw new ArgumentOutOfRangeException(nameof(command), "Quality must be between 1 and 1000.");
+        }
 
         var item = await itemRepository.GetByIdAsync(command.ItemId, ct);
         if (item is null || item.Status != NajaEcho.Domain.Items.ItemStatus.Active)
+        {
             throw new ItemNotFoundException(command.ItemId);
+        }
 
         var ownerExists = await userRepository.ExistsAsync(command.OwnerUserId, ct);
         if (!ownerExists)
+        {
             throw new OwnerNotFoundException(command.OwnerUserId);
+        }
 
-        logger.LogInformation("AddInventoryItem itemId={ItemId} ownerUserId={OwnerUserId} location={Location} quantity={Quantity} quality={Quality}",
-            command.ItemId, command.OwnerUserId, location, command.Quantity, command.Quality);
+        if (command.StationId.HasValue)
+        {
+            var stationExists = await stationRepository.ExistsAsync(command.StationId.Value, ct);
+            if (!stationExists)
+            {
+                throw new InvalidOperationException($"Station with id {command.StationId} not found.");
+            }
+        }
+
+        logger.LogInformation("AddInventoryItem itemId={ItemId} ownerUserId={OwnerUserId} location={Location} quantity={Quantity} quality={Quality} stationId={StationId}",
+            command.ItemId, command.OwnerUserId, location, command.Quantity, command.Quality, command.StationId);
 
         await TryFetchAndCacheAttributesAsync(command.ItemId, item.UexId, ct);
 
-        var (row, isNew) = await repository.AddOrIncrementAsync(command.ItemId, command.OwnerUserId, location, command.Quantity, command.Quality, ct);
+        var (row, isNew) = await repository.AddOrIncrementAsync(command.ItemId, command.OwnerUserId, location, command.Quantity, command.Quality, command.StationId, ct);
 
         logger.LogInformation("AddInventoryItem {Action} rowId={RowId} quantity={Quantity}",
             isNew ? "created" : "incremented", row.Id, row.Quantity);
@@ -47,7 +68,10 @@ public sealed class AddInventoryItemHandler(
 
     private async Task TryFetchAndCacheAttributesAsync(Guid itemId, int uexItemId, CancellationToken ct)
     {
-        if (uexItemId <= 0) return;
+        if (uexItemId <= 0)
+        {
+            return;
+        }
 
         var hasCached = await shipComponentRepository.HasCachedAttributesAsync(itemId, ct);
         if (hasCached)

@@ -81,7 +81,10 @@ public sealed class ItemCategoryRepository(AppDbContext db) : IItemCategoryRepos
     public async Task<DateTimeOffset?> GetLastRefreshedAtAsync(CancellationToken ct = default)
     {
         if (!await db.ItemCategories.AnyAsync(ct))
+        {
             return null;
+        }
+
         return await db.ItemCategories.MaxAsync(c => (DateTimeOffset?)c.UpdatedAt, ct);
     }
 
@@ -93,7 +96,10 @@ public sealed class ItemCategoryRepository(AppDbContext db) : IItemCategoryRepos
     public async Task<DateTimeOffset?> GetLastImportedAtAsync(int categoryUexId, CancellationToken ct = default)
     {
         if (!await db.Items.AnyAsync(i => i.IdCategory == categoryUexId, ct))
+        {
             return null;
+        }
+
         return await db.Items
             .Where(i => i.IdCategory == categoryUexId)
             .MaxAsync(i => (DateTimeOffset?)i.UpdatedAt, ct);

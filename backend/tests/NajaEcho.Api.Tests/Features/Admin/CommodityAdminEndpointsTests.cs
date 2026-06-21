@@ -19,6 +19,7 @@ using NajaEcho.Infrastructure.Persistence;
 
 namespace NajaEcho.Api.Tests.Features.Admin;
 
+[Collection("ApiTests")]
 public class CommodityAdminEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly WebApplicationFactory<Program> _factory;
@@ -41,10 +42,7 @@ public class CommodityAdminEndpointsTests : IClassFixture<WebApplicationFactory<
 
             b.ConfigureTestServices(services =>
             {
-                services.RemoveAll<DbContextOptions<AppDbContext>>();
-                services.RemoveAll<AppDbContext>();
-                services.AddDbContext<AppDbContext>(opts =>
-                    opts.UseInMemoryDatabase("CommodityApiTestDb_" + Guid.NewGuid()));
+                services.ReplaceWithInMemoryDb("CommodityApiTestDb_" + Guid.NewGuid());
 
                 services.RemoveAll<IExternalLoginService>();
                 services.AddSingleton<IExternalLoginService, FakeCommodityTestLoginService>();

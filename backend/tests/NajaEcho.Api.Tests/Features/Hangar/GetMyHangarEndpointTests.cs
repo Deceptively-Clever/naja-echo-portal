@@ -25,6 +25,7 @@ using Xunit;
 
 namespace NajaEcho.Api.Tests.Features.Hangar;
 
+[Collection("ApiTests")]
 public sealed class GetMyHangarEndpointTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly WebApplicationFactory<Program> _factory;
@@ -46,10 +47,7 @@ public sealed class GetMyHangarEndpointTests : IClassFixture<WebApplicationFacto
 
             b.ConfigureTestServices(services =>
             {
-                services.RemoveAll<DbContextOptions<AppDbContext>>();
-                services.RemoveAll<AppDbContext>();
-                services.AddDbContext<AppDbContext>(opts =>
-                    opts.UseInMemoryDatabase("HangarTestDb_" + Guid.NewGuid()));
+                services.ReplaceWithInMemoryDb("HangarTestDb_" + Guid.NewGuid());
 
                 services.RemoveAll<IExternalLoginService>();
                 services.AddSingleton<IExternalLoginService, FakeHangarLoginService>();

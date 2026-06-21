@@ -44,9 +44,14 @@ public sealed class ItemRepositoryTests : IAsyncLifetime
     private static Item MakeItem(string uuid, int uexId, int idCategory, string name, ItemStatus status = ItemStatus.Active) =>
         new()
         {
-            Uuid = uuid, UexId = uexId, IdCategory = idCategory, Name = name, Status = status,
+            Uuid = uuid,
+            UexId = uexId,
+            IdCategory = idCategory,
+            Name = name,
+            Status = status,
             RawData = MakeRaw(uuid, uexId, name),
-            ImportedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow,
+            ImportedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
         };
 
     private static string NewUuid() => Guid.NewGuid().ToString();

@@ -19,6 +19,7 @@ using Xunit;
 
 namespace NajaEcho.Api.Tests.Features.Hangar;
 
+[Collection("ApiTests")]
 public sealed class ImportHangarEndpointTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private static readonly Guid GladiusId = new("11111111-1111-1111-1111-111111111111");
@@ -43,10 +44,7 @@ public sealed class ImportHangarEndpointTests : IClassFixture<WebApplicationFact
 
             b.ConfigureTestServices(services =>
             {
-                services.RemoveAll<DbContextOptions<AppDbContext>>();
-                services.RemoveAll<AppDbContext>();
-                services.AddDbContext<AppDbContext>(opts =>
-                    opts.UseInMemoryDatabase("ImportHangarTestDb_" + Guid.NewGuid()));
+                services.ReplaceWithInMemoryDb("ImportHangarTestDb_" + Guid.NewGuid());
 
                 services.RemoveAll<IExternalLoginService>();
                 services.AddSingleton<IExternalLoginService, FakeHangarLoginService>();

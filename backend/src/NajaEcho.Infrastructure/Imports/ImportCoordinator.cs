@@ -10,7 +10,7 @@ namespace NajaEcho.Infrastructure.Imports;
 // this with a database-backed lock (e.g. a Postgres advisory lock) before scaling horizontally.
 public sealed class ImportCoordinator : IImportCoordinator
 {
-    private readonly SemaphoreSlim _semaphore = new(1, 1);
+    private readonly SemaphoreSlim _semaphore = new (1, 1);
 
     public bool TryAcquire() => _semaphore.Wait(0);
 

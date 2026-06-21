@@ -26,8 +26,7 @@ describe('ShipComponentsWrite', () => {
       <ShipComponentsTable rows={mockRows} isQuartermaster={false} onRemove={() => Promise.resolve()} />,
       { wrapper: createWrapper() }
     )
-    expect(screen.queryAllByLabelText(/change quantity/i)).toHaveLength(0)
-    expect(screen.queryByText(/edit qty/i)).toBeNull()
+    expect(screen.queryAllByLabelText(/edit item/i)).toHaveLength(0)
   })
 
   it('shows edit controls for Quartermaster', () => {
@@ -35,7 +34,7 @@ describe('ShipComponentsWrite', () => {
       <ShipComponentsTable rows={mockRows} isQuartermaster={true} onRemove={() => Promise.resolve()} />,
       { wrapper: createWrapper() }
     )
-    expect(screen.getAllByLabelText(/change quantity/i).length).toBeGreaterThan(0)
+    expect(screen.getAllByLabelText(/edit item/i).length).toBeGreaterThan(0)
   })
 
   it('Class/Size/Grade cells are read-only (non-editable text)', () => {

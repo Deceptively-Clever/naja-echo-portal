@@ -10,6 +10,7 @@ export const materialRowSchema = z.object({
   ownerUserId: z.string().uuid(),
   ownerDisplayName: z.string(),
   location: z.string(),
+  stationId: z.string().uuid().nullable().optional(),
 })
 
 export const materialListResponseSchema = z.object({
@@ -43,7 +44,8 @@ export const changeMaterialQuantityRequestSchema = z.object({
 export const materialFilterFormSchema = z.object({
   material: z.string(),
   ownerUserId: z.string(),
-  location: z.string(),
+  station: z.string(),
+  stationId: z.string(),
   qualityMin: z.number().int().min(1).max(1000),
   qualityMax: z.number().int().min(1).max(1000),
 })

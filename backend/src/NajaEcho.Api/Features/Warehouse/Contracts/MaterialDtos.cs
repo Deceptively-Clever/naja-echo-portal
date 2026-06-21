@@ -11,7 +11,8 @@ public sealed record MaterialRowResponse(
     int Quality,
     Guid OwnerUserId,
     string OwnerDisplayName,
-    string Location);
+    string Location,
+    Guid? StationId = null);
 
 public sealed record MaterialListResponse(IReadOnlyList<MaterialRowResponse> Rows);
 
@@ -30,6 +31,9 @@ public sealed record AddMaterialRequest(
     Guid? OwnerUserId,
     string Location,
     decimal Quantity,
-    int? Quality);
+    int? Quality,
+    Guid? StationId = null);
 
 public sealed record ChangeMaterialQuantityRequest(decimal Quantity);
+
+public sealed record UpdateMaterialRequest(Guid OwnerUserId, Guid StationId, decimal Quantity);

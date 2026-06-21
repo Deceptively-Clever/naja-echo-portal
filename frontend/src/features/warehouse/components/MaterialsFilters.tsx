@@ -1,11 +1,13 @@
 import { Combobox } from '@/components/ui/combobox'
 import { Button } from '@/components/ui/button'
+import { StationCombobox } from './StationCombobox'
 import type { MaterialFiltersResponse, MaterialFilterFormValues } from '../schemas/materialSchemas'
 
 const DEFAULT_VALUES: MaterialFilterFormValues = {
   material: '',
   ownerUserId: '',
-  location: '',
+  station: '',
+  stationId: '',
   qualityMin: 1,
   qualityMax: 1000,
 }
@@ -20,7 +22,6 @@ export function MaterialsFilters({ filters, values, onFilterChange }: Props) {
   const update = (patch: Partial<MaterialFilterFormValues>) => onFilterChange({ ...values, ...patch })
 
   const ownerOptions = filters.owners.map((o) => ({ value: o.userId, label: o.displayName }))
-  const locationOptions = filters.locations.map((l) => ({ value: l, label: l }))
 
   return (
     <div className="flex flex-wrap items-end gap-3">
@@ -50,15 +51,12 @@ export function MaterialsFilters({ filters, values, onFilterChange }: Props) {
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-muted-foreground">Location</label>
-        <Combobox
-          options={locationOptions}
-          value={values.location}
-          onValueChange={(v) => update({ location: v })}
-          placeholder="All locations"
-          searchPlaceholder="Search locations…"
-          className="w-40"
-          aria-label="Location"
+        <label className="text-xs text-muted-foreground">Station</label>
+        <StationCombobox
+          value={values.stationId || undefined}
+          onValueChange={(id, name) => update({ stationId: id, station: name })}
+          placeholder="All stations"
+          allowClear
         />
       </div>
 

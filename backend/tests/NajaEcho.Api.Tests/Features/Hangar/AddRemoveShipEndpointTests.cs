@@ -14,6 +14,7 @@ using Xunit;
 
 namespace NajaEcho.Api.Tests.Features.Hangar;
 
+[Collection("ApiTests")]
 public sealed class AddRemoveShipEndpointTests : IClassFixture<WebApplicationFactory<Program>>
 {
     // Active ship that is NOT pre-owned → POST returns 201
@@ -40,10 +41,7 @@ public sealed class AddRemoveShipEndpointTests : IClassFixture<WebApplicationFac
 
             b.ConfigureTestServices(services =>
             {
-                services.RemoveAll<DbContextOptions<AppDbContext>>();
-                services.RemoveAll<AppDbContext>();
-                services.AddDbContext<AppDbContext>(opts =>
-                    opts.UseInMemoryDatabase("AddRemoveTestDb_" + Guid.NewGuid()));
+                services.ReplaceWithInMemoryDb("AddRemoveTestDb_" + Guid.NewGuid());
 
                 services.RemoveAll<IExternalLoginService>();
                 services.AddSingleton<IExternalLoginService, FakeHangarLoginService>();
@@ -214,9 +212,13 @@ internal sealed class AddRemoveFakeShipRepo : IShipRepository
         {
             return Task.FromResult<Ship?>(new Ship
             {
-                Id = id, Name = "TestShip", Status = ShipStatus.Active,
-                UexId = 1, RawData = System.Text.Json.JsonDocument.Parse("{}"),
-                ImportedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow
+                Id = id,
+                Name = "TestShip",
+                Status = ShipStatus.Active,
+                UexId = 1,
+                RawData = System.Text.Json.JsonDocument.Parse("{}"),
+                ImportedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
             });
         }
         return Task.FromResult<Ship?>(null);

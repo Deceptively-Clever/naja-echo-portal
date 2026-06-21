@@ -20,6 +20,7 @@ using Xunit;
 namespace NajaEcho.Api.Tests.Features.Auth;
 
 // T025, T026, T015, T016, T036, T037, T045
+[Collection("ApiTests")]
 public class AuthEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly WebApplicationFactory<Program> _factory;
@@ -43,10 +44,7 @@ public class AuthEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
             b.ConfigureTestServices(services =>
             {
                 // Replace real DB with in-memory (Identity stores remain, using same context)
-                services.RemoveAll<DbContextOptions<AppDbContext>>();
-                services.RemoveAll<AppDbContext>();
-                services.AddDbContext<AppDbContext>(opts =>
-                    opts.UseInMemoryDatabase("ApiTestDb"));
+                services.ReplaceWithInMemoryDb("ApiTestDb");
 
                 // Fake external login service
                 services.RemoveAll<IExternalLoginService>();
@@ -57,7 +55,7 @@ public class AuthEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
                 // Add test auth scheme that authenticates from X-Test-UserId header
                 services.AddAuthentication()
                     .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
-                        TestAuthHandler.SchemeName, _ => {});
+                        TestAuthHandler.SchemeName, _ => { });
 
                 services.PostConfigure<AuthenticationOptions>(opts =>
                 {

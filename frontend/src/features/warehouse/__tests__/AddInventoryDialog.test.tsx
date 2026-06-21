@@ -38,12 +38,12 @@ describe('AddInventoryDialog', () => {
     expect(screen.getByLabelText(/search catalog/i)).toBeDefined()
   })
 
-  it('renders location and quantity fields', () => {
+  it('renders station combobox, quantity, and quality fields', () => {
     render(
       <AddInventoryDialog open={true} onClose={() => {}} currentUserId="user-1" />,
       { wrapper: createWrapper() }
     )
-    expect(screen.getByLabelText(/location/i)).toBeDefined()
+    expect(screen.getByText('Select a station…')).toBeDefined()
     expect(screen.getByLabelText(/quantity/i)).toBeDefined()
     expect(screen.getByLabelText(/quality/i)).toBeDefined()
   })
@@ -92,17 +92,23 @@ describe('AddInventoryDialog', () => {
     expect(closed).toBe(true)
   })
 
-  it('pre-fills location from rememberedLocation prop', () => {
+  it('pre-fills station from rememberedStation prop', async () => {
+    server.use(
+      http.get('/api/warehouse/stations', () =>
+        HttpResponse.json({ stations: [{ id: 'station-bay3', name: 'Bay 3' }] })
+      )
+    )
     render(
       <AddInventoryDialog
         open={true}
         onClose={() => {}}
         currentUserId="user-1"
-        rememberedLocation="Bay 3"
+        rememberedStation={{ id: 'station-bay3', name: 'Bay 3' }}
       />,
       { wrapper: createWrapper() }
     )
-    const location = screen.getByLabelText(/location/i) as HTMLInputElement
-    expect(location.value).toBe('Bay 3')
+    await waitFor(() => {
+      expect(screen.getByText('Bay 3')).toBeDefined()
+    })
   })
 })

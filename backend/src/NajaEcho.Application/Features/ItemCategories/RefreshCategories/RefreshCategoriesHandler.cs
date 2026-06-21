@@ -73,9 +73,9 @@ public sealed class RefreshCategoriesHandler(
         return new ItemCategory
         {
             UexId = el.TryGetProperty("id", out var id) ? id.GetInt32() : 0,
-            Type = el.TryGetProperty("type", out var type) ? type.GetString() ?? "" : "",
+            Type = el.TryGetProperty("type", out var type) ? type.GetString() ?? string.Empty : string.Empty,
             Section = el.TryGetProperty("section", out var section) ? section.GetString() : null,
-            Name = el.TryGetProperty("name", out var name) ? name.GetString() ?? "" : "",
+            Name = el.TryGetProperty("name", out var name) ? name.GetString() ?? string.Empty : string.Empty,
             IsGameRelated = GetBool(el, "is_game_related"),
             IsMining = GetBool(el, "is_mining"),
             SourceDateAdded = GetDateTimeOffset(el, "date_added"),
@@ -86,7 +86,11 @@ public sealed class RefreshCategoriesHandler(
 
     private static bool GetBool(JsonElement el, string prop)
     {
-        if (!el.TryGetProperty(prop, out var v)) return false;
+        if (!el.TryGetProperty(prop, out var v))
+        {
+            return false;
+        }
+
         return v.ValueKind switch
         {
             JsonValueKind.True => true,
@@ -98,13 +102,23 @@ public sealed class RefreshCategoriesHandler(
 
     private static DateTimeOffset? GetDateTimeOffset(JsonElement el, string prop)
     {
-        if (!el.TryGetProperty(prop, out var v)) return null;
+        if (!el.TryGetProperty(prop, out var v))
+        {
+            return null;
+        }
+
         if (v.ValueKind == JsonValueKind.Number && v.TryGetInt64(out var unix))
+        {
             return DateTimeOffset.FromUnixTimeSeconds(unix);
+        }
+
         if (v.ValueKind == JsonValueKind.String && DateTimeOffset.TryParse(
                 v.GetString(), CultureInfo.InvariantCulture,
                 DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var dto))
+        {
             return dto;
+        }
+
         return null;
     }
 }

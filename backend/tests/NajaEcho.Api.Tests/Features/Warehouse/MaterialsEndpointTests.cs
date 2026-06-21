@@ -21,6 +21,7 @@ using Xunit;
 
 namespace NajaEcho.Api.Tests.Features.Warehouse;
 
+[Collection("ApiTests")]
 public sealed class MaterialsEndpointTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly WebApplicationFactory<Program> _factory;
@@ -44,10 +45,7 @@ public sealed class MaterialsEndpointTests : IClassFixture<WebApplicationFactory
 
             b.ConfigureTestServices(services =>
             {
-                services.RemoveAll<DbContextOptions<AppDbContext>>();
-                services.RemoveAll<AppDbContext>();
-                services.AddDbContext<AppDbContext>(opts =>
-                    opts.UseInMemoryDatabase("MaterialsTestDb_" + Guid.NewGuid()));
+                services.ReplaceWithInMemoryDb("MaterialsTestDb_" + Guid.NewGuid());
 
                 services.RemoveAll<IExternalLoginService>();
                 services.AddSingleton<IExternalLoginService, MaterialsFakeLoginService>();
@@ -390,7 +388,7 @@ internal sealed class FakeMaterialRepo : IMaterialInventoryRepository
         Task.FromResult<IReadOnlyList<CommodityResultDto>>([new CommodityResultDto(KnownCommodityId, "Titanium", "TTAM")]);
 
     public Task<(MaterialRowDto Row, bool IsNew)> AddOrIncrementAsync(
-        Guid commodityId, Guid ownerUserId, string location, decimal quantity, int quality, CancellationToken ct) =>
+        Guid commodityId, Guid ownerUserId, string location, decimal quantity, int quality, Guid? stationId, CancellationToken ct) =>
         Task.FromResult((MakeRow(Guid.NewGuid()) with
         {
             CommodityId = commodityId,
@@ -413,6 +411,10 @@ internal sealed class FakeMaterialRepo : IMaterialInventoryRepository
             throw new NajaEcho.Application.Features.Warehouse.Materials.ChangeMaterialQuantity.MaterialRowNotFoundException(id);
         return Task.CompletedTask;
     }
+
+    public Task<MaterialRowDto> UpdateMaterialAsync(Guid id, Guid ownerUserId, Guid stationId, decimal quantity, CancellationToken ct) => throw new NotImplementedException();
+    public Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct) => Task.CompletedTask;
+    public Task<bool> ExistsAsync(Guid id, CancellationToken ct) => Task.FromResult(id == KnownRowId);
 }
 
 internal sealed class MaterialsFakeCommodityRepo : ICommodityRepository
