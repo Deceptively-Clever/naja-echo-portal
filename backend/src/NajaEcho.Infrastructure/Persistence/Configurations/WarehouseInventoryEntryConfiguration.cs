@@ -21,6 +21,7 @@ public sealed class WarehouseInventoryEntryConfiguration : IEntityTypeConfigurat
         builder.Property(w => w.Location).HasColumnName("location").HasMaxLength(200).IsRequired();
         builder.Property(w => w.Quantity).HasColumnName("quantity").IsRequired();
         builder.Property(w => w.Quality).HasColumnName("quality").HasDefaultValue(500).IsRequired();
+        builder.Property(w => w.StationId).HasColumnName("station_id");
         builder.Property(w => w.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(w => w.UpdatedAt).HasColumnName("updated_at").IsRequired();
 
@@ -36,5 +37,11 @@ public sealed class WarehouseInventoryEntryConfiguration : IEntityTypeConfigurat
             .HasForeignKey(w => w.ItemId)
             .HasConstraintName("fk_warehouse_inventory_item_id")
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(w => w.Station)
+            .WithMany()
+            .HasForeignKey(w => w.StationId)
+            .OnDelete(DeleteBehavior.Restrict)
+            .IsRequired(false);
     }
 }

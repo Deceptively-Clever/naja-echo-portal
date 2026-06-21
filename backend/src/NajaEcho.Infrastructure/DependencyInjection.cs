@@ -39,6 +39,7 @@ using NajaEcho.Application.Features.Characters.GetCharacters;
 using NajaEcho.Application.Features.Characters.GetRegistration;
 using NajaEcho.Application.Features.Characters.StartRegistration;
 using NajaEcho.Application.Features.Characters.VerifyCharacter;
+using NajaEcho.Application.Features.Locations.ImportLocations;
 using NajaEcho.Infrastructure.Characters;
 using NajaEcho.Infrastructure.Commodities;
 using NajaEcho.Infrastructure.Hangar;
@@ -46,6 +47,7 @@ using NajaEcho.Infrastructure.Identity;
 using NajaEcho.Infrastructure.Imports;
 using NajaEcho.Infrastructure.ItemCategories;
 using NajaEcho.Infrastructure.Items;
+using NajaEcho.Infrastructure.Locations;
 using NajaEcho.Infrastructure.Persistence;
 using NajaEcho.Infrastructure.Ships;
 using NajaEcho.Infrastructure.Warehouse;
@@ -83,6 +85,16 @@ public static class DependencyInjection
         services.AddScoped<ImportShipsHandler>();
         services.AddScoped<GetShipsHandler>();
         services.AddScoped<GetShipByIdHandler>();
+
+        // Locations (Star Systems & Space Stations)
+        services.AddHttpClient<IUexLocationClient, UexLocationClient>(client =>
+        {
+            var baseUrl = configuration["UexVehicleClient:BaseUrl"] ?? "https://api.uexcorp.uk/2.0/";
+            client.BaseAddress = new Uri(baseUrl);
+        });
+        services.AddScoped<IStarSystemRepository, StarSystemRepository>();
+        services.AddScoped<ISpaceStationRepository, SpaceStationRepository>();
+        services.AddScoped<ImportLocationsHandler>();
 
         // Hangar
         services.AddScoped<IHangarRepository, HangarRepository>();

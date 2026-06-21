@@ -10,6 +10,7 @@ using NajaEcho.Api.Common;
 using NajaEcho.Api.Features.Auth;
 using NajaEcho.Api.Features.Admin.Commodities;
 using NajaEcho.Api.Features.Admin.Items;
+using NajaEcho.Api.Features.Admin.Locations;
 using NajaEcho.Api.Features.Admin.Ships;
 using NajaEcho.Api.Features.Characters;
 using NajaEcho.Api.Features.Hangar;
@@ -253,6 +254,7 @@ try
 
     app.MapAuthEndpoints();
     app.MapShipAdminEndpoints();
+    app.MapLocationAdminEndpoints();
     app.MapItemAdminEndpoints();
     app.MapCommodityAdminEndpoints();
     app.MapCharacterEndpoints();

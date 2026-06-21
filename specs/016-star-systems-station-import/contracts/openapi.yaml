@@ -1,0 +1,294 @@
+openapi: 3.0.3
+info:
+  title: Star Systems & Space Station Import — NajaEchoPortal
+  version: 1.0.0
+  description: >
+    New and modified HTTP behaviour for feature 016. Covers the admin catalog import, the member-facing
+    station list for warehouse comboboxes, the two warehouse Transfer endpoints, and the added optional
+    stationId field on the existing add-entry request bodies. All endpoints require an authenticated
+    session cookie; the import requires the Admin policy and the Transfers require the Quartermaster
+    policy. Errors use RFC 7807 application/problem+json.
+
+servers:
+  - url: /
+
+paths:
+  /api/admin/locations/import:
+    post:
+      operationId: importLocations
+      summary: Import star systems then space stations from the UEX catalog (admin only).
+      description: >
+        Runs the full import in one transactional unit: star systems are upserted first, then space
+        stations (resolving each station's parent star system from the freshly imported catalog).
+        Records absent from the source are soft-deleted. An empty or unreachable source aborts the run
+        and commits no changes (502).
+      tags: [Admin Locations]
+      security: [{ cookieAuth: [] }]
+      responses:
+        '200':
+          description: Import completed. Per-entity summary counts.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportLocationsResponse' }
+        '401': { description: Not authenticated. }
+        '403': { description: Authenticated but not an admin. }
+        '409':
+          description: An import is already in progress.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '502':
+          description: >
+            The UEX source was unreachable or returned an empty record set; no changes were committed.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/warehouse/stations:
+    get:
+      operationId: getStations
+      summary: Searchable list of active, non-decommissioned space stations (any authenticated member).
+      description: >
+        Returns only stations where is_available = true and is_decommissioned = false, ordered by name.
+        Used to populate the Location combobox in warehouse add/edit dialogs and the Transfer modal.
+      tags: [Warehouse Stations]
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema: { type: string }
+          description: Case-insensitive substring match on the station name.
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, default: 25, minimum: 1, maximum: 100 }
+      responses:
+        '200':
+          description: Matching stations.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/StationListResponse' }
+        '401': { description: Not authenticated. }
+
+  /api/warehouse/items/{id}/station:
+    put:
+      operationId: transferInventoryItemStation
+      summary: Set/update the canonical station of a warehouse inventory row (item or ship component).
+      description: >
+        Updates only station_id. The deprecated free-text location is left unchanged. Serves both
+        item-inventory and ship-component rows (same warehouse_inventory table).
+      tags: [Warehouse Transfer]
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TransferStationRequest' }
+      responses:
+        '204': { description: Station reference updated. }
+        '400':
+          description: Invalid station reference.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { description: Not authenticated. }
+        '403': { description: Authenticated but lacks the Quartermaster policy. }
+        '404':
+          description: Warehouse row not found.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/warehouse/materials/{id}/station:
+    put:
+      operationId: transferMaterialStation
+      summary: Set/update the canonical station of a warehouse material row.
+      description: Updates only station_id; the deprecated free-text location is left unchanged.
+      tags: [Warehouse Transfer]
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TransferStationRequest' }
+      responses:
+        '204': { description: Station reference updated. }
+        '400':
+          description: Invalid station reference.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { description: Not authenticated. }
+        '403': { description: Authenticated but lacks the Quartermaster policy. }
+        '404':
+          description: Warehouse row not found.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/warehouse/items:
+    post:
+      operationId: addInventoryItem
+      summary: Add an item to inventory (existing endpoint — now accepts optional stationId).
+      description: >
+        Existing behaviour unchanged except for the added optional stationId. Only the added field is
+        documented here; see the warehouse feature for the full request shape.
+      tags: [Warehouse Add]
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AddInventoryItemRequest' }
+      responses:
+        '200': { description: Existing/incremented row. }
+        '201': { description: New row created. }
+        '400':
+          description: Validation error (includes invalid stationId).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { description: Not authenticated. }
+        '403': { description: Lacks the Quartermaster policy. }
+
+  /api/warehouse/materials:
+    post:
+      operationId: addMaterial
+      summary: Add a material entry (existing endpoint — now accepts optional stationId).
+      tags: [Warehouse Add]
+      security: [{ cookieAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AddMaterialRequest' }
+      responses:
+        '200': { description: Existing/incremented row. }
+        '201': { description: New row created. }
+        '400':
+          description: Validation error (includes invalid stationId).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { description: Not authenticated. }
+        '403': { description: Lacks the Quartermaster policy. }
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: __Host-session
+
+  schemas:
+    ImportLocationsResponse:
+      type: object
+      required: [starSystems, spaceStations]
+      properties:
+        starSystems:
+          $ref: '#/components/schemas/EntityImportCounts'
+        spaceStations:
+          $ref: '#/components/schemas/StationImportCounts'
+      example:
+        starSystems: { added: 5, updated: 60, reactivated: 0, softDeleted: 1, total: 65 }
+        spaceStations: { added: 12, updated: 140, reactivated: 2, softDeleted: 3, skipped: 4, total: 159 }
+
+    EntityImportCounts:
+      type: object
+      required: [added, updated, reactivated, softDeleted, total]
+      properties:
+        added: { type: integer }
+        updated: { type: integer }
+        reactivated: { type: integer }
+        softDeleted: { type: integer }
+        total: { type: integer, description: Number of records fetched from the source. }
+
+    StationImportCounts:
+      allOf:
+        - $ref: '#/components/schemas/EntityImportCounts'
+        - type: object
+          required: [skipped]
+          properties:
+            skipped:
+              type: integer
+              description: Stations skipped because their parent star system was not in the local catalog.
+
+    StationListResponse:
+      type: object
+      required: [stations]
+      properties:
+        stations:
+          type: array
+          items: { $ref: '#/components/schemas/StationOption' }
+
+    StationOption:
+      type: object
+      required: [id, name]
+      properties:
+        id: { type: string, format: uuid }
+        name:
+          type: string
+          description: Full station name shown in the combobox, e.g. "ARC-L1 Wide Forest Station".
+
+    TransferStationRequest:
+      type: object
+      required: [stationId]
+      properties:
+        stationId:
+          type: string
+          format: uuid
+          description: Destination station; must reference an existing space station.
+
+    AddInventoryItemRequest:
+      type: object
+      required: [itemId, ownerUserId, quantity]
+      properties:
+        itemId: { type: string, format: uuid }
+        ownerUserId: { type: string, format: uuid }
+        location:
+          type: string
+          description: Deprecated free-text location, retained for backward compatibility.
+        stationId:
+          type: string
+          format: uuid
+          nullable: true
+          description: NEW. Canonical station reference; optional. Must reference an existing station.
+        quantity: { type: integer, minimum: 1 }
+        quality: { type: integer, minimum: 1, maximum: 1000, default: 500 }
+
+    AddMaterialRequest:
+      type: object
+      required: [commodityId, ownerUserId, quantity]
+      properties:
+        commodityId: { type: string, format: uuid }
+        ownerUserId: { type: string, format: uuid }
+        location:
+          type: string
+          description: Deprecated free-text location, retained for backward compatibility.
+        stationId:
+          type: string
+          format: uuid
+          nullable: true
+          description: NEW. Canonical station reference; optional. Must reference an existing station.
+        quantity: { type: number }
+        quality: { type: integer, minimum: 1, maximum: 1000, default: 500 }
+
+    Problem:
+      type: object
+      description: RFC 7807 problem details.
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
