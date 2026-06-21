@@ -26,11 +26,14 @@ export function TransferStationDialog({ open, onOpenChange, rowId, entityType, o
   const isPending = mutation.isPending
   const mutationError = mutation.error
 
+  const [prevOpen, setPrevOpen] = useState(false)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
+    if (open) setSelectedStation(lastStation)
+  }
+
   useEffect(() => {
-    if (open) {
-      setSelectedStation(lastStation)
-      mutation.reset()
-    }
+    if (open) mutation.reset()
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleConfirm = async () => {

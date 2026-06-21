@@ -28,14 +28,19 @@ export function EditMaterialDialog({ open, onOpenChange, row, onSuccess }: Props
   const filters = useMaterialFilters()
   const mutation = useUpdateMaterial()
 
-  useEffect(() => {
+  const [prevOpen, setPrevOpen] = useState(false)
+  if (open !== prevOpen) {
+    setPrevOpen(open)
     if (open && row) {
       setOwnerUserId(row.ownerUserId)
       setStationId(row.stationId ?? '')
       setQuantity(String(row.quantity))
-      mutation.reset()
     }
-  }, [open, row]) // eslint-disable-line react-hooks/exhaustive-deps
+  }
+
+  useEffect(() => {
+    if (open) mutation.reset()
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleConfirm = async () => {
     if (!row || !ownerUserId || !stationId || !quantity) return

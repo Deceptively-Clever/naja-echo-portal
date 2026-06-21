@@ -10,10 +10,7 @@ const mockStation = { id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: 'ARC-L1 
 
 // Reset module-level session state between tests
 beforeEach(async () => {
-  // Re-import hook module to reset the module-level _lastStation variable
-  const mod = await import('../hooks/useLastTransferStation')
-  // Force clear by setting to undefined via a side-channel — module variable isn't exported directly
-  // We achieve reset by using a fresh test environment via server reset
+  await import('../hooks/useLastTransferStation')
 })
 
 function renderDialog(props: {
