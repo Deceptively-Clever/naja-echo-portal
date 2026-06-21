@@ -11,6 +11,8 @@ const emptyValues: ShipComponentFilterValues = {
   class: '',
   size: '',
   grade: '',
+  station: '',
+  stationId: '',
 }
 
 describe('ShipComponentsFilters', () => {
