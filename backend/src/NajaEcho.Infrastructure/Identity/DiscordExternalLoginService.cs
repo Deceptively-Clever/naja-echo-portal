@@ -55,7 +55,9 @@ public sealed class DiscordExternalLoginService(
                 changed = true;
             }
             if (changed)
+            {
                 await userManager.UpdateAsync(user);
+            }
 
             logger.LogInformation("Returning user found {UserId}", user.Id);
         }

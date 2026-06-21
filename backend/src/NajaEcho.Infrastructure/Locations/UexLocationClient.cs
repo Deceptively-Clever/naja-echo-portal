@@ -17,7 +17,9 @@ public sealed class UexLocationClient(HttpClient httpClient, ILogger<UexLocation
         using var root = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
 
         if (!root.RootElement.TryGetProperty("data", out var dataEl) || dataEl.ValueKind != JsonValueKind.Array)
+        {
             throw new InvalidOperationException("UEX feed response missing 'data' array.");
+        }
 
         var results = new List<JsonDocument>(dataEl.GetArrayLength());
         foreach (var element in dataEl.EnumerateArray())
@@ -40,7 +42,9 @@ public sealed class UexLocationClient(HttpClient httpClient, ILogger<UexLocation
         using var root = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
 
         if (!root.RootElement.TryGetProperty("data", out var dataEl) || dataEl.ValueKind != JsonValueKind.Array)
+        {
             throw new InvalidOperationException("UEX feed response missing 'data' array.");
+        }
 
         var results = new List<JsonDocument>(dataEl.GetArrayLength());
         foreach (var element in dataEl.EnumerateArray())

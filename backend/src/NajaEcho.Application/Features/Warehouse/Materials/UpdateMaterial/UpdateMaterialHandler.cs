@@ -12,7 +12,9 @@ public sealed class UpdateMaterialHandler(
     public async Task<MaterialRowDto> HandleAsync(UpdateMaterialCommand command, CancellationToken ct)
     {
         if (command.Quantity <= 0)
+        {
             throw new ArgumentOutOfRangeException(nameof(command), "Quantity must be greater than 0.");
+        }
 
         logger.LogInformation("UpdateMaterial rowId={Id} ownerUserId={OwnerUserId} stationId={StationId} quantity={Quantity}",
             command.Id, command.OwnerUserId, command.StationId, command.Quantity);

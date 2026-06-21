@@ -13,11 +13,15 @@ public sealed class TransferInventoryItemHandler(
     {
         var stationExists = await stationRepo.ExistsAsync(cmd.StationId, ct);
         if (!stationExists)
+        {
             throw new InvalidOperationException($"Station with id {cmd.StationId} not found.");
+        }
 
         var rowExists = await repo.ExistsAsync(cmd.RowId, ct);
         if (!rowExists)
+        {
             throw new InventoryRowNotFoundException(cmd.RowId);
+        }
 
         await repo.UpdateStationAsync(cmd.RowId, cmd.StationId, ct);
 

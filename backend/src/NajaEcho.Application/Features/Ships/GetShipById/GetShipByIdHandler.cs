@@ -9,7 +9,9 @@ public sealed class GetShipByIdHandler(IShipRepository repository)
     {
         var ship = await repository.GetByIdAsync(query.Id, ct);
         if (ship is null)
+        {
             return null;
+        }
 
         var fields = new Dictionary<string, object?>();
         foreach (var prop in ship.RawData.RootElement.EnumerateObject())

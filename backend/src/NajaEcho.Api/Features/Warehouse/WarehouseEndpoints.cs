@@ -8,21 +8,21 @@ using NajaEcho.Application.Features.Warehouse.GetInventoryFilters;
 using NajaEcho.Application.Features.Warehouse.GetStations;
 using NajaEcho.Application.Features.Warehouse.Materials.AddMaterial;
 using NajaEcho.Application.Features.Warehouse.Materials.ChangeMaterialQuantity;
-using MaterialRowNotFoundException = NajaEcho.Application.Features.Warehouse.Materials.ChangeMaterialQuantity.MaterialRowNotFoundException;
 using NajaEcho.Application.Features.Warehouse.Materials.GetMaterialFilters;
 using NajaEcho.Application.Features.Warehouse.Materials.GetMaterials;
 using NajaEcho.Application.Features.Warehouse.Materials.RemoveMaterial;
 using NajaEcho.Application.Features.Warehouse.Materials.SearchCommodities;
-using NajaEcho.Application.Features.Warehouse.RemoveInventoryItem;
-using NajaEcho.Application.Features.Warehouse.SearchCatalogItems;
-using NajaEcho.Application.Features.Warehouse.UpdateInventoryItem;
-using NajaEcho.Application.Features.Warehouse.TransferInventoryItem;
 using NajaEcho.Application.Features.Warehouse.Materials.TransferMaterial;
 using NajaEcho.Application.Features.Warehouse.Materials.UpdateMaterial;
+using NajaEcho.Application.Features.Warehouse.RemoveInventoryItem;
+using NajaEcho.Application.Features.Warehouse.SearchCatalogItems;
 using NajaEcho.Application.Features.Warehouse.ShipComponents.GetShipComponentFilters;
 using NajaEcho.Application.Features.Warehouse.ShipComponents.GetShipComponents;
 using NajaEcho.Application.Features.Warehouse.ShipComponents.SearchSystemsCatalog;
+using NajaEcho.Application.Features.Warehouse.TransferInventoryItem;
+using NajaEcho.Application.Features.Warehouse.UpdateInventoryItem;
 using Serilog;
+using MaterialRowNotFoundException = NajaEcho.Application.Features.Warehouse.Materials.ChangeMaterialQuantity.MaterialRowNotFoundException;
 
 namespace NajaEcho.Api.Features.Warehouse;
 
@@ -74,7 +74,10 @@ public static class WarehouseEndpoints
         bool unknownGrade = false,
         CancellationToken ct = default)
     {
-        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("GetShipComponents {CallerId} name={Name}", callerId, name);
 
@@ -94,7 +97,10 @@ public static class WarehouseEndpoints
         GetShipComponentFiltersQueryHandler handler,
         CancellationToken ct = default)
     {
-        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("GetShipComponentFilters {CallerId}", callerId);
 
@@ -122,7 +128,10 @@ public static class WarehouseEndpoints
         int limit = 25,
         CancellationToken ct = default)
     {
-        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("SearchSystemsCatalog {CallerId} search={Search}", callerId, search);
 
@@ -144,7 +153,10 @@ public static class WarehouseEndpoints
         string? location = null,
         CancellationToken ct = default)
     {
-        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("GetInventory {CallerId} name={Name} type={Type} subtype={Subtype} owner={Owner} location={Location}",
             callerId, name, type, subtype, ownerUserId, location);
@@ -163,7 +175,10 @@ public static class WarehouseEndpoints
         GetInventoryFiltersHandler handler,
         CancellationToken ct = default)
     {
-        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("GetInventoryFilters {CallerId}", callerId);
 
@@ -185,7 +200,10 @@ public static class WarehouseEndpoints
         int limit = 25,
         CancellationToken ct = default)
     {
-        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("SearchCatalogItems {CallerId} search={Search}", callerId, search);
 
@@ -203,7 +221,10 @@ public static class WarehouseEndpoints
         AddInventoryItemHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         var ownerUserId = body.OwnerUserId ?? callerId;
         var quality = body.Quality ?? 500;
@@ -252,7 +273,10 @@ public static class WarehouseEndpoints
         AddInventoryItemHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         var ownerUserId = body.OwnerUserId ?? callerId;
         var quality = body.Quality ?? 500;
@@ -302,7 +326,10 @@ public static class WarehouseEndpoints
         ChangeInventoryQuantityHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("ChangeInventoryQuantity {CallerId} rowId={Id} quantity={Quantity}", callerId, id, body.Quantity);
 
@@ -333,7 +360,10 @@ public static class WarehouseEndpoints
         UpdateInventoryItemHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("UpdateInventoryItem {CallerId} rowId={Id} ownerUserId={OwnerUserId} stationId={StationId} quantity={Quantity}",
             callerId, id, body.OwnerUserId, body.StationId, body.Quantity);
@@ -369,7 +399,10 @@ public static class WarehouseEndpoints
         RemoveInventoryItemHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("RemoveInventoryItem {CallerId} rowId={Id}", callerId, id);
 
@@ -398,7 +431,10 @@ public static class WarehouseEndpoints
         int? qualityMax = null,
         CancellationToken ct = default)
     {
-        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("GetMaterials {CallerId} material={Material} owner={Owner} location={Location} qualityMin={QualityMin} qualityMax={QualityMax}",
             callerId, material, ownerUserId, location, qualityMin, qualityMax);
@@ -417,7 +453,10 @@ public static class WarehouseEndpoints
         GetMaterialFiltersQueryHandler handler,
         CancellationToken ct = default)
     {
-        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("GetMaterialFilters {CallerId}", callerId);
 
@@ -438,7 +477,10 @@ public static class WarehouseEndpoints
         int limit = 25,
         CancellationToken ct = default)
     {
-        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("SearchCommoditiesCatalog {CallerId} search={Search}", callerId, search);
 
@@ -456,7 +498,10 @@ public static class WarehouseEndpoints
         AddMaterialHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         var ownerUserId = body.OwnerUserId ?? callerId;
         var quality = body.Quality ?? 500;
@@ -506,7 +551,10 @@ public static class WarehouseEndpoints
         ChangeMaterialQuantityHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("ChangeMaterialQuantity {CallerId} rowId={Id} quantity={Quantity}", callerId, id, body.Quantity);
 
@@ -537,7 +585,10 @@ public static class WarehouseEndpoints
         UpdateMaterialHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("UpdateMaterial {CallerId} rowId={Id} ownerUserId={OwnerUserId} stationId={StationId} quantity={Quantity}",
             callerId, id, body.OwnerUserId, body.StationId, body.Quantity);
@@ -568,7 +619,10 @@ public static class WarehouseEndpoints
         RemoveMaterialHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("RemoveMaterial {CallerId} rowId={Id}", callerId, id);
 
@@ -594,7 +648,10 @@ public static class WarehouseEndpoints
         int limit = 25,
         CancellationToken ct = default)
     {
-        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("GetStations {CallerId} search={Search} limit={Limit}", callerId, search, limit);
 
@@ -616,7 +673,10 @@ public static class WarehouseEndpoints
         TransferInventoryItemHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("TransferItemStation {CallerId} rowId={Id} stationId={StationId}", callerId, id, body.StationId);
 
@@ -647,7 +707,10 @@ public static class WarehouseEndpoints
         TransferMaterialHandler handler,
         CancellationToken ct)
     {
-        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
 
         Log.Information("TransferMaterialStation {CallerId} rowId={Id} stationId={StationId}", callerId, id, body.StationId);
 
@@ -678,11 +741,11 @@ public static class WarehouseEndpoints
     }
 
     private static InventoryRowResponse MapRow(Application.Features.Warehouse.GetInventory.InventoryRowDto r) =>
-        new(r.Id, r.ItemId, r.Name, r.Type, r.Subtype, r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location, r.StationId);
+        new (r.Id, r.ItemId, r.Name, r.Type, r.Subtype, r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location, r.StationId);
 
     private static CatalogItemResponse MapCatalog(Application.Features.Warehouse.SearchCatalogItems.CatalogItemResultDto r) =>
-        new(r.ItemId, r.Name, r.Type, r.Subtype);
+        new (r.ItemId, r.Name, r.Type, r.Subtype);
 
     private static MaterialRowResponse MapMaterialRow(Application.Features.Warehouse.Materials.GetMaterials.MaterialRowDto r) =>
-        new(r.Id, r.CommodityId, r.MaterialName, r.MaterialCode, r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location, r.StationId);
+        new (r.Id, r.CommodityId, r.MaterialName, r.MaterialCode, r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location, r.StationId);
 }

@@ -18,26 +18,39 @@ public sealed class AddInventoryItemHandler(
         var location = command.Location.Trim();
 
         if (string.IsNullOrEmpty(location))
+        {
             throw new ArgumentException("Location must not be empty.", nameof(command));
+        }
 
         if (command.Quantity < 1)
+        {
             throw new ArgumentOutOfRangeException(nameof(command), "Quantity must be at least 1.");
+        }
+
         if (command.Quality < 1 || command.Quality > 1000)
+        {
             throw new ArgumentOutOfRangeException(nameof(command), "Quality must be between 1 and 1000.");
+        }
 
         var item = await itemRepository.GetByIdAsync(command.ItemId, ct);
         if (item is null || item.Status != NajaEcho.Domain.Items.ItemStatus.Active)
+        {
             throw new ItemNotFoundException(command.ItemId);
+        }
 
         var ownerExists = await userRepository.ExistsAsync(command.OwnerUserId, ct);
         if (!ownerExists)
+        {
             throw new OwnerNotFoundException(command.OwnerUserId);
+        }
 
         if (command.StationId.HasValue)
         {
             var stationExists = await stationRepository.ExistsAsync(command.StationId.Value, ct);
             if (!stationExists)
+            {
                 throw new InvalidOperationException($"Station with id {command.StationId} not found.");
+            }
         }
 
         logger.LogInformation("AddInventoryItem itemId={ItemId} ownerUserId={OwnerUserId} location={Location} quantity={Quantity} quality={Quality} stationId={StationId}",
@@ -55,7 +68,10 @@ public sealed class AddInventoryItemHandler(
 
     private async Task TryFetchAndCacheAttributesAsync(Guid itemId, int uexItemId, CancellationToken ct)
     {
-        if (uexItemId <= 0) return;
+        if (uexItemId <= 0)
+        {
+            return;
+        }
 
         var hasCached = await shipComponentRepository.HasCachedAttributesAsync(itemId, ct);
         if (hasCached)

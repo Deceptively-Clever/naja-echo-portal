@@ -42,7 +42,7 @@ public sealed class ChangeMaterialQuantityHandlerTests
             Guid commodityId, Guid ownerUserId, string location, decimal quantity, int quality, Guid? stationId, CancellationToken ct) =>
             throw new NotImplementedException();
 
-        
+
         public Task<MaterialRowDto> UpdateMaterialAsync(Guid id, Guid ownerUserId, Guid stationId, decimal quantity, CancellationToken ct) => throw new NotImplementedException();
         public Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct) => Task.CompletedTask;
         public Task<bool> ExistsAsync(Guid id, CancellationToken ct) => Task.FromResult(true);

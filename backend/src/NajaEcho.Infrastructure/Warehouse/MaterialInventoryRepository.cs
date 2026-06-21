@@ -141,7 +141,9 @@ public sealed class MaterialInventoryRepository(AppDbContext db) : IMaterialInve
     {
         var entry = await db.WarehouseMaterialInventory.FirstOrDefaultAsync(w => w.Id == id, ct);
         if (entry is null)
+        {
             throw new MaterialRowNotFoundException(id);
+        }
 
         entry.Quantity = quantity;
         entry.UpdatedAt = DateTimeOffset.UtcNow;
@@ -154,7 +156,9 @@ public sealed class MaterialInventoryRepository(AppDbContext db) : IMaterialInve
     {
         var entry = await db.WarehouseMaterialInventory.FirstOrDefaultAsync(w => w.Id == id, ct);
         if (entry is null)
+        {
             throw new MaterialRowNotFoundException(id);
+        }
 
         entry.OwnerUserId = ownerUserId;
         entry.StationId = stationId;
@@ -169,7 +173,9 @@ public sealed class MaterialInventoryRepository(AppDbContext db) : IMaterialInve
     {
         var entry = await db.WarehouseMaterialInventory.FirstOrDefaultAsync(w => w.Id == id, ct);
         if (entry is null)
+        {
             throw new MaterialRowNotFoundException(id);
+        }
 
         entry.StationId = stationId;
         entry.UpdatedAt = DateTimeOffset.UtcNow;
@@ -183,7 +189,9 @@ public sealed class MaterialInventoryRepository(AppDbContext db) : IMaterialInve
     {
         var entry = await db.WarehouseMaterialInventory.FirstOrDefaultAsync(w => w.Id == id, ct);
         if (entry is null)
+        {
             throw new MaterialRowNotFoundException(id);
+        }
 
         db.WarehouseMaterialInventory.Remove(entry);
         await db.SaveChangesAsync(ct);

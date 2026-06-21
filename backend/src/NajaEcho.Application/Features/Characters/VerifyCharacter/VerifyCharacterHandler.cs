@@ -18,11 +18,15 @@ public sealed class VerifyCharacterHandler(
 
         var pending = await pendingRepository.GetByOwnerAsync(command.OwnerUserId, ct);
         if (pending is null || pending.IsExpired(clock.UtcNow))
+        {
             throw new TokenExpiredException();
+        }
 
         var handleExists = await characterRepository.HandleExistsAsync(handle, ct);
         if (handleExists)
+        {
             throw new HandleAlreadyClaimedException();
+        }
 
         logger.LogInformation("VerifyCharacter owner={OwnerId} handle={Handle} fetching RSI page",
             command.OwnerUserId, handle);
@@ -45,10 +49,15 @@ public sealed class VerifyCharacterHandler(
         }
 
         if (!content.Contains(pending.Token, StringComparison.Ordinal))
+        {
             throw new TokenNotFoundException();
+        }
 
         var name = string.IsNullOrWhiteSpace(displayName) ? handle : displayName.Trim();
-        if (name.Length > 100) name = name[..100];
+        if (name.Length > 100)
+        {
+            name = name[..100];
+        }
 
         var character = new Character
         {

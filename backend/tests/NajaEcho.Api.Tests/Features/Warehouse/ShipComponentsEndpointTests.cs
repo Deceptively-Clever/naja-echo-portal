@@ -285,10 +285,16 @@ internal sealed class ScFakeItemRepo : IItemRepository
     public Task<NajaEcho.Domain.Items.Item?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
         Task.FromResult<NajaEcho.Domain.Items.Item?>(new NajaEcho.Domain.Items.Item
         {
-            Id = id, Name = "Shield Mk1", Section = "Systems", Status = NajaEcho.Domain.Items.ItemStatus.Active,
-            Uuid = id.ToString(), UexId = 1, IdCategory = 1,
+            Id = id,
+            Name = "Shield Mk1",
+            Section = "Systems",
+            Status = NajaEcho.Domain.Items.ItemStatus.Active,
+            Uuid = id.ToString(),
+            UexId = 1,
+            IdCategory = 1,
             RawData = System.Text.Json.JsonDocument.Parse("{}"),
-            ImportedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow,
+            ImportedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
         });
 
     public Task<(int Inserted, int Updated, int Unchanged, int SoftDeleted, int Restored)> BulkUpsertForCategoryAsync(

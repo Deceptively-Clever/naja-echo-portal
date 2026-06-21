@@ -413,7 +413,7 @@ internal sealed class FakeMaterialRepo : IMaterialInventoryRepository
     }
 
     public Task<MaterialRowDto> UpdateMaterialAsync(Guid id, Guid ownerUserId, Guid stationId, decimal quantity, CancellationToken ct) => throw new NotImplementedException();
-        public Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct) => Task.CompletedTask;
+    public Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct) => Task.CompletedTask;
     public Task<bool> ExistsAsync(Guid id, CancellationToken ct) => Task.FromResult(id == KnownRowId);
 }
 

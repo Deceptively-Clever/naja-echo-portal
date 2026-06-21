@@ -226,7 +226,9 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
     public async Task SaveItemAttributesAsync(IReadOnlyList<ItemAttribute> attributes, CancellationToken ct)
     {
         if (attributes.Count == 0)
+        {
             return;
+        }
 
         var itemIds = NormalizeNumericFilter(attributes.Select(a => a.ItemId).ToArray())!;
         var categoryAttributeIds = NormalizeNumericFilter(attributes.Select(a => a.UexCategoryAttributeId).ToArray())!;
@@ -260,7 +262,9 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
     private static string[]? NormalizeTextFilter(IReadOnlyList<string>? values)
     {
         if (values is null || values.Count == 0)
+        {
             return null;
+        }
 
         var normalized = values
             .Where(v => !string.IsNullOrWhiteSpace(v))
@@ -274,7 +278,9 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
     private static T[]? NormalizeNumericFilter<T>(IReadOnlyList<T>? values) where T : struct
     {
         if (values is null || values.Count == 0)
+        {
             return null;
+        }
 
         var normalized = values
             .Distinct()

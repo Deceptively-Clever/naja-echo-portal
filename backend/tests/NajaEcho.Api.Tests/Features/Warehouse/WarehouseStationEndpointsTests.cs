@@ -118,7 +118,7 @@ internal sealed class FakeStationSearchRepo : ISpaceStationRepository
     {
         LastSearch = search;
         LastLimit = limit;
-        IReadOnlyList<StationDto> result = [..Stations];
+        IReadOnlyList<StationDto> result = [.. Stations];
         return Task.FromResult(result);
     }
 

@@ -3,7 +3,7 @@ using NajaEcho.Application.Abstractions;
 
 namespace NajaEcho.Application.Features.Locations.ImportLocations;
 
-public sealed class ImportAlreadyInProgressException() : Exception("An import is already in progress.");
+public sealed class ImportAlreadyInProgressException() : Exception("An import is already in progress.") { }
 
 public sealed class ImportLocationsHandler(
     IUexLocationClient uexClient,

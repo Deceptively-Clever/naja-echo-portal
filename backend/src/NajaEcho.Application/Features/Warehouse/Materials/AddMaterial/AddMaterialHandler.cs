@@ -16,27 +16,40 @@ public sealed class AddMaterialHandler(
         var location = command.Location.Trim();
 
         if (string.IsNullOrEmpty(location))
+        {
             throw new ArgumentException("Location must not be empty.", nameof(command));
+        }
 
         var quantity = Math.Round(command.Quantity, 3, MidpointRounding.AwayFromZero);
         if (quantity <= 0.000m)
+        {
             throw new ArgumentOutOfRangeException(nameof(command), "Quantity must be greater than 0.000.");
+        }
+
         if (command.Quality < 1 || command.Quality > 1000)
+        {
             throw new ArgumentOutOfRangeException(nameof(command), "Quality must be between 1 and 1000.");
+        }
 
         var commodity = await commodityRepository.GetByIdAsync(command.CommodityId, ct);
         if (commodity is null || commodity.Status != Domain.Commodities.CommodityStatus.Active)
+        {
             throw new CommodityNotFoundException(command.CommodityId);
+        }
 
         var ownerExists = await userRepository.ExistsAsync(command.OwnerUserId, ct);
         if (!ownerExists)
+        {
             throw new OwnerNotFoundException(command.OwnerUserId);
+        }
 
         if (command.StationId.HasValue)
         {
             var stationExists = await stationRepository.ExistsAsync(command.StationId.Value, ct);
             if (!stationExists)
+            {
                 throw new InvalidOperationException($"Station with id {command.StationId} not found.");
+            }
         }
 
         logger.LogInformation("AddMaterial commodityId={CommodityId} ownerUserId={OwnerUserId} location={Location} quantity={Quantity} quality={Quality} stationId={StationId}",

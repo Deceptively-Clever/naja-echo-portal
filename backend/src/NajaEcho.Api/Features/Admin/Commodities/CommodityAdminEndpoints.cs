@@ -50,7 +50,9 @@ public static class CommodityAdminEndpoints
                 result.Warning);
 
             if (result.Fetched == 0)
+            {
                 return Results.Accepted(value: response);
+            }
 
             return Results.Ok(response);
         }

@@ -32,7 +32,7 @@ public sealed class GetInventoryFiltersHandlerTests
         public Task<InventoryRowDto> UpdateQuantityAsync(Guid id, int quantity, CancellationToken ct) =>
             throw new NotImplementedException();
 
-        
+
         public Task<InventoryRowDto> UpdateItemAsync(Guid id, Guid ownerUserId, Guid stationId, int quantity, CancellationToken ct) =>
             throw new NotImplementedException();
         public Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct) => Task.CompletedTask;

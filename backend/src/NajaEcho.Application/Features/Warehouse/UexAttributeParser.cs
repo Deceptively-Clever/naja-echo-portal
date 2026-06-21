@@ -16,7 +16,10 @@ internal static class UexAttributeParser
                 var root = doc.RootElement;
 
                 if (!root.TryGetProperty("id_category_attribute", out var idCatAttrEl) ||
-                    !idCatAttrEl.TryGetInt32(out var catAttrId)) continue;
+                    !idCatAttrEl.TryGetInt32(out var catAttrId))
+                {
+                    continue;
+                }
 
                 root.TryGetProperty("value", out var valueEl);
                 root.TryGetProperty("unit", out var unitEl);
@@ -38,13 +41,25 @@ internal static class UexAttributeParser
                     FetchedAt = fetchedAt,
                 };
 
-                if (idEl.TryGetInt32(out var uexAttrId)) attr.UexAttributeId = uexAttrId;
-                if (idCatEl.TryGetInt32(out var uexCatId)) attr.UexCategoryId = uexCatId;
+                if (idEl.TryGetInt32(out var uexAttrId))
+                {
+                    attr.UexAttributeId = uexAttrId;
+                }
+
+                if (idCatEl.TryGetInt32(out var uexCatId))
+                {
+                    attr.UexCategoryId = uexCatId;
+                }
 
                 if (dateAddedEl.ValueKind == JsonValueKind.Number && dateAddedEl.TryGetInt64(out var addedTs))
+                {
                     attr.SourceDateAdded = DateTimeOffset.FromUnixTimeSeconds(addedTs);
+                }
+
                 if (dateModifiedEl.ValueKind == JsonValueKind.Number && dateModifiedEl.TryGetInt64(out var modifiedTs))
+                {
                     attr.SourceDateModified = DateTimeOffset.FromUnixTimeSeconds(modifiedTs);
+                }
 
                 attrs.Add(attr);
             }

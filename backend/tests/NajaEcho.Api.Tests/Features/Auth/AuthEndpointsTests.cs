@@ -55,7 +55,7 @@ public class AuthEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
                 // Add test auth scheme that authenticates from X-Test-UserId header
                 services.AddAuthentication()
                     .AddScheme<AuthenticationSchemeOptions, TestAuthHandler>(
-                        TestAuthHandler.SchemeName, _ => {});
+                        TestAuthHandler.SchemeName, _ => { });
 
                 services.PostConfigure<AuthenticationOptions>(opts =>
                 {

@@ -117,9 +117,14 @@ public sealed class LocationCatalogIntegrationTests : IAsyncLifetime
         };
         var item = new Item
         {
-            Id = Guid.NewGuid(), UexId = 1, IdCategory = 1, Name = "Widget",
-            Status = ItemStatus.Active, RawData = JsonDocument.Parse("{}"),
-            ImportedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow,
+            Id = Guid.NewGuid(),
+            UexId = 1,
+            IdCategory = 1,
+            Name = "Widget",
+            Status = ItemStatus.Active,
+            RawData = JsonDocument.Parse("{}"),
+            ImportedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
         };
         _db.Set<ApplicationUser>().Add(user);
         _db.Items.Add(item);
@@ -170,9 +175,13 @@ public sealed class LocationCatalogIntegrationTests : IAsyncLifetime
         };
         var commodity = new NajaEcho.Domain.Commodities.Commodity
         {
-            Id = Guid.NewGuid(), UexId = 1, Name = "Agricium",
-            Status = NajaEcho.Domain.Commodities.CommodityStatus.Active, RawData = JsonDocument.Parse("{}"),
-            ImportedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow,
+            Id = Guid.NewGuid(),
+            UexId = 1,
+            Name = "Agricium",
+            Status = NajaEcho.Domain.Commodities.CommodityStatus.Active,
+            RawData = JsonDocument.Parse("{}"),
+            ImportedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
         };
         _db.Set<ApplicationUser>().Add(user);
         _db.Set<NajaEcho.Domain.Commodities.Commodity>().Add(commodity);

@@ -77,7 +77,7 @@ public sealed class ImportShipsHandler(
         {
             UexId = el.TryGetProperty("id", out var id) ? id.GetInt32() : 0,
             Uuid = el.TryGetProperty("uuid", out var uuid) ? uuid.GetString() : null,
-            Name = el.TryGetProperty("name", out var name) ? name.GetString() ?? "" : "",
+            Name = el.TryGetProperty("name", out var name) ? name.GetString() ?? string.Empty : string.Empty,
             NameFull = el.TryGetProperty("name_full", out var nf) ? nf.GetString() : null,
             CompanyName = el.TryGetProperty("company_name", out var cn) ? cn.GetString() : null,
             RawData = doc,
@@ -85,4 +85,4 @@ public sealed class ImportShipsHandler(
     }
 }
 
-public sealed class ImportAlreadyInProgressException() : Exception("An import is already in progress.");
+public sealed class ImportAlreadyInProgressException() : Exception("An import is already in progress.") { }

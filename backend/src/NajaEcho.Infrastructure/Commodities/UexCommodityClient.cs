@@ -17,11 +17,15 @@ public sealed class UexCommodityClient(HttpClient http, ILogger<UexCommodityClie
         using var root = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
 
         if (!root.RootElement.TryGetProperty("data", out var dataEl) || dataEl.ValueKind != JsonValueKind.Array)
+        {
             throw new InvalidOperationException("UEX commodity feed response missing 'data' array.");
+        }
 
         var results = new List<JsonDocument>(dataEl.GetArrayLength());
         foreach (var element in dataEl.EnumerateArray())
+        {
             results.Add(JsonDocument.Parse(element.GetRawText()));
+        }
 
         logger.LogInformation("UEX commodity feed returned {Count} records", results.Count);
         return results;

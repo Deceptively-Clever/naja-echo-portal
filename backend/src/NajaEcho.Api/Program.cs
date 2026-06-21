@@ -38,9 +38,13 @@ try
           .Enrich.WithProperty("Application", "NajaEchoPortal");
 
         if (ctx.HostingEnvironment.IsDevelopment())
+        {
             lc.WriteTo.Console();
+        }
         else
+        {
             lc.WriteTo.Console(new Serilog.Formatting.Json.JsonFormatter());
+        }
     });
 
     builder.Services.AddInfrastructure(builder.Configuration);

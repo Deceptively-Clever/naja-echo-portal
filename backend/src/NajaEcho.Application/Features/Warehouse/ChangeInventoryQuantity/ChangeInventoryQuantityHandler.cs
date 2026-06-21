@@ -11,7 +11,9 @@ public sealed class ChangeInventoryQuantityHandler(
     public async Task<InventoryRowDto> HandleAsync(ChangeInventoryQuantityCommand command, CancellationToken ct)
     {
         if (command.Quantity < 1)
+        {
             throw new ArgumentOutOfRangeException(nameof(command), "Quantity must be at least 1.");
+        }
 
         logger.LogInformation("ChangeInventoryQuantity rowId={Id} quantity={Quantity}", command.Id, command.Quantity);
 

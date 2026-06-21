@@ -71,10 +71,15 @@ public sealed class AddInventoryItemStationTests
         public Task<Item?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
             Task.FromResult<Item?>(new Item
             {
-                Id = id, Name = "Test Item", Status = ItemStatus.Active,
-                Uuid = id.ToString(), UexId = 42, IdCategory = 1,
+                Id = id,
+                Name = "Test Item",
+                Status = ItemStatus.Active,
+                Uuid = id.ToString(),
+                UexId = 42,
+                IdCategory = 1,
                 RawData = JsonDocument.Parse("{}"),
-                ImportedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow,
+                ImportedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow,
             });
         public Task<(int, int, int, int, int)> BulkUpsertForCategoryAsync(int idCategory, IReadOnlyList<Item> incoming, CancellationToken ct) =>
             throw new NotImplementedException();

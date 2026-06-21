@@ -53,7 +53,7 @@ public sealed class AddMaterialHandlerTests
         public Task<MaterialRowDto> UpdateQuantityAsync(Guid id, decimal quantity, CancellationToken ct) =>
             throw new NotImplementedException();
 
-        
+
         public Task<MaterialRowDto> UpdateMaterialAsync(Guid id, Guid ownerUserId, Guid stationId, decimal quantity, CancellationToken ct) => throw new NotImplementedException();
         public Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct) => Task.CompletedTask;
         public Task<bool> ExistsAsync(Guid id, CancellationToken ct) => Task.FromResult(true);
@@ -67,9 +67,13 @@ public sealed class AddMaterialHandlerTests
         public Task<Commodity?> GetByIdAsync(Guid id, CancellationToken ct = default) =>
             Task.FromResult(CommodityExists ? (Commodity?)new Commodity
             {
-                Id = id, Name = "Titanium", Code = "TTAM", Status = CommodityStatus.Active,
+                Id = id,
+                Name = "Titanium",
+                Code = "TTAM",
+                Status = CommodityStatus.Active,
                 RawData = JsonDocument.Parse("{}"),
-                ImportedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow,
+                ImportedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow,
             } : null);
 
         public Task<(IReadOnlyList<NajaEcho.Application.Features.Commodities.GetCommodities.CommodityListItem> Items, int TotalCount)> GetPagedAsync(

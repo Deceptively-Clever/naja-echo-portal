@@ -93,8 +93,12 @@ public sealed class ItemCategoryRepositoryTests : IAsyncLifetime
         var raw = JsonDocument.Parse("""{"id":42,"type":"item","name":"Armor","section":"Combat","custom":"value"}""");
         var cat = new ItemCategory
         {
-            UexId = 42, Type = "item", Name = "Armor",
-            RawData = raw, ImportedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow,
+            UexId = 42,
+            Type = "item",
+            Name = "Armor",
+            RawData = raw,
+            ImportedAt = DateTimeOffset.UtcNow,
+            UpdatedAt = DateTimeOffset.UtcNow,
         };
 
         await repo.BulkUpsertAsync([cat]);

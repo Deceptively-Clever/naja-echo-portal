@@ -64,7 +64,7 @@ public class ShipAdminEndpointsTests : IClassFixture<WebApplicationFactory<Progr
 
                 services.AddAuthentication()
                     .AddScheme<AuthenticationSchemeOptions, AdminTestAuthHandler>(
-                        AdminTestAuthHandler.SchemeName, _ => {});
+                        AdminTestAuthHandler.SchemeName, _ => { });
 
                 services.PostConfigure<AuthenticationOptions>(opts =>
                 {

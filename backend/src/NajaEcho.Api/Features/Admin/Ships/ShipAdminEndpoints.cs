@@ -29,7 +29,9 @@ public static class ShipAdminEndpoints
             var result = await handler.HandleAsync(new ImportShipsCommand(), ct);
 
             if (result.Total == 0)
+            {
                 return Results.Accepted(value: new ImportShipsResponse(0, 0, 0, 0, 0));
+            }
 
             return Results.Ok(new ImportShipsResponse(
                 result.Added, result.Updated, result.Reactivated, result.SoftDeleted, result.Total));
@@ -76,7 +78,9 @@ public static class ShipAdminEndpoints
     {
         var detail = await handler.HandleAsync(new GetShipByIdQuery(id), ct);
         if (detail is null)
+        {
             return Results.NotFound();
+        }
 
         return Results.Ok(new ShipDetailResponse(
             detail.Id,

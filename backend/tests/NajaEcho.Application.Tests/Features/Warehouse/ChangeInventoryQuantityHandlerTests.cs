@@ -38,7 +38,7 @@ public sealed class ChangeInventoryQuantityHandlerTests
             Task.FromResult<IReadOnlyList<CatalogItemResultDto>>([]);
         public Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(Guid itemId, Guid ownerUserId, string location, int quantity, int quality, Guid? stationId, CancellationToken ct) =>
             throw new NotImplementedException();
-        
+
         public Task<InventoryRowDto> UpdateItemAsync(Guid id, Guid ownerUserId, Guid stationId, int quantity, CancellationToken ct) =>
             throw new NotImplementedException();
         public Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct) => Task.CompletedTask;

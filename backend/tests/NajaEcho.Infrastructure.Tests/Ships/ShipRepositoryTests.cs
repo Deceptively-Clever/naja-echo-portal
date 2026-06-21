@@ -42,8 +42,13 @@ public sealed class ShipRepositoryTests : IAsyncLifetime
         var now = DateTimeOffset.UtcNow;
         return new Ship
         {
-            Id = Guid.NewGuid(), UexId = uexId, Name = name, Status = status,
-            RawData = MakeRaw(uexId, name), ImportedAt = now, UpdatedAt = now,
+            Id = Guid.NewGuid(),
+            UexId = uexId,
+            Name = name,
+            Status = status,
+            RawData = MakeRaw(uexId, name),
+            ImportedAt = now,
+            UpdatedAt = now,
         };
     }
 

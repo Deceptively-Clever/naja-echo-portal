@@ -149,7 +149,9 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
     {
         var entry = await db.WarehouseInventory.FirstOrDefaultAsync(w => w.Id == id, ct);
         if (entry is null)
+        {
             throw new InventoryRowNotFoundException(id);
+        }
 
         entry.Quantity = quantity;
         entry.UpdatedAt = DateTimeOffset.UtcNow;
@@ -162,7 +164,9 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
     {
         var entry = await db.WarehouseInventory.FirstOrDefaultAsync(w => w.Id == id, ct);
         if (entry is null)
+        {
             throw new InventoryRowNotFoundException(id);
+        }
 
         entry.OwnerUserId = ownerUserId;
         entry.StationId = stationId;
@@ -177,7 +181,9 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
     {
         var entry = await db.WarehouseInventory.FirstOrDefaultAsync(w => w.Id == id, ct);
         if (entry is null)
+        {
             throw new InventoryRowNotFoundException(id);
+        }
 
         entry.StationId = stationId;
         entry.UpdatedAt = DateTimeOffset.UtcNow;
@@ -191,7 +197,9 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
     {
         var entry = await db.WarehouseInventory.FirstOrDefaultAsync(w => w.Id == id, ct);
         if (entry is null)
+        {
             throw new InventoryRowNotFoundException(id);
+        }
 
         db.WarehouseInventory.Remove(entry);
         await db.SaveChangesAsync(ct);

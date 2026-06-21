@@ -1,4 +1,4 @@
-﻿namespace NajaEcho.Application.Tests;
+namespace NajaEcho.Application.Tests;
 
 public class UnitTest1
 {

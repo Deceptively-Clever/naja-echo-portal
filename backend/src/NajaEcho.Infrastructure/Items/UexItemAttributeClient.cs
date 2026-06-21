@@ -17,11 +17,15 @@ public sealed class UexItemAttributeClient(HttpClient http, ILogger<UexItemAttri
         using var root = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
 
         if (!root.RootElement.TryGetProperty("data", out var dataEl) || dataEl.ValueKind != JsonValueKind.Array)
+        {
             throw new InvalidOperationException($"UEX item_attributes response for item {uexItemId} missing 'data' array.");
+        }
 
         var results = new List<JsonDocument>(dataEl.GetArrayLength());
         foreach (var element in dataEl.EnumerateArray())
+        {
             results.Add(JsonDocument.Parse(element.GetRawText()));
+        }
 
         logger.LogInformation("UEX item_attributes returned {Count} records for uexItemId={UexItemId}", results.Count, uexItemId);
         return results;

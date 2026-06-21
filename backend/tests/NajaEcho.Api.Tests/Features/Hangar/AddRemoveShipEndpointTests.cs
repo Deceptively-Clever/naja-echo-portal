@@ -212,9 +212,13 @@ internal sealed class AddRemoveFakeShipRepo : IShipRepository
         {
             return Task.FromResult<Ship?>(new Ship
             {
-                Id = id, Name = "TestShip", Status = ShipStatus.Active,
-                UexId = 1, RawData = System.Text.Json.JsonDocument.Parse("{}"),
-                ImportedAt = DateTimeOffset.UtcNow, UpdatedAt = DateTimeOffset.UtcNow
+                Id = id,
+                Name = "TestShip",
+                Status = ShipStatus.Active,
+                UexId = 1,
+                RawData = System.Text.Json.JsonDocument.Parse("{}"),
+                ImportedAt = DateTimeOffset.UtcNow,
+                UpdatedAt = DateTimeOffset.UtcNow
             });
         }
         return Task.FromResult<Ship?>(null);

@@ -313,7 +313,10 @@ public sealed class HangarRepository(AppDbContext db) : IHangarRepository
         IReadOnlyList<string> names, CancellationToken ct)
     {
         var result = new Dictionary<string, Guid>(StringComparer.OrdinalIgnoreCase);
-        if (names.Count == 0) return result;
+        if (names.Count == 0)
+        {
+            return result;
+        }
 
         // Build a temporary values list and join against ships
         // EF parameterized interpolation keeps this safe.
@@ -327,7 +330,9 @@ public sealed class HangarRepository(AppDbContext db) : IHangarRepository
             """).ToListAsync(ct);
 
         foreach (var row in rows)
+        {
             result[row.Name] = row.Id;
+        }
 
         return result;
     }
