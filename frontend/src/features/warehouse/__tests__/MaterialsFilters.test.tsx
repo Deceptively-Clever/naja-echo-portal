@@ -12,7 +12,7 @@ const mockFilters = {
   locations: ['Bay 1', 'Dock 3'],
 }
 
-const emptyValues = { material: '', ownerUserId: '', location: '', qualityMin: 1, qualityMax: 1000 }
+const emptyValues = { material: '', ownerUserId: '', station: '', stationId: '', qualityMin: 1, qualityMax: 1000 }
 
 describe('MaterialsFilters', () => {
   it('renders material filter input', () => {
@@ -57,14 +57,11 @@ describe('MaterialsFilters', () => {
     expect(onFilterChange).toHaveBeenCalledTimes(1)
   })
 
-  it('renders location dropdown with options', async () => {
-    const user = userEvent.setup()
+  it('renders station filter combobox', () => {
     render(<MaterialsFilters filters={mockFilters} values={emptyValues} onFilterChange={() => {}} />, {
       wrapper: createWrapper(),
     })
-    await user.click(screen.getByLabelText(/location/i))
-    expect(await screen.findByRole('option', { name: 'Bay 1' })).toBeDefined()
-    expect(screen.getByRole('option', { name: 'Dock 3' })).toBeDefined()
+    expect(screen.getByText('All stations')).toBeDefined()
   })
 
   it('defaults the Quality range to 1–1000', () => {
@@ -93,7 +90,8 @@ describe('MaterialsFilters', () => {
     const values = {
       material: 'titan',
       ownerUserId: mockFilters.owners[0].userId,
-      location: 'Bay 1',
+      station: 'Bay 1',
+      stationId: 'station-1',
       qualityMin: 200,
       qualityMax: 800,
     }
