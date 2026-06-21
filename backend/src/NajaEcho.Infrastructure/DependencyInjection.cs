@@ -37,6 +37,9 @@ using NajaEcho.Application.Features.Warehouse.UpdateInventoryItem;
 using NajaEcho.Application.Features.Warehouse.ShipComponents.GetShipComponentFilters;
 using NajaEcho.Application.Features.Warehouse.ShipComponents.GetShipComponents;
 using NajaEcho.Application.Features.Warehouse.ShipComponents.SearchSystemsCatalog;
+using NajaEcho.Application.Features.Admin.Users.AddCharacterForUser;
+using NajaEcho.Application.Features.Admin.Users.AssignRoles;
+using NajaEcho.Application.Features.Admin.Users.GetUsers;
 using NajaEcho.Application.Features.Characters.GetCharacters;
 using NajaEcho.Application.Features.Characters.GetRegistration;
 using NajaEcho.Application.Features.Characters.StartRegistration;
@@ -140,6 +143,9 @@ public static class DependencyInjection
 
         // Users
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<GetUsersHandler>();
+        services.AddScoped<AddCharacterForUserHandler>();
+        services.AddScoped<AssignRolesHandler>();
 
         // Warehouse
         services.AddScoped<IWarehouseInventoryRepository, WarehouseInventoryRepository>();

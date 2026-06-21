@@ -1,0 +1,163 @@
+openapi: 3.1.0
+info:
+  title: NajaEchoPortal — Admin Users API
+  version: 1.0.0
+  description: >
+    Admin-only endpoints backing the Users admin page (feature 017). Lists every authenticated
+    member with their roles and registered characters, and lets an admin attach a character to a
+    member by RSI handle (skipping the self-registration token flow). All endpoints require the
+    Admin role (cookie session); non-admins receive 403, unauthenticated callers 401.
+servers:
+  - url: /
+paths:
+  /api/admin/users:
+    get:
+      operationId: getAdminUsers
+      summary: List all authenticated members with roles and characters
+      description: >
+        Returns every member (FR-002, FR-010). Each member includes their raw role names and all
+        registered characters (name + handle). Empty roles/characters arrays are valid. The full
+        roster is returned unpaginated; filtering is performed client-side (FR-003).
+      tags: [AdminUsers]
+      responses:
+        '200':
+          description: The full member roster.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserListResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+  /api/admin/users/{userId}/characters:
+    post:
+      operationId: addCharacterForUser
+      summary: Attach a character to a member by RSI handle (admin)
+      description: >
+        Verifies the RSI handle exists, scrapes the character's display name, and links a new
+        character to the target member — skipping the token-ownership verification used by
+        self-registration (FR-004, FR-005). Blocks duplicates (FR-006), missing handles (FR-007),
+        unreachable RSI (FR-008), and pages with no extractable name (FR-009).
+      tags: [AdminUsers]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          description: The target member's id.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AddCharacterRequest'
+      responses:
+        '201':
+          description: Character created and linked to the member.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminUserCharacter'
+        '400':
+          description: Handle was empty or whitespace.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: >
+            Two distinct cases, distinguished by the RFC-7807 `type` field:
+            (1) Target member not found — type: `urn:najaecho:error:user-not-found`.
+            (2) RSI citizen page for the handle does not exist (FR-007) — type: `urn:najaecho:error:rsi-handle-not-found`.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+        '409':
+          description: The handle is already registered to a member (FR-006).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+        '422':
+          description: >
+            RSI page returned 200 but no character name could be extracted (FR-009). Detail:
+            "Character name could not be retrieved — the handle may be valid but the RSI page
+            returned no name."
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+        '502':
+          description: RSI could not be reached or returned an unusable response (FR-008).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/ProblemDetails' }
+components:
+  responses:
+    Unauthorized:
+      description: No authenticated session.
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+    Forbidden:
+      description: Authenticated but not an admin (FR-001).
+      content:
+        application/problem+json:
+          schema: { $ref: '#/components/schemas/ProblemDetails' }
+  schemas:
+    AdminUserListResponse:
+      type: object
+      required: [users]
+      properties:
+        users:
+          type: array
+          items: { $ref: '#/components/schemas/AdminUser' }
+    AdminUser:
+      type: object
+      required: [id, authName, roles, characters]
+      properties:
+        id:
+          type: string
+          format: uuid
+        authName:
+          type: string
+          description: Discord auth/display name.
+        roles:
+          type: array
+          description: Raw role names (e.g. "Admin"). Friendly labels applied client-side (FR-011).
+          items: { type: string }
+        characters:
+          type: array
+          items: { $ref: '#/components/schemas/AdminUserCharacter' }
+    AdminUserCharacter:
+      type: object
+      required: [id, name, handle]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        handle:
+          type: string
+    AddCharacterRequest:
+      type: object
+      required: [handle]
+      properties:
+        handle:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: RSI handle to verify and attach.
+    ProblemDetails:
+      type: object
+      description: RFC 7807 problem details.
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }

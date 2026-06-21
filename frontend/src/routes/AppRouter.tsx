@@ -9,6 +9,7 @@ import { DashboardLayout } from '@/features/dashboard/components/DashboardLayout
 import { ProtectedRoute } from '@/features/auth/ProtectedRoute'
 import { AdminRoute } from '@/features/auth/AdminRoute'
 import { DataImportPage } from '@/features/admin/pages/DataImportPage'
+import { AdminUsersPage } from '@/features/admin/pages/AdminUsersPage'
 import { MyHangarView } from '@/features/hangar/pages/MyHangarView'
 import { OrgHangarView } from '@/features/hangar/pages/OrgHangarView'
 import { WarehouseItemsView } from '@/features/warehouse/pages/WarehouseItemsView'
@@ -35,6 +36,7 @@ export function AppRouter() {
             <Route path="/dashboard/profile" element={<ProfilePage />} />
             <Route path="/dashboard/settings" element={<SettingsPage />} />
             <Route element={<AdminRoute />}>
+              <Route path="/dashboard/admin/users" element={<AdminUsersPage />} />
               <Route path="/dashboard/admin/data-import" element={<DataImportPage />} />
             </Route>
           </Route>

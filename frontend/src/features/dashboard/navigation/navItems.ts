@@ -18,6 +18,13 @@ export const navItems: NavItem[] = [
   { label: 'Ship Components', path: '/warehouse/ship-components', icon: Package, group: 'Warehouse' },
   { label: 'Materials', path: '/warehouse/materials', icon: Package, group: 'Warehouse' },
   {
+    label: 'Users',
+    path: '/dashboard/admin/users',
+    icon: Users,
+    access: 'admin',
+    group: 'Admin',
+  },
+  {
     label: 'Data Import',
     path: '/dashboard/admin/data-import',
     icon: Database,
