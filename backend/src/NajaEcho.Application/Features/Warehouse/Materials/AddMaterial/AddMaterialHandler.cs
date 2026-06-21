@@ -8,6 +8,7 @@ public sealed class AddMaterialHandler(
     IMaterialInventoryRepository repository,
     ICommodityRepository commodityRepository,
     IUserRepository userRepository,
+    ISpaceStationRepository stationRepository,
     ILogger<AddMaterialHandler> logger)
 {
     public async Task<(MaterialRowDto Row, bool IsNew)> HandleAsync(AddMaterialCommand command, CancellationToken ct)
@@ -31,10 +32,17 @@ public sealed class AddMaterialHandler(
         if (!ownerExists)
             throw new OwnerNotFoundException(command.OwnerUserId);
 
-        logger.LogInformation("AddMaterial commodityId={CommodityId} ownerUserId={OwnerUserId} location={Location} quantity={Quantity} quality={Quality}",
-            command.CommodityId, command.OwnerUserId, location, quantity, command.Quality);
+        if (command.StationId.HasValue)
+        {
+            var stationExists = await stationRepository.ExistsAsync(command.StationId.Value, ct);
+            if (!stationExists)
+                throw new InvalidOperationException($"Station with id {command.StationId} not found.");
+        }
 
-        var (row, isNew) = await repository.AddOrIncrementAsync(command.CommodityId, command.OwnerUserId, location, quantity, command.Quality, ct);
+        logger.LogInformation("AddMaterial commodityId={CommodityId} ownerUserId={OwnerUserId} location={Location} quantity={Quantity} quality={Quality} stationId={StationId}",
+            command.CommodityId, command.OwnerUserId, location, quantity, command.Quality, command.StationId);
+
+        var (row, isNew) = await repository.AddOrIncrementAsync(command.CommodityId, command.OwnerUserId, location, quantity, command.Quality, command.StationId, ct);
 
         logger.LogInformation("AddMaterial {Action} rowId={RowId} quantity={Quantity}",
             isNew ? "created" : "incremented", row.Id, row.Quantity);

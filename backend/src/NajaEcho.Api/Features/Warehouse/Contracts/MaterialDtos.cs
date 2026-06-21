@@ -30,6 +30,7 @@ public sealed record AddMaterialRequest(
     Guid? OwnerUserId,
     string Location,
     decimal Quantity,
-    int? Quality);
+    int? Quality,
+    Guid? StationId = null);
 
 public sealed record ChangeMaterialQuantityRequest(decimal Quantity);

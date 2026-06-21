@@ -26,7 +26,7 @@ public sealed class AddMaterialHandlerTests
         public FakeMaterialRepo() => _row = new(KnownRowId, KnownCommodityId, "Titanium", "TTAM", 1m, 500, KnownOwnerId, "Alice", "Bay 1");
 
         public Task<(MaterialRowDto Row, bool IsNew)> AddOrIncrementAsync(
-            Guid commodityId, Guid ownerUserId, string location, decimal quantity, int quality, CancellationToken ct)
+            Guid commodityId, Guid ownerUserId, string location, decimal quantity, int quality, Guid? stationId, CancellationToken ct)
         {
             CapturedQuantity = quantity;
             CapturedQuality = quality;
@@ -85,6 +85,16 @@ public sealed class AddMaterialHandlerTests
             Task.FromResult<IReadOnlyList<(Guid, string)>>([]);
     }
 
+    private sealed class FakeStationRepo : ISpaceStationRepository
+    {
+        public Task<(int, int, int, int, int)> BulkUpsertAsync(IReadOnlyList<JsonDocument> records, IReadOnlyDictionary<int, Guid> starSystemMap, CancellationToken ct = default) =>
+            Task.FromResult((0, 0, 0, 0, 0));
+        public Task<IReadOnlyList<StationDto>> SearchActiveStationsAsync(string? search, int limit, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<StationDto>>([]);
+        public Task<bool> ExistsAsync(Guid id, CancellationToken ct = default) =>
+            Task.FromResult(true);
+    }
+
     private static AddMaterialHandler MakeHandler(
         FakeMaterialRepo? repo = null,
         FakeCommodityRepo? commodityRepo = null,
@@ -93,6 +103,7 @@ public sealed class AddMaterialHandlerTests
             repo ?? new FakeMaterialRepo(),
             commodityRepo ?? new FakeCommodityRepo(),
             userRepo ?? new FakeUserRepo(),
+            new FakeStationRepo(),
             NullLogger<AddMaterialHandler>.Instance);
 
     [Fact]

@@ -373,7 +373,7 @@ internal sealed class FakeWarehouseRepo : IWarehouseInventoryRepository
         Task.FromResult<IReadOnlyList<CatalogItemResultDto>>([new CatalogItemResultDto(KnownItemId, "Laser Mk1", "Weapons", "Laser")]);
 
     public Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(
-        Guid itemId, Guid ownerUserId, string location, int quantity, int quality, CancellationToken ct) =>
+        Guid itemId, Guid ownerUserId, string location, int quantity, int quality, Guid? stationId, CancellationToken ct) =>
         Task.FromResult((MakeRow(Guid.NewGuid()) with
         {
             ItemId = itemId,

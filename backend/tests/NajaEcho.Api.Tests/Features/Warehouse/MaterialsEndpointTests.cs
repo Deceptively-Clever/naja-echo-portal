@@ -390,7 +390,7 @@ internal sealed class FakeMaterialRepo : IMaterialInventoryRepository
         Task.FromResult<IReadOnlyList<CommodityResultDto>>([new CommodityResultDto(KnownCommodityId, "Titanium", "TTAM")]);
 
     public Task<(MaterialRowDto Row, bool IsNew)> AddOrIncrementAsync(
-        Guid commodityId, Guid ownerUserId, string location, decimal quantity, int quality, CancellationToken ct) =>
+        Guid commodityId, Guid ownerUserId, string location, decimal quantity, int quality, Guid? stationId, CancellationToken ct) =>
         Task.FromResult((MakeRow(Guid.NewGuid()) with
         {
             CommodityId = commodityId,

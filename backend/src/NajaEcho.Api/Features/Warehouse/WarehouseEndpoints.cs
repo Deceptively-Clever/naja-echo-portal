@@ -5,6 +5,7 @@ using NajaEcho.Application.Features.Warehouse.AddInventoryItem;
 using NajaEcho.Application.Features.Warehouse.ChangeInventoryQuantity;
 using NajaEcho.Application.Features.Warehouse.GetInventory;
 using NajaEcho.Application.Features.Warehouse.GetInventoryFilters;
+using NajaEcho.Application.Features.Warehouse.GetStations;
 using NajaEcho.Application.Features.Warehouse.Materials.AddMaterial;
 using NajaEcho.Application.Features.Warehouse.Materials.ChangeMaterialQuantity;
 using NajaEcho.Application.Features.Warehouse.Materials.GetMaterialFilters;
@@ -26,6 +27,7 @@ public static class WarehouseEndpoints
     {
         var group = app.MapGroup("/api/warehouse").RequireAuthorization();
 
+        group.MapGet("/stations", GetStations);
         group.MapGet("/ship-components", GetShipComponents);
         group.MapGet("/ship-components/filters", GetShipComponentFilters);
         group.MapGet("/ship-components/catalog/search", SearchSystemsCatalog).RequireAuthorization(AuthorizationPolicies.Quartermaster);
@@ -197,13 +199,13 @@ public static class WarehouseEndpoints
         var ownerUserId = body.OwnerUserId ?? callerId;
         var quality = body.Quality ?? 500;
 
-        Log.Information("AddInventoryItem {CallerId} itemId={ItemId} ownerUserId={OwnerUserId} location={Location} quantity={Quantity} quality={Quality}",
-            callerId, body.ItemId, ownerUserId, body.Location, body.Quantity, quality);
+        Log.Information("AddInventoryItem {CallerId} itemId={ItemId} ownerUserId={OwnerUserId} location={Location} quantity={Quantity} quality={Quality} stationId={StationId}",
+            callerId, body.ItemId, ownerUserId, body.Location, body.Quantity, quality, body.StationId);
 
         try
         {
             var (row, isNew) = await handler.HandleAsync(
-                new AddInventoryItemCommand(body.ItemId, ownerUserId, body.Location, body.Quantity, quality), ct);
+                new AddInventoryItemCommand(body.ItemId, ownerUserId, body.Location, body.Quantity, quality, body.StationId), ct);
 
             Log.Information("AddInventoryItem {CallerId} {Action} rowId={RowId}", callerId, isNew ? "created" : "incremented", row.Id);
 
@@ -413,13 +415,13 @@ public static class WarehouseEndpoints
         var ownerUserId = body.OwnerUserId ?? callerId;
         var quality = body.Quality ?? 500;
 
-        Log.Information("AddMaterial {CallerId} commodityId={CommodityId} ownerUserId={OwnerUserId} location={Location} quantity={Quantity} quality={Quality}",
-            callerId, body.CommodityId, ownerUserId, body.Location, body.Quantity, quality);
+        Log.Information("AddMaterial {CallerId} commodityId={CommodityId} ownerUserId={OwnerUserId} location={Location} quantity={Quantity} quality={Quality} stationId={StationId}",
+            callerId, body.CommodityId, ownerUserId, body.Location, body.Quantity, quality, body.StationId);
 
         try
         {
             var (row, isNew) = await handler.HandleAsync(
-                new AddMaterialCommand(body.CommodityId, ownerUserId, body.Location, body.Quantity, quality), ct);
+                new AddMaterialCommand(body.CommodityId, ownerUserId, body.Location, body.Quantity, quality, body.StationId), ct);
 
             Log.Information("AddMaterial {CallerId} {Action} rowId={RowId}", callerId, isNew ? "created" : "incremented", row.Id);
 
@@ -503,6 +505,28 @@ public static class WarehouseEndpoints
             Log.Warning("RemoveMaterial 404 {CallerId} rowId={Id}: {Message}", callerId, id, ex.Message);
             return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status404NotFound, title: "Material row not found.");
         }
+    }
+
+    // ── GET /api/warehouse/stations ──────────────────────────────────────
+
+    private static async Task<IResult> GetStations(
+        ClaimsPrincipal user,
+        GetStationsHandler handler,
+        string? search = null,
+        int limit = 25,
+        CancellationToken ct = default)
+    {
+        if (!TryGetUserId(user, out var callerId)) { return Results.Unauthorized(); }
+
+        Log.Information("GetStations {CallerId} search={Search} limit={Limit}", callerId, search, limit);
+
+        var query = new GetStationsQuery(search, limit);
+        var stations = await handler.HandleAsync(query, ct);
+        var response = new StationListResponse(
+            stations.Select(s => new StationOption(s.Id, s.Name)).ToList());
+
+        Log.Information("GetStations {CallerId} returned {Count} stations", callerId, stations.Count);
+        return Results.Ok(response);
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────

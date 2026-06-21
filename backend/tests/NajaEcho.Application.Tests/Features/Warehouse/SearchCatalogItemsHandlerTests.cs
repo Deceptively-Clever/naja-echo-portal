@@ -31,7 +31,7 @@ public sealed class SearchCatalogItemsHandlerTests
             Task.FromResult<IReadOnlyList<InventoryRowDto>>([]);
         public Task<InventoryFiltersDto> GetInventoryFiltersAsync(CancellationToken ct) =>
             Task.FromResult(new InventoryFiltersDto([], [], []));
-        public Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(Guid itemId, Guid ownerUserId, string location, int quantity, int quality, CancellationToken ct) =>
+        public Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(Guid itemId, Guid ownerUserId, string location, int quantity, int quality, Guid? stationId, CancellationToken ct) =>
             throw new NotImplementedException();
         public Task<InventoryRowDto> UpdateQuantityAsync(Guid id, int quantity, CancellationToken ct) =>
             throw new NotImplementedException();

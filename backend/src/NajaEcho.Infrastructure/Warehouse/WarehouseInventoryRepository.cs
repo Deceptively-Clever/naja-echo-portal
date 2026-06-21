@@ -114,16 +114,16 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
     // ──────────────────────────────────────────────────────────────────────
 
     public async Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(
-        Guid itemId, Guid ownerUserId, string location, int quantity, int quality, CancellationToken ct)
+        Guid itemId, Guid ownerUserId, string location, int quantity, int quality, Guid? stationId, CancellationToken ct)
     {
         var now = DateTimeOffset.UtcNow;
 
         var results = await db.Database.SqlQuery<UpsertResult>($"""
             INSERT INTO warehouse_inventory (
-                id, item_id, owner_user_id, location, quantity, quality, created_at, updated_at
+                id, item_id, owner_user_id, location, quantity, quality, station_id, created_at, updated_at
             )
             VALUES (
-                {Guid.NewGuid()}, {itemId}, {ownerUserId}, {location}, {quantity}, {quality}, {now}, {now}
+                {Guid.NewGuid()}, {itemId}, {ownerUserId}, {location}, {quantity}, {quality}, {stationId}, {now}, {now}
             )
             ON CONFLICT (item_id, owner_user_id, location)
             DO UPDATE SET

@@ -39,7 +39,7 @@ public sealed class RemoveMaterialHandlerTests
             Task.FromResult<IReadOnlyList<CommodityResultDto>>([]);
 
         public Task<(MaterialRowDto Row, bool IsNew)> AddOrIncrementAsync(
-            Guid commodityId, Guid ownerUserId, string location, decimal quantity, int quality, CancellationToken ct) =>
+            Guid commodityId, Guid ownerUserId, string location, decimal quantity, int quality, Guid? stationId, CancellationToken ct) =>
             throw new NotImplementedException();
 
         public Task<MaterialRowDto> UpdateQuantityAsync(Guid id, decimal quantity, CancellationToken ct) =>

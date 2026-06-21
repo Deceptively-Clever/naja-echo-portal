@@ -27,7 +27,7 @@ public sealed class AddInventoryItemHandlerTests
         private readonly InventoryRowDto _row;
         public FakeWarehouseRepo() => _row = new(KnownRowId, KnownItemId, "Test Item", null, null, 1, 500, KnownOwnerId, "Alice", "Bay 1");
 
-        public Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(Guid itemId, Guid ownerUserId, string location, int quantity, int quality, CancellationToken ct) =>
+        public Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(Guid itemId, Guid ownerUserId, string location, int quantity, int quality, Guid? stationId, CancellationToken ct) =>
             Task.FromResult((_row with { ItemId = itemId, OwnerUserId = ownerUserId, Location = location, Quantity = quantity, Quality = quality }, NextIsNew));
 
         public Task<IReadOnlyList<InventoryRowDto>> GetInventoryAsync(string? name, string? type, string? subtype, Guid? ownerUserId, string? location, CancellationToken ct) =>
@@ -89,6 +89,16 @@ public sealed class AddInventoryItemHandlerTests
         }
     }
 
+    private sealed class FakeStationRepo : ISpaceStationRepository
+    {
+        public Task<(int, int, int, int, int)> BulkUpsertAsync(IReadOnlyList<JsonDocument> records, IReadOnlyDictionary<int, Guid> starSystemMap, CancellationToken ct = default) =>
+            Task.FromResult((0, 0, 0, 0, 0));
+        public Task<IReadOnlyList<StationDto>> SearchActiveStationsAsync(string? search, int limit, CancellationToken ct = default) =>
+            Task.FromResult<IReadOnlyList<StationDto>>([]);
+        public Task<bool> ExistsAsync(Guid id, CancellationToken ct = default) =>
+            Task.FromResult(true);
+    }
+
     private static AddInventoryItemHandler MakeHandler(
         FakeWarehouseRepo? repo = null,
         FakeItemRepo? itemRepo = null,
@@ -101,6 +111,7 @@ public sealed class AddInventoryItemHandlerTests
             userRepo ?? new FakeUserRepo(),
             scRepo ?? new FakeScRepo(),
             attrClient ?? new FakeAttrClient(),
+            new FakeStationRepo(),
             NullLogger<AddInventoryItemHandler>.Instance);
 
     [Fact]

@@ -38,6 +38,7 @@ public sealed record AddInventoryItemRequest(
     Guid? OwnerUserId,
     string Location,
     int Quantity,
-    int? Quality);
+    int? Quality,
+    Guid? StationId = null);
 
 public sealed record ChangeInventoryQuantityRequest(int Quantity);
