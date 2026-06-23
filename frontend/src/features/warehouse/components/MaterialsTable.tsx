@@ -38,18 +38,20 @@ export function MaterialsTable({ rows, isQuartermaster = false, onRemove, hasAct
 
   return (
     <>
-      <EditMaterialDialog
-        open={!!editRow}
-        onOpenChange={(o) => { if (!o) setEditRow(null) }}
-        row={editRow}
-        onSuccess={() => setEditRow(null)}
-      />
+      {editRow && (
+        <EditMaterialDialog
+          open={!!editRow}
+          onOpenChange={(o) => { if (!o) setEditRow(null) }}
+          row={editRow}
+          onSuccess={() => setEditRow(null)}
+        />
+      )}
     <Table>
       <TableHeader>
         <TableRow>
           <TableHead>Material</TableHead>
           <TableHead>Owner</TableHead>
-          <TableHead>Station</TableHead>
+          <TableHead>Location</TableHead>
           <TableHead>Quantity</TableHead>
           <TableHead>Quality</TableHead>
           {isQuartermaster && <TableHead>Actions</TableHead>}

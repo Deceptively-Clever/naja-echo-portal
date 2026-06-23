@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/apiClient'
+import type { LocationType } from '../schemas/locationSchemas'
 import {
   inventoryListResponseSchema,
   inventoryFiltersResponseSchema,
@@ -48,7 +49,8 @@ export async function addInventoryItem(body: {
   location: string
   quantity: number
   quality?: number
-  stationId?: string
+  locationId?: string
+  locationType?: LocationType
 }): Promise<InventoryRow> {
   const data = await apiFetch<unknown>('/api/warehouse/items', {
     method: 'POST',
@@ -67,7 +69,7 @@ export async function changeInventoryQuantity(id: string, quantity: number): Pro
 
 export async function updateInventoryItem(
   id: string,
-  body: { ownerUserId: string; stationId: string; quantity: number }
+  body: { ownerUserId: string; locationId: string; locationType: LocationType; quantity: number }
 ): Promise<InventoryRow> {
   const data = await apiFetch<unknown>(`/api/warehouse/items/${id}`, {
     method: 'PUT',

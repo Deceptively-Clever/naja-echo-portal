@@ -773,6 +773,86 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                     b.ToTable("items", "sc");
                 });
 
+            modelBuilder.Entity("NajaEcho.Domain.Locations.City", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("code");
+
+                    b.Property<DateTimeOffset>("ImportedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("imported_at");
+
+                    b.Property<bool>("IsAvailable")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_available");
+
+                    b.Property<bool>("IsAvailableLive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_available_live");
+
+                    b.Property<bool>("IsVisible")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_visible");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("name");
+
+                    b.Property<JsonDocument>("RawData")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("raw_data");
+
+                    b.Property<DateTimeOffset?>("SoftDeletedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("soft_deleted_at");
+
+                    b.Property<Guid>("StarSystemId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("star_system_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<int>("UexId")
+                        .HasColumnType("integer")
+                        .HasColumnName("uex_id");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("Id")
+                        .HasName("pk_cities");
+
+                    b.HasIndex("StarSystemId")
+                        .HasDatabaseName("ix_cities_star_system_id");
+
+                    b.HasIndex("Status")
+                        .HasDatabaseName("ix_cities_status");
+
+                    b.HasIndex("UexId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_cities_uex_id");
+
+                    b.HasIndex("IsAvailable", "IsVisible", "Name")
+                        .HasDatabaseName("ix_cities_avail_visible_name");
+
+                    b.ToTable("cities", "sc");
+                });
+
             modelBuilder.Entity("NajaEcho.Domain.Locations.SpaceStation", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1114,6 +1194,15 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("location");
 
+                    b.Property<Guid?>("LocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_id");
+
+                    b.Property<string>("LocationType")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("location_type");
+
                     b.Property<Guid>("OwnerUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("owner_user_id");
@@ -1128,10 +1217,6 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("quantity");
 
-                    b.Property<Guid?>("StationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("station_id");
-
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -1142,11 +1227,11 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                     b.HasIndex("ItemId")
                         .HasDatabaseName("ix_warehouse_inventory_item_id");
 
+                    b.HasIndex("LocationId")
+                        .HasDatabaseName("ix_warehouse_inventory_location_id");
+
                     b.HasIndex("OwnerUserId")
                         .HasDatabaseName("ix_warehouse_inventory_owner_user_id");
-
-                    b.HasIndex("StationId")
-                        .HasDatabaseName("ix_warehouse_inventory_station_id");
 
                     b.HasIndex("ItemId", "OwnerUserId", "Location")
                         .IsUnique()
@@ -1154,6 +1239,8 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
 
                     b.ToTable("warehouse_inventory", "public", t =>
                         {
+                            t.HasCheckConstraint("ck_warehouse_inventory_location_type", "location_type IN ('Station', 'City')");
+
                             t.HasCheckConstraint("ck_warehouse_inventory_quality", "quality >= 1 AND quality <= 1000");
 
                             t.HasCheckConstraint("ck_warehouse_inventory_quantity", "quantity >= 1");
@@ -1181,6 +1268,15 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("location");
 
+                    b.Property<Guid?>("LocationId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("location_id");
+
+                    b.Property<string>("LocationType")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("location_type");
+
                     b.Property<Guid>("OwnerUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("owner_user_id");
@@ -1195,10 +1291,6 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         .HasColumnType("decimal(18,3)")
                         .HasColumnName("quantity");
 
-                    b.Property<Guid?>("StationId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("station_id");
-
                     b.Property<DateTimeOffset>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -1209,11 +1301,11 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                     b.HasIndex("CommodityId")
                         .HasDatabaseName("ix_warehouse_material_inventory_commodity_id");
 
+                    b.HasIndex("LocationId")
+                        .HasDatabaseName("ix_warehouse_material_inventory_location_id");
+
                     b.HasIndex("OwnerUserId")
                         .HasDatabaseName("ix_warehouse_material_inventory_owner_user_id");
-
-                    b.HasIndex("StationId")
-                        .HasDatabaseName("ix_warehouse_material_inventory_station_id");
 
                     b.HasIndex("CommodityId", "OwnerUserId", "Location", "Quality")
                         .IsUnique()
@@ -1221,6 +1313,8 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
 
                     b.ToTable("warehouse_material_inventory", "public", t =>
                         {
+                            t.HasCheckConstraint("ck_warehouse_material_inventory_location_type", "location_type IN ('Station', 'City')");
+
                             t.HasCheckConstraint("ck_warehouse_material_inventory_quality", "quality >= 1 AND quality <= 1000");
 
                             t.HasCheckConstraint("ck_warehouse_material_inventory_quantity", "quantity > 0");
@@ -1407,6 +1501,18 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         .HasConstraintName("fk_hangar_entries_ship_id");
                 });
 
+            modelBuilder.Entity("NajaEcho.Domain.Locations.City", b =>
+                {
+                    b.HasOne("NajaEcho.Domain.Locations.StarSystem", "StarSystem")
+                        .WithMany()
+                        .HasForeignKey("StarSystemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_cities_star_systems_star_system_id");
+
+                    b.Navigation("StarSystem");
+                });
+
             modelBuilder.Entity("NajaEcho.Domain.Locations.SpaceStation", b =>
                 {
                     b.HasOne("NajaEcho.Domain.Locations.StarSystem", "StarSystem")
@@ -1437,14 +1543,6 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_warehouse_inventory_item_id");
-
-                    b.HasOne("NajaEcho.Domain.Locations.SpaceStation", "Station")
-                        .WithMany()
-                        .HasForeignKey("StationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("fk_warehouse_inventory_space_stations_station_id");
-
-                    b.Navigation("Station");
                 });
 
             modelBuilder.Entity("NajaEcho.Domain.Warehouse.WarehouseMaterialEntry", b =>
@@ -1455,14 +1553,6 @@ namespace NajaEcho.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_warehouse_material_inventory_commodity_id");
-
-                    b.HasOne("NajaEcho.Domain.Locations.SpaceStation", "Station")
-                        .WithMany()
-                        .HasForeignKey("StationId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .HasConstraintName("fk_warehouse_material_inventory_space_stations_station_id");
-
-                    b.Navigation("Station");
                 });
 #pragma warning restore 612, 618
         }

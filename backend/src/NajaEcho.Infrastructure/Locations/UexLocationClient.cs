@@ -55,4 +55,29 @@ public sealed class UexLocationClient(HttpClient httpClient, ILogger<UexLocation
         logger.LogInformation("UEX feed returned {Count} space station records", results.Count);
         return results;
     }
+
+    public async Task<IReadOnlyList<JsonDocument>> FetchAllCitiesAsync(CancellationToken ct = default)
+    {
+        logger.LogInformation("Fetching UEX cities feed");
+
+        using var response = await httpClient.GetAsync("cities", ct);
+        response.EnsureSuccessStatusCode();
+
+        using var stream = await response.Content.ReadAsStreamAsync(ct);
+        using var root = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+
+        if (!root.RootElement.TryGetProperty("data", out var dataEl) || dataEl.ValueKind != JsonValueKind.Array)
+        {
+            throw new InvalidOperationException("UEX feed response missing 'data' array.");
+        }
+
+        var results = new List<JsonDocument>(dataEl.GetArrayLength());
+        foreach (var element in dataEl.EnumerateArray())
+        {
+            results.Add(JsonDocument.Parse(element.GetRawText()));
+        }
+
+        logger.LogInformation("UEX feed returned {Count} city records", results.Count);
+        return results;
+    }
 }

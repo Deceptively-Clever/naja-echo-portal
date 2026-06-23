@@ -371,7 +371,8 @@ internal sealed class FakeWarehouseRepo : IWarehouseInventoryRepository
         Task.FromResult<IReadOnlyList<CatalogItemResultDto>>([new CatalogItemResultDto(KnownItemId, "Laser Mk1", "Weapons", "Laser")]);
 
     public Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(
-        Guid itemId, Guid ownerUserId, string location, int quantity, int quality, Guid? stationId, CancellationToken ct) =>
+        Guid itemId, Guid ownerUserId, string location, int quantity, int quality,
+        Guid? locationId, string? locationType, CancellationToken ct) =>
         Task.FromResult((MakeRow(Guid.NewGuid()) with
         {
             ItemId = itemId,
@@ -395,9 +396,9 @@ internal sealed class FakeWarehouseRepo : IWarehouseInventoryRepository
         return Task.CompletedTask;
     }
 
-    public Task<InventoryRowDto> UpdateItemAsync(Guid id, Guid ownerUserId, Guid stationId, int quantity, CancellationToken ct) =>
+    public Task<InventoryRowDto> UpdateItemAsync(Guid id, Guid ownerUserId, Guid locationId, string locationType, int quantity, CancellationToken ct) =>
         throw new NotImplementedException();
-    public Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct) => Task.CompletedTask;
+    public Task UpdateLocationAsync(Guid id, Guid locationId, string locationType, CancellationToken ct) => Task.CompletedTask;
     public Task<bool> ExistsAsync(Guid id, CancellationToken ct) => Task.FromResult(id == KnownRowId);
 }
 

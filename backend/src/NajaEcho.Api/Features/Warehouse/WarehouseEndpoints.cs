@@ -5,7 +5,7 @@ using NajaEcho.Application.Features.Warehouse.AddInventoryItem;
 using NajaEcho.Application.Features.Warehouse.ChangeInventoryQuantity;
 using NajaEcho.Application.Features.Warehouse.GetInventory;
 using NajaEcho.Application.Features.Warehouse.GetInventoryFilters;
-using NajaEcho.Application.Features.Warehouse.GetStations;
+using NajaEcho.Application.Features.Warehouse.GetLocations;
 using NajaEcho.Application.Features.Warehouse.Materials.AddMaterial;
 using NajaEcho.Application.Features.Warehouse.Materials.ChangeMaterialQuantity;
 using NajaEcho.Application.Features.Warehouse.Materials.GetMaterialFilters;
@@ -32,7 +32,7 @@ public static class WarehouseEndpoints
     {
         var group = app.MapGroup("/api/warehouse").RequireAuthorization();
 
-        group.MapGet("/stations", GetStations);
+        group.MapGet("/locations", GetLocations);
         group.MapGet("/ship-components", GetShipComponents);
         group.MapGet("/ship-components/filters", GetShipComponentFilters);
         group.MapGet("/ship-components/catalog/search", SearchSystemsCatalog).RequireAuthorization(AuthorizationPolicies.Quartermaster);
@@ -51,10 +51,35 @@ public static class WarehouseEndpoints
         group.MapPut("/materials/{id:guid}/quantity", ChangeMaterialQuantity).RequireAuthorization(AuthorizationPolicies.Quartermaster);
         group.MapPut("/materials/{id:guid}", UpdateMaterial).RequireAuthorization(AuthorizationPolicies.Quartermaster);
         group.MapDelete("/materials/{id:guid}", RemoveMaterial).RequireAuthorization(AuthorizationPolicies.Quartermaster);
-        group.MapPut("/items/{id:guid}/station", TransferItemStation).RequireAuthorization(AuthorizationPolicies.Quartermaster);
-        group.MapPut("/materials/{id:guid}/station", TransferMaterialStation).RequireAuthorization(AuthorizationPolicies.Quartermaster);
+        group.MapPut("/items/{id:guid}/location", TransferItemLocation).RequireAuthorization(AuthorizationPolicies.Quartermaster);
+        group.MapPut("/materials/{id:guid}/location", TransferMaterialLocation).RequireAuthorization(AuthorizationPolicies.Quartermaster);
 
         return app;
+    }
+
+    // ── GET /api/warehouse/locations ─────────────────────────────────────
+
+    private static async Task<IResult> GetLocations(
+        ClaimsPrincipal user,
+        GetLocationsHandler handler,
+        string? search = null,
+        int limit = 25,
+        CancellationToken ct = default)
+    {
+        if (!TryGetUserId(user, out var callerId))
+        {
+            return Results.Unauthorized();
+        }
+
+        Log.Information("GetLocations {CallerId} search={Search} limit={Limit}", callerId, search, limit);
+
+        var query = new GetLocationsQuery(search, limit);
+        var locations = await handler.HandleAsync(query, ct);
+        var response = new LocationListResponse(
+            locations.Select(l => new LocationOption(l.Id, l.Name, l.Type)).ToList());
+
+        Log.Information("GetLocations {CallerId} returned {Count} locations", callerId, locations.Count);
+        return Results.Ok(response);
     }
 
     // ── GET /api/warehouse/ship-components ───────────────────────────────
@@ -84,7 +109,7 @@ public static class WarehouseEndpoints
         var query = new GetShipComponentsQuery(name, type, @class, size, grade, ownerUserId, location, unknownClass, unknownSize, unknownGrade);
         var rows = await handler.HandleAsync(query, ct);
         var dto = new ShipComponentListResponse(rows.Select(r =>
-            new ShipComponentRowResponse(r.Id, r.ItemId, r.Name, r.Type, r.Class, r.Size, r.Grade, r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location, r.StationId)).ToList());
+            new ShipComponentRowResponse(r.Id, r.ItemId, r.Name, r.Type, r.Class, r.Size, r.Grade, r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location, r.LocationId, r.LocationType)).ToList());
 
         Log.Information("GetShipComponents {CallerId} returned {Count} rows", callerId, rows.Count);
         return Results.Ok(dto);
@@ -229,13 +254,13 @@ public static class WarehouseEndpoints
         var ownerUserId = body.OwnerUserId ?? callerId;
         var quality = body.Quality ?? 500;
 
-        Log.Information("AddInventoryItem {CallerId} itemId={ItemId} ownerUserId={OwnerUserId} location={Location} quantity={Quantity} quality={Quality} stationId={StationId}",
-            callerId, body.ItemId, ownerUserId, body.Location, body.Quantity, quality, body.StationId);
+        Log.Information("AddInventoryItem {CallerId} itemId={ItemId} ownerUserId={OwnerUserId} location={Location} quantity={Quantity} quality={Quality} locationId={LocationId} locationType={LocationType}",
+            callerId, body.ItemId, ownerUserId, body.Location, body.Quantity, quality, body.LocationId, body.LocationType);
 
         try
         {
             var (row, isNew) = await handler.HandleAsync(
-                new AddInventoryItemCommand(body.ItemId, ownerUserId, body.Location, body.Quantity, quality, body.StationId), ct);
+                new AddInventoryItemCommand(body.ItemId, ownerUserId, body.Location, body.Quantity, quality, body.LocationId, body.LocationType), ct);
 
             Log.Information("AddInventoryItem {CallerId} {Action} rowId={RowId}", callerId, isNew ? "created" : "incremented", row.Id);
 
@@ -365,12 +390,12 @@ public static class WarehouseEndpoints
             return Results.Unauthorized();
         }
 
-        Log.Information("UpdateInventoryItem {CallerId} rowId={Id} ownerUserId={OwnerUserId} stationId={StationId} quantity={Quantity}",
-            callerId, id, body.OwnerUserId, body.StationId, body.Quantity);
+        Log.Information("UpdateInventoryItem {CallerId} rowId={Id} ownerUserId={OwnerUserId} locationId={LocationId} locationType={LocationType} quantity={Quantity}",
+            callerId, id, body.OwnerUserId, body.LocationId, body.LocationType, body.Quantity);
 
         try
         {
-            var row = await handler.HandleAsync(new UpdateInventoryItemCommand(id, body.OwnerUserId, body.StationId, body.Quantity), ct);
+            var row = await handler.HandleAsync(new UpdateInventoryItemCommand(id, body.OwnerUserId, body.LocationId, body.LocationType, body.Quantity), ct);
             Log.Information("UpdateInventoryItem {CallerId} succeeded rowId={Id}", callerId, id);
             return Results.Ok(MapRow(row));
         }
@@ -506,13 +531,13 @@ public static class WarehouseEndpoints
         var ownerUserId = body.OwnerUserId ?? callerId;
         var quality = body.Quality ?? 500;
 
-        Log.Information("AddMaterial {CallerId} commodityId={CommodityId} ownerUserId={OwnerUserId} location={Location} quantity={Quantity} quality={Quality} stationId={StationId}",
-            callerId, body.CommodityId, ownerUserId, body.Location, body.Quantity, quality, body.StationId);
+        Log.Information("AddMaterial {CallerId} commodityId={CommodityId} ownerUserId={OwnerUserId} location={Location} quantity={Quantity} quality={Quality} locationId={LocationId} locationType={LocationType}",
+            callerId, body.CommodityId, ownerUserId, body.Location, body.Quantity, quality, body.LocationId, body.LocationType);
 
         try
         {
             var (row, isNew) = await handler.HandleAsync(
-                new AddMaterialCommand(body.CommodityId, ownerUserId, body.Location, body.Quantity, quality, body.StationId), ct);
+                new AddMaterialCommand(body.CommodityId, ownerUserId, body.Location, body.Quantity, quality, body.LocationId, body.LocationType), ct);
 
             Log.Information("AddMaterial {CallerId} {Action} rowId={RowId}", callerId, isNew ? "created" : "incremented", row.Id);
 
@@ -590,12 +615,12 @@ public static class WarehouseEndpoints
             return Results.Unauthorized();
         }
 
-        Log.Information("UpdateMaterial {CallerId} rowId={Id} ownerUserId={OwnerUserId} stationId={StationId} quantity={Quantity}",
-            callerId, id, body.OwnerUserId, body.StationId, body.Quantity);
+        Log.Information("UpdateMaterial {CallerId} rowId={Id} ownerUserId={OwnerUserId} locationId={LocationId} locationType={LocationType} quantity={Quantity}",
+            callerId, id, body.OwnerUserId, body.LocationId, body.LocationType, body.Quantity);
 
         try
         {
-            var row = await handler.HandleAsync(new UpdateMaterialCommand(id, body.OwnerUserId, body.StationId, body.Quantity), ct);
+            var row = await handler.HandleAsync(new UpdateMaterialCommand(id, body.OwnerUserId, body.LocationId, body.LocationType, body.Quantity), ct);
             Log.Information("UpdateMaterial {CallerId} succeeded rowId={Id}", callerId, id);
             return Results.Ok(MapMaterialRow(row));
         }
@@ -639,37 +664,12 @@ public static class WarehouseEndpoints
         }
     }
 
-    // ── GET /api/warehouse/stations ──────────────────────────────────────
+    // ── PUT /api/warehouse/items/{id}/location ─────────────────────────────
 
-    private static async Task<IResult> GetStations(
-        ClaimsPrincipal user,
-        GetStationsHandler handler,
-        string? search = null,
-        int limit = 25,
-        CancellationToken ct = default)
-    {
-        if (!TryGetUserId(user, out var callerId))
-        {
-            return Results.Unauthorized();
-        }
-
-        Log.Information("GetStations {CallerId} search={Search} limit={Limit}", callerId, search, limit);
-
-        var query = new GetStationsQuery(search, limit);
-        var stations = await handler.HandleAsync(query, ct);
-        var response = new StationListResponse(
-            stations.Select(s => new StationOption(s.Id, s.Name)).ToList());
-
-        Log.Information("GetStations {CallerId} returned {Count} stations", callerId, stations.Count);
-        return Results.Ok(response);
-    }
-
-    // ── PUT /api/warehouse/items/{id}/station ─────────────────────────────
-
-    private static async Task<IResult> TransferItemStation(
+    private static async Task<IResult> TransferItemLocation(
         ClaimsPrincipal user,
         Guid id,
-        TransferStationRequest body,
+        TransferLocationRequest body,
         TransferInventoryItemHandler handler,
         CancellationToken ct)
     {
@@ -678,32 +678,33 @@ public static class WarehouseEndpoints
             return Results.Unauthorized();
         }
 
-        Log.Information("TransferItemStation {CallerId} rowId={Id} stationId={StationId}", callerId, id, body.StationId);
+        Log.Information("TransferItemLocation {CallerId} rowId={Id} locationId={LocationId} locationType={LocationType}",
+            callerId, id, body.LocationId, body.LocationType);
 
         try
         {
-            await handler.HandleAsync(new TransferInventoryItemCommand(id, body.StationId), ct);
-            Log.Information("TransferItemStation {CallerId} succeeded rowId={Id}", callerId, id);
+            await handler.HandleAsync(new TransferInventoryItemCommand(id, body.LocationId, body.LocationType), ct);
+            Log.Information("TransferItemLocation {CallerId} succeeded rowId={Id}", callerId, id);
             return Results.NoContent();
         }
         catch (InventoryRowNotFoundException ex)
         {
-            Log.Warning("TransferItemStation 404 {CallerId} rowId={Id}: {Message}", callerId, id, ex.Message);
+            Log.Warning("TransferItemLocation 404 {CallerId} rowId={Id}: {Message}", callerId, id, ex.Message);
             return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status404NotFound, title: "Inventory row not found.");
         }
         catch (InvalidOperationException ex)
         {
-            Log.Warning("TransferItemStation 400 {CallerId} rowId={Id}: {Message}", callerId, id, ex.Message);
+            Log.Warning("TransferItemLocation 400 {CallerId} rowId={Id}: {Message}", callerId, id, ex.Message);
             return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status400BadRequest, title: "Validation error.");
         }
     }
 
-    // ── PUT /api/warehouse/materials/{id}/station ──────────────────────────
+    // ── PUT /api/warehouse/materials/{id}/location ──────────────────────────
 
-    private static async Task<IResult> TransferMaterialStation(
+    private static async Task<IResult> TransferMaterialLocation(
         ClaimsPrincipal user,
         Guid id,
-        TransferStationRequest body,
+        TransferLocationRequest body,
         TransferMaterialHandler handler,
         CancellationToken ct)
     {
@@ -712,22 +713,23 @@ public static class WarehouseEndpoints
             return Results.Unauthorized();
         }
 
-        Log.Information("TransferMaterialStation {CallerId} rowId={Id} stationId={StationId}", callerId, id, body.StationId);
+        Log.Information("TransferMaterialLocation {CallerId} rowId={Id} locationId={LocationId} locationType={LocationType}",
+            callerId, id, body.LocationId, body.LocationType);
 
         try
         {
-            await handler.HandleAsync(new TransferMaterialCommand(id, body.StationId), ct);
-            Log.Information("TransferMaterialStation {CallerId} succeeded rowId={Id}", callerId, id);
+            await handler.HandleAsync(new TransferMaterialCommand(id, body.LocationId, body.LocationType), ct);
+            Log.Information("TransferMaterialLocation {CallerId} succeeded rowId={Id}", callerId, id);
             return Results.NoContent();
         }
         catch (MaterialRowNotFoundException ex)
         {
-            Log.Warning("TransferMaterialStation 404 {CallerId} rowId={Id}: {Message}", callerId, id, ex.Message);
+            Log.Warning("TransferMaterialLocation 404 {CallerId} rowId={Id}: {Message}", callerId, id, ex.Message);
             return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status404NotFound, title: "Material row not found.");
         }
         catch (InvalidOperationException ex)
         {
-            Log.Warning("TransferMaterialStation 400 {CallerId} rowId={Id}: {Message}", callerId, id, ex.Message);
+            Log.Warning("TransferMaterialLocation 400 {CallerId} rowId={Id}: {Message}", callerId, id, ex.Message);
             return Results.Problem(detail: ex.Message, statusCode: StatusCodes.Status400BadRequest, title: "Validation error.");
         }
     }
@@ -741,11 +743,11 @@ public static class WarehouseEndpoints
     }
 
     private static InventoryRowResponse MapRow(Application.Features.Warehouse.GetInventory.InventoryRowDto r) =>
-        new (r.Id, r.ItemId, r.Name, r.Type, r.Subtype, r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location, r.StationId);
+        new(r.Id, r.ItemId, r.Name, r.Type, r.Subtype, r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location, r.LocationId, r.LocationType);
 
     private static CatalogItemResponse MapCatalog(Application.Features.Warehouse.SearchCatalogItems.CatalogItemResultDto r) =>
-        new (r.ItemId, r.Name, r.Type, r.Subtype);
+        new(r.ItemId, r.Name, r.Type, r.Subtype);
 
     private static MaterialRowResponse MapMaterialRow(Application.Features.Warehouse.Materials.GetMaterials.MaterialRowDto r) =>
-        new (r.Id, r.CommodityId, r.MaterialName, r.MaterialCode, r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location, r.StationId);
+        new(r.Id, r.CommodityId, r.MaterialName, r.MaterialCode, r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location, r.LocationId, r.LocationType);
 }

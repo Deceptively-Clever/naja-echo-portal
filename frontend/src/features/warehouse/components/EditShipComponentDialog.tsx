@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -8,10 +9,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { StationCombobox } from './StationCombobox'
+import { LocationCombobox } from './LocationCombobox'
 import { useInventoryFilters } from '../hooks/useInventoryFilters'
 import { useUpdateInventoryItem } from '../hooks/useUpdateInventoryItem'
 import type { ShipComponentRow } from '../schemas/shipComponentSchemas'
+import type { LocationOption } from '../schemas/locationSchemas'
 
 interface Props {
   open: boolean
@@ -22,33 +24,33 @@ interface Props {
 
 export function EditShipComponentDialog({ open, onOpenChange, row, onSuccess }: Props) {
   const [ownerUserId, setOwnerUserId] = useState<string>('')
-  const [stationId, setStationId] = useState<string>('')
+  const [location, setLocation] = useState<LocationOption | undefined>(undefined)
   const [quantity, setQuantity] = useState<string>('')
 
   const filters = useInventoryFilters()
   const mutation = useUpdateInventoryItem()
 
-  const [prevOpen, setPrevOpen] = useState(false)
-  if (open !== prevOpen) {
-    setPrevOpen(open)
+  useEffect(() => {
     if (open && row) {
       setOwnerUserId(row.ownerUserId)
-      setStationId(row.stationId ?? '')
+      setLocation(
+        row.locationId && row.locationType
+          ? { id: row.locationId, name: row.location, type: row.locationType as 'Station' | 'City' }
+          : undefined
+      )
       setQuantity(String(row.quantity))
+      mutation.reset()
     }
-  }
-
-  useEffect(() => {
-    if (open) mutation.reset()
   }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleConfirm = async () => {
-    if (!row || !ownerUserId || !stationId || !quantity) return
+    if (!row || !ownerUserId || !location || !quantity) return
 
     await mutation.mutateAsync({
       id: row.id,
       ownerUserId,
-      stationId,
+      locationId: location.id,
+      locationType: location.type,
       quantity: Number(quantity),
     })
     onSuccess?.()
@@ -56,7 +58,7 @@ export function EditShipComponentDialog({ open, onOpenChange, row, onSuccess }: 
   }
 
   const quantityNum = Number(quantity)
-  const isValid = ownerUserId && stationId && quantityNum > 0
+  const isValid = ownerUserId && location && quantityNum > 0
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -65,13 +67,13 @@ export function EditShipComponentDialog({ open, onOpenChange, row, onSuccess }: 
           <DialogTitle>Edit Ship Component</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 px-6 py-2">
-          <div className="space-y-2">
-            <label htmlFor="owner-select" className="text-sm font-medium">
+        <div className="flex flex-col gap-4 px-6 py-2">
+          <div className="flex flex-col gap-2">
+            <label htmlFor="edit-sc-owner" className="text-sm font-medium">
               Owner
             </label>
             <Select value={ownerUserId} onValueChange={setOwnerUserId} disabled={mutation.isPending}>
-              <SelectTrigger id="owner-select">
+              <SelectTrigger id="edit-sc-owner">
                 <SelectValue placeholder="Select owner" />
               </SelectTrigger>
               <SelectContent>
@@ -84,30 +86,30 @@ export function EditShipComponentDialog({ open, onOpenChange, row, onSuccess }: 
             </Select>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium">
-              Station
+          <div className="flex flex-col gap-2">
+            <label htmlFor="edit-sc-location" className="text-sm font-medium">
+              Location
             </label>
-            <StationCombobox
-              value={stationId}
-              onValueChange={(id) => setStationId(id)}
+            <LocationCombobox
+              value={location?.id}
+              onValueChange={(loc) => setLocation(loc ?? undefined)}
               disabled={mutation.isPending}
+              aria-label="Location"
             />
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="quantity-input" className="text-sm font-medium">
+          <div className="flex flex-col gap-2">
+            <label htmlFor="edit-sc-quantity" className="text-sm font-medium">
               Quantity
             </label>
-            <input
-              id="quantity-input"
+            <Input
+              id="edit-sc-quantity"
               type="number"
               min="1"
               value={quantity}
               onChange={(e) => setQuantity(e.target.value)}
               disabled={mutation.isPending}
               placeholder="1"
-              className="w-full rounded border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
             />
           </div>
 

@@ -20,13 +20,14 @@ public interface IMaterialInventoryRepository
     /// Returns the resulting row and whether it was newly created (true) or incremented (false).
     /// </summary>
     Task<(MaterialRowDto Row, bool IsNew)> AddOrIncrementAsync(
-        Guid commodityId, Guid ownerUserId, string location, decimal quantity, int quality, Guid? stationId, CancellationToken ct);
+        Guid commodityId, Guid ownerUserId, string location, decimal quantity, int quality,
+        Guid? locationId, string? locationType, CancellationToken ct);
 
     Task<MaterialRowDto> UpdateQuantityAsync(Guid id, decimal quantity, CancellationToken ct);
 
-    Task<MaterialRowDto> UpdateMaterialAsync(Guid id, Guid ownerUserId, Guid stationId, decimal quantity, CancellationToken ct);
+    Task<MaterialRowDto> UpdateMaterialAsync(Guid id, Guid ownerUserId, Guid locationId, string locationType, decimal quantity, CancellationToken ct);
 
-    Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct);
+    Task UpdateLocationAsync(Guid id, Guid locationId, string locationType, CancellationToken ct);
 
     Task<bool> ExistsAsync(Guid id, CancellationToken ct);
 

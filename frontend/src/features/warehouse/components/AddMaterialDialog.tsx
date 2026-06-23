@@ -1,20 +1,22 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogFooter, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { useCommoditySearch } from '../hooks/useCommoditySearch'
 import { useAddMaterial } from '../hooks/useAddMaterial'
 import { useMaterialFilters } from '../hooks/useMaterialFilters'
-import { StationCombobox } from './StationCombobox'
+import { LocationCombobox } from './LocationCombobox'
 import { useDebounce } from '../hooks/useDebounce'
 import type { CommodityCatalogItem } from '../schemas/materialSchemas'
-import type { StationOption } from '../schemas/stationSchemas'
+import type { LocationOption } from '../schemas/locationSchemas'
 
 interface Props {
   open: boolean
-  onClose: (opts?: { rememberedStation?: StationOption; rememberedOwnerId?: string }) => void
+  onClose: (opts?: { rememberedLocation?: LocationOption; rememberedOwnerId?: string }) => void
   currentUserId: string
-  rememberedStation?: StationOption
+  rememberedLocation?: LocationOption
   rememberedOwnerId?: string
 }
 
@@ -22,32 +24,28 @@ export function AddMaterialDialog({
   open,
   onClose,
   currentUserId,
-  rememberedStation,
+  rememberedLocation,
   rememberedOwnerId = '',
 }: Props) {
   const [search, setSearch] = useState('')
   const [selectedCommodity, setSelectedCommodity] = useState<CommodityCatalogItem | null>(null)
   const [ownerUserId, setOwnerUserId] = useState(rememberedOwnerId || currentUserId)
-  const [stationId, setStationId] = useState<string | undefined>(rememberedStation?.id)
-  const [stationName, setStationName] = useState(rememberedStation?.name ?? '')
+  const [location, setLocation] = useState<LocationOption | undefined>(rememberedLocation)
   const [quantity, setQuantity] = useState(1)
   const [quality, setQuality] = useState(500)
   const [error, setError] = useState('')
-  const [prevOpen, setPrevOpen] = useState(open)
 
-  if (prevOpen !== open) {
-    setPrevOpen(open)
+  useEffect(() => {
     if (open) {
       setSearch('')
       setSelectedCommodity(null)
       setOwnerUserId(rememberedOwnerId || currentUserId)
-      setStationId(rememberedStation?.id)
-      setStationName(rememberedStation?.name ?? '')
+      setLocation(rememberedLocation)
       setQuantity(1)
       setQuality(500)
       setError('')
     }
-  }
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const debouncedSearch = useDebounce(search, 300)
 
@@ -60,7 +58,6 @@ export function AddMaterialDialog({
 
   async function handleSubmit() {
     if (!selectedCommodity) { setError('Select a commodity from the catalog.'); return }
-    if (!stationId) { setError('Select a station.'); return }
     if (quantity <= 0) { setError('Quantity must be greater than 0.'); return }
     if (!Number.isInteger(quality) || quality < 1 || quality > 1000) {
       setError('Quality must be an integer between 1 and 1000.')
@@ -72,17 +69,18 @@ export function AddMaterialDialog({
       await addMaterial.mutateAsync({
         commodityId: selectedCommodity.commodityId,
         ownerUserId,
-        location: stationName,
+        location: location?.name ?? '',
         quantity,
         quality,
-        stationId,
+        locationId: location?.id,
+        locationType: location?.type,
       })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
       return
     }
 
-    onClose({ rememberedStation: { id: stationId, name: stationName }, rememberedOwnerId: ownerUserId })
+    onClose({ rememberedLocation: location, rememberedOwnerId: ownerUserId })
   }
 
   const isPending = addMaterial.isPending
@@ -92,6 +90,9 @@ export function AddMaterialDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>Add Material</DialogTitle>
+          <DialogDescription className="sr-only">
+            Search the commodity catalog, then fill in owner, location, quantity, and quality to add a material.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-3 px-6">
@@ -99,44 +100,40 @@ export function AddMaterialDialog({
             <label htmlFor="add-material-search" className="text-sm font-medium">
               Search Commodities
             </label>
-            <input
-              id="add-material-search"
-              aria-label="Search commodities"
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground"
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setSelectedCommodity(null) }}
-              placeholder="Search materials…"
-            />
-            <div
-              role="listbox"
-              aria-label="Search results"
-              className="mt-1 h-[180px] overflow-auto rounded border bg-background shadow text-sm"
-            >
-              {results.length > 0 && !selectedCommodity && (
-                <ul>
-                  {results.map((c) => (
-                    <li
-                      key={c.commodityId}
-                      role="option"
-                      aria-selected={false}
-                      tabIndex={0}
-                      className="cursor-pointer px-3 py-2 hover:bg-muted focus-visible:bg-muted outline-none"
-                      onClick={() => { setSelectedCommodity(c); setSearch(c.name) }}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { setSelectedCommodity(c); setSearch(c.name) } }}
-                    >
-                      {c.name}
-                      {c.code && <span className="ml-1 text-muted-foreground">({c.code})</span>}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            <Command shouldFilter={false}>
+              <CommandInput
+                id="add-material-search"
+                aria-label="Search commodities"
+                placeholder="Search materials…"
+                value={search}
+                onValueChange={(v) => { setSearch(v); setSelectedCommodity(null) }}
+              />
+              <CommandList className="max-h-44">
+                {results.length === 0 && search && (
+                  <CommandEmpty>No results found.</CommandEmpty>
+                )}
+                {results.length > 0 && !selectedCommodity && (
+                  <CommandGroup>
+                    {results.map((c) => (
+                      <CommandItem
+                        key={c.commodityId}
+                        value={c.commodityId}
+                        onSelect={() => { setSelectedCommodity(c); setSearch(c.name) }}
+                      >
+                        {c.name}
+                        {c.code && <span className="ml-1 text-muted-foreground">({c.code})</span>}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
+              </CommandList>
+            </Command>
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Owner</label>
+            <label htmlFor="add-material-owner" className="text-sm font-medium">Owner</label>
             <Select value={ownerUserId} onValueChange={setOwnerUserId}>
-              <SelectTrigger aria-label="Owner">
+              <SelectTrigger id="add-material-owner" aria-label="Owner">
                 <SelectValue placeholder="Select owner" />
               </SelectTrigger>
               <SelectContent>
@@ -150,11 +147,12 @@ export function AddMaterialDialog({
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Station</label>
-            <StationCombobox
-              value={stationId}
-              onValueChange={(id, name) => { setStationId(id); setStationName(name) }}
-              placeholder="Select a station…"
+            <label htmlFor="add-material-location" className="text-sm font-medium">Location</label>
+            <LocationCombobox
+              value={location?.id}
+              onValueChange={(loc) => setLocation(loc ?? undefined)}
+              placeholder="Select a location…"
+              aria-label="Location"
             />
           </div>
 
@@ -162,14 +160,13 @@ export function AddMaterialDialog({
             <label htmlFor="add-material-quantity" className="text-sm font-medium">
               Quantity
             </label>
-            <input
+            <Input
               id="add-material-quantity"
               aria-label="Quantity"
               type="number"
               inputMode="decimal"
               step="0.001"
               min={0.001}
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
               value={quantity}
               onChange={(e) => setQuantity(Number(e.target.value))}
             />
@@ -179,13 +176,12 @@ export function AddMaterialDialog({
             <label htmlFor="add-material-quality" className="text-sm font-medium">
               Quality
             </label>
-            <input
+            <Input
               id="add-material-quality"
               aria-label="Quality"
               type="number"
               min={1}
               max={1000}
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
               value={quality}
               onChange={(e) => setQuality(Number(e.target.value))}
             />

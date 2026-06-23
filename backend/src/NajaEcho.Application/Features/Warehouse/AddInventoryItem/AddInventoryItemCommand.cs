@@ -6,4 +6,5 @@ public sealed record AddInventoryItemCommand(
     string Location,
     int Quantity,
     int Quality = 500,
-    Guid? StationId = null);
+    Guid? LocationId = null,
+    string? LocationType = null);

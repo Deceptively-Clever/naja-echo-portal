@@ -47,7 +47,7 @@ describe('ShipComponentsTable', () => {
     expect(screen.getByText('Qty')).toBeDefined()
     expect(screen.getByText('Quality')).toBeDefined()
     expect(screen.getByText('Owner')).toBeDefined()
-    expect(screen.getByText('Station')).toBeDefined()
+    expect(screen.getByText('Location')).toBeDefined()
   })
 
   it('does not render a Section column header', () => {

@@ -13,6 +13,7 @@ public sealed class ImportLocationsHandlerTests
     {
         public IReadOnlyList<JsonDocument> StarSystems { get; set; } = [];
         public IReadOnlyList<JsonDocument> SpaceStations { get; set; } = [];
+        public IReadOnlyList<JsonDocument> Cities { get; set; } = [JsonDocument.Parse("{}")];
         public bool StarSystemsThrows { get; set; }
         public bool SpaceStationsThrows { get; set; }
 
@@ -27,6 +28,9 @@ public sealed class ImportLocationsHandlerTests
             if (SpaceStationsThrows) throw new HttpRequestException("Source unreachable");
             return Task.FromResult(SpaceStations);
         }
+
+        public Task<IReadOnlyList<JsonDocument>> FetchAllCitiesAsync(CancellationToken ct)
+            => Task.FromResult(Cities);
     }
 
     private sealed class FakeStarSystemRepository : IStarSystemRepository
@@ -65,6 +69,22 @@ public sealed class ImportLocationsHandlerTests
             => Task.FromResult(true);
     }
 
+    private sealed class FakeCityRepository : ICityRepository
+    {
+        public int BulkUpsertCallCount { get; private set; }
+        public (int added, int updated, int reactivated, int softDeleted, int skipped) Counts { get; set; } = (0, 0, 0, 0, 0);
+
+        public Task<(int added, int updated, int reactivated, int softDeleted, int skipped)> BulkUpsertAsync(
+            IReadOnlyList<JsonDocument> records, IReadOnlyDictionary<int, Guid> starSystemMap, CancellationToken ct = default)
+        {
+            BulkUpsertCallCount++;
+            return Task.FromResult(Counts);
+        }
+
+        public Task<IReadOnlyList<CityDto>> SearchActiveCitiesAsync(string? search, int limit, CancellationToken ct = default)
+            => Task.FromResult<IReadOnlyList<CityDto>>([]);
+    }
+
     private sealed class FakeCoordinator : IImportCoordinator
     {
         public bool IsHeld { get; private set; }
@@ -78,24 +98,28 @@ public sealed class ImportLocationsHandlerTests
         FakeUexLocationClient client,
         FakeStarSystemRepository starRepo,
         FakeSpaceStationRepository stationRepo,
+        FakeCityRepository? cityRepo = null,
         FakeCoordinator? coordinator = null) =>
-        new(client, starRepo, stationRepo, coordinator ?? new FakeCoordinator(), NullLogger<ImportLocationsHandler>.Instance);
+        new(client, starRepo, stationRepo, cityRepo ?? new FakeCityRepository(), coordinator ?? new FakeCoordinator(), NullLogger<ImportLocationsHandler>.Instance);
 
     [Fact]
-    public async Task HappyPath_ReturnsSeparateCountsForBothEntities()
+    public async Task HappyPath_ReturnsSeparateCountsForAllEntities()
     {
         var client = new FakeUexLocationClient
         {
             StarSystems = [MakeDoc("{}"), MakeDoc("{}"), MakeDoc("{}")],
             SpaceStations = [MakeDoc("{}"), MakeDoc("{}"), MakeDoc("{}"), MakeDoc("{}"), MakeDoc("{}")],
+            Cities = [MakeDoc("{}"), MakeDoc("{}")],
         };
         var starRepo = new FakeStarSystemRepository { Counts = (3, 0, 0, 0) };
         var stationRepo = new FakeSpaceStationRepository { Counts = (5, 0, 0, 0, 0) };
+        var cityRepo = new FakeCityRepository { Counts = (2, 0, 0, 0, 0) };
 
-        var result = await CreateHandler(client, starRepo, stationRepo).HandleAsync(new ImportLocationsCommand(), default);
+        var result = await CreateHandler(client, starRepo, stationRepo, cityRepo).HandleAsync(new ImportLocationsCommand(), default);
 
         result.StarSystems.Added.Should().Be(3);
         result.SpaceStations.Added.Should().Be(5);
+        result.Cities.Added.Should().Be(2);
     }
 
     [Fact]
@@ -134,6 +158,24 @@ public sealed class ImportLocationsHandlerTests
     }
 
     [Fact]
+    public async Task EmptyCitiesFeed_ThrowsEmptySourceException()
+    {
+        var client = new FakeUexLocationClient
+        {
+            StarSystems = [MakeDoc("{}")],
+            SpaceStations = [MakeDoc("{}")],
+            Cities = [],
+        };
+        var cityRepo = new FakeCityRepository();
+
+        var act = () => CreateHandler(client, new FakeStarSystemRepository(), new FakeSpaceStationRepository(), cityRepo)
+            .HandleAsync(new ImportLocationsCommand(), default);
+
+        await act.Should().ThrowAsync<EmptySourceException>();
+        cityRepo.BulkUpsertCallCount.Should().Be(0);
+    }
+
+    [Fact]
     public async Task UnreachableSource_HttpRequestException_Propagates()
     {
         var client = new FakeUexLocationClient { StarSystemsThrows = true };
@@ -153,11 +195,13 @@ public sealed class ImportLocationsHandlerTests
         {
             StarSystems = [MakeDoc("{}")],
             SpaceStations = [MakeDoc("{}")],
+            Cities = [MakeDoc("{}")],
         };
         var starRepo = new FakeStarSystemRepository { Counts = (1, 0, 0, 0) };
         var stationRepo = new FakeSpaceStationRepository { Counts = (0, 0, 0, 0, 1) };
+        var cityRepo = new FakeCityRepository { Counts = (0, 0, 0, 0, 0) };
 
-        var result = await CreateHandler(client, starRepo, stationRepo).HandleAsync(new ImportLocationsCommand(), default);
+        var result = await CreateHandler(client, starRepo, stationRepo, cityRepo).HandleAsync(new ImportLocationsCommand(), default);
 
         result.SpaceStations.Skipped.Should().Be(1);
         result.SpaceStations.Added.Should().Be(0);
@@ -170,6 +214,7 @@ public sealed class ImportLocationsHandlerTests
         {
             StarSystems = [MakeDoc("{}")],
             SpaceStations = [MakeDoc("{}")],
+            Cities = [MakeDoc("{}")],
         };
         var starRepo = new FakeStarSystemRepository { Counts = (0, 0, 0, 1) };
         var stationRepo = new FakeSpaceStationRepository { Counts = (0, 0, 0, 0, 0) };
@@ -191,7 +236,7 @@ public sealed class ImportLocationsHandlerTests
             SpaceStations = [MakeDoc("{}")],
         };
 
-        var act = () => CreateHandler(client, new FakeStarSystemRepository(), new FakeSpaceStationRepository(), coordinator)
+        var act = () => CreateHandler(client, new FakeStarSystemRepository(), new FakeSpaceStationRepository(), coordinator: coordinator)
             .HandleAsync(new ImportLocationsCommand(), default);
 
         await act.Should().ThrowAsync<ImportAlreadyInProgressException>();
@@ -205,11 +250,13 @@ public sealed class ImportLocationsHandlerTests
         {
             StarSystems = [MakeDoc("{}")],
             SpaceStations = [MakeDoc("{}")],
+            Cities = [MakeDoc("{}")],
         };
         var starRepo = new FakeStarSystemRepository { Counts = (1, 0, 0, 0) };
         var stationRepo = new FakeSpaceStationRepository { Counts = (1, 0, 0, 0, 0) };
+        var cityRepo = new FakeCityRepository { Counts = (1, 0, 0, 0, 0) };
 
-        await CreateHandler(client, starRepo, stationRepo, coordinator).HandleAsync(new ImportLocationsCommand(), default);
+        await CreateHandler(client, starRepo, stationRepo, cityRepo, coordinator).HandleAsync(new ImportLocationsCommand(), default);
 
         coordinator.IsHeld.Should().BeFalse();
     }
@@ -220,7 +267,7 @@ public sealed class ImportLocationsHandlerTests
         var coordinator = new FakeCoordinator();
         var client = new FakeUexLocationClient { StarSystems = [] };
 
-        var act = () => CreateHandler(client, new FakeStarSystemRepository(), new FakeSpaceStationRepository(), coordinator)
+        var act = () => CreateHandler(client, new FakeStarSystemRepository(), new FakeSpaceStationRepository(), coordinator: coordinator)
             .HandleAsync(new ImportLocationsCommand(), default);
 
         await act.Should().ThrowAsync<EmptySourceException>();

@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/apiClient'
+import type { LocationType } from '../schemas/locationSchemas'
 import {
   materialListResponseSchema,
   materialFiltersResponseSchema,
@@ -48,7 +49,8 @@ export async function addMaterial(body: {
   location: string
   quantity: number
   quality?: number
-  stationId?: string
+  locationId?: string
+  locationType?: LocationType
 }): Promise<MaterialRow> {
   const data = await apiFetch<unknown>('/api/warehouse/materials', {
     method: 'POST',
@@ -67,7 +69,7 @@ export async function changeMaterialQuantity(id: string, quantity: number): Prom
 
 export async function updateMaterial(
   id: string,
-  body: { ownerUserId: string; stationId: string; quantity: number }
+  body: { ownerUserId: string; locationId: string; locationType: LocationType; quantity: number }
 ): Promise<MaterialRow> {
   const data = await apiFetch<unknown>(`/api/warehouse/materials/${id}`, {
     method: 'PUT',

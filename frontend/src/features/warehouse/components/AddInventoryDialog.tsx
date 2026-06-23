@@ -1,24 +1,26 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Dialog, DialogContent, DialogHeader, DialogFooter, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogFooter, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command'
 import { useCatalogItemSearch } from '../hooks/useCatalogItemSearch'
 import { useAddInventoryItem } from '../hooks/useAddInventoryItem'
 import { useSystemsCatalogSearch } from '../hooks/useSystemsCatalogSearch'
 import { useInventoryFilters } from '../hooks/useInventoryFilters'
-import { StationCombobox } from './StationCombobox'
+import { LocationCombobox } from './LocationCombobox'
 import { useDebounce } from '../hooks/useDebounce'
 import type { CatalogItem } from '../schemas/inventorySchemas'
 import type { SystemsCatalogItem } from '../api/shipComponentsApi'
-import type { StationOption } from '../schemas/stationSchemas'
+import type { LocationOption } from '../schemas/locationSchemas'
 
 type AnyItem = CatalogItem | SystemsCatalogItem
 
 interface BaseProps {
   open: boolean
-  onClose: (opts?: { rememberedStation?: StationOption; rememberedOwnerId?: string }) => void
+  onClose: (opts?: { rememberedLocation?: LocationOption; rememberedOwnerId?: string }) => void
   currentUserId: string
-  rememberedStation?: StationOption
+  rememberedLocation?: LocationOption
   rememberedOwnerId?: string
 }
 
@@ -36,33 +38,29 @@ export function AddInventoryDialog({
   open,
   onClose,
   currentUserId,
-  rememberedStation,
+  rememberedLocation,
   rememberedOwnerId = '',
   scope = 'inventory',
 }: Props) {
   const [search, setSearch] = useState('')
   const [selectedItem, setSelectedItem] = useState<AnyItem | null>(null)
   const [ownerUserId, setOwnerUserId] = useState(rememberedOwnerId || currentUserId)
-  const [stationId, setStationId] = useState<string | undefined>(rememberedStation?.id)
-  const [stationName, setStationName] = useState(rememberedStation?.name ?? '')
+  const [location, setLocation] = useState<LocationOption | undefined>(rememberedLocation)
   const [quantity, setQuantity] = useState(1)
   const [quality, setQuality] = useState(500)
   const [error, setError] = useState('')
-  const [prevOpen, setPrevOpen] = useState(open)
 
-  if (prevOpen !== open) {
-    setPrevOpen(open)
+  useEffect(() => {
     if (open) {
       setSearch('')
       setSelectedItem(null)
       setOwnerUserId(rememberedOwnerId || currentUserId)
-      setStationId(rememberedStation?.id)
-      setStationName(rememberedStation?.name ?? '')
+      setLocation(rememberedLocation)
       setQuantity(1)
       setQuality(500)
       setError('')
     }
-  }
+  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const isShipComponents = scope === 'ship-components'
   const debouncedSearch = useDebounce(search, 300)
@@ -86,7 +84,6 @@ export function AddInventoryDialog({
 
   async function handleSubmit() {
     if (!selectedItem) { setError('Select an item from the catalog.'); return }
-    if (!stationId) { setError('Select a station.'); return }
     if (quantity < 1) { setError('Quantity must be at least 1.'); return }
     if (!Number.isInteger(quality) || quality < 1 || quality > 1000) {
       setError('Quality must be an integer between 1 and 1000.')
@@ -95,30 +92,21 @@ export function AddInventoryDialog({
     setError('')
 
     try {
-      if (isShipComponents) {
-        await addItem.mutateAsync({
-          itemId: selectedItem.itemId,
-          ownerUserId,
-          location: stationName,
-          quantity,
-          quality,
-        })
-      } else {
-        await addItem.mutateAsync({
-          itemId: selectedItem.itemId,
-          ownerUserId,
-          location: stationName,
-          quantity,
-          quality,
-          stationId,
-        })
-      }
+      await addItem.mutateAsync({
+        itemId: selectedItem.itemId,
+        ownerUserId,
+        location: location?.name ?? '',
+        quantity,
+        quality,
+        locationId: location?.id,
+        locationType: location?.type,
+      })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
       return
     }
 
-    onClose({ rememberedStation: { id: stationId, name: stationName }, rememberedOwnerId: ownerUserId })
+    onClose({ rememberedLocation: location, rememberedOwnerId: ownerUserId })
   }
 
   const isPending = addItem.isPending
@@ -129,6 +117,9 @@ export function AddInventoryDialog({
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
+          <DialogDescription className="sr-only">
+            Search the catalog, then fill in owner, location, quantity, and quality to add an item.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-3 px-6">
@@ -136,38 +127,34 @@ export function AddInventoryDialog({
             <label htmlFor="add-item-search" className="text-sm font-medium">
               Search Catalog
             </label>
-            <input
-              id="add-item-search"
-              aria-label="Search catalog"
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground placeholder:text-muted-foreground"
-              value={search}
-              onChange={(e) => { setSearch(e.target.value); setSelectedItem(null) }}
-              placeholder="Search items…"
-            />
-            <div
-              role="listbox"
-              aria-label="Search results"
-              className="mt-1 h-[180px] overflow-auto rounded border bg-background shadow text-sm"
-            >
-              {results.length > 0 && !selectedItem && (
-                <ul>
-                  {results.map((item) => (
-                    <li
-                      key={item.itemId}
-                      role="option"
-                      aria-selected={false}
-                      tabIndex={0}
-                      className="cursor-pointer px-3 py-2 hover:bg-muted focus-visible:bg-muted outline-none"
-                      onClick={() => { setSelectedItem(item); setSearch(item.name) }}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { setSelectedItem(item); setSearch(item.name) } }}
-                    >
-                      {item.name}
-                      {item.type && <span className="ml-1 text-muted-foreground">({item.type})</span>}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            <Command shouldFilter={false}>
+              <CommandInput
+                id="add-item-search"
+                aria-label="Search catalog"
+                placeholder="Search items…"
+                value={search}
+                onValueChange={(v) => { setSearch(v); setSelectedItem(null) }}
+              />
+              <CommandList className="max-h-44">
+                {results.length === 0 && search && (
+                  <CommandEmpty>No results found.</CommandEmpty>
+                )}
+                {results.length > 0 && !selectedItem && (
+                  <CommandGroup>
+                    {results.map((item) => (
+                      <CommandItem
+                        key={item.itemId}
+                        value={item.itemId}
+                        onSelect={() => { setSelectedItem(item); setSearch(item.name) }}
+                      >
+                        {item.name}
+                        {item.type && <span className="ml-1 text-muted-foreground">({item.type})</span>}
+                      </CommandItem>
+                    ))}
+                  </CommandGroup>
+                )}
+              </CommandList>
+            </Command>
           </div>
 
           {isShipComponents && selectedItem && (
@@ -179,9 +166,9 @@ export function AddInventoryDialog({
           )}
 
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Owner</label>
+            <label htmlFor="add-item-owner" className="text-sm font-medium">Owner</label>
             <Select value={ownerUserId} onValueChange={setOwnerUserId}>
-              <SelectTrigger aria-label="Owner">
+              <SelectTrigger id="add-item-owner" aria-label="Owner">
                 <SelectValue placeholder="Select owner" />
               </SelectTrigger>
               <SelectContent>
@@ -195,11 +182,12 @@ export function AddInventoryDialog({
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">Station</label>
-            <StationCombobox
-              value={stationId}
-              onValueChange={(id, name) => { setStationId(id); setStationName(name) }}
-              placeholder="Select a station…"
+            <label htmlFor="add-item-location" className="text-sm font-medium">Location</label>
+            <LocationCombobox
+              value={location?.id}
+              onValueChange={(loc) => setLocation(loc ?? undefined)}
+              placeholder="Select a location…"
+              aria-label="Location"
             />
           </div>
 
@@ -207,12 +195,11 @@ export function AddInventoryDialog({
             <label htmlFor="add-item-quantity" className="text-sm font-medium">
               Quantity
             </label>
-            <input
+            <Input
               id="add-item-quantity"
               aria-label="Quantity"
               type="number"
               min={1}
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
               value={quantity}
               onChange={(e) => setQuantity(Number(e.target.value))}
             />
@@ -222,13 +209,12 @@ export function AddInventoryDialog({
             <label htmlFor="add-item-quality" className="text-sm font-medium">
               Quality
             </label>
-            <input
+            <Input
               id="add-item-quality"
               aria-label="Quality"
               type="number"
               min={1}
               max={1000}
-              className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm text-foreground"
               value={quality}
               onChange={(e) => setQuality(Number(e.target.value))}
             />

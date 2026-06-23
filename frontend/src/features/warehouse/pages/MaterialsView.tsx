@@ -10,13 +10,13 @@ import { MaterialsFilters } from '../components/MaterialsFilters'
 import { AddMaterialDialog } from '../components/AddMaterialDialog'
 import { Skeleton } from '@/components/ui/skeleton'
 import type { MaterialFilterFormValues } from '../schemas/materialSchemas'
-import type { StationOption } from '../schemas/stationSchemas'
+import type { LocationOption } from '../schemas/locationSchemas'
 
 const emptyFilters: MaterialFilterFormValues = {
   material: '',
   ownerUserId: '',
-  station: '',
-  stationId: '',
+  location: '',
+  locationId: '',
   qualityMin: 1,
   qualityMax: 1000,
 }
@@ -26,14 +26,14 @@ export function MaterialsView() {
   const isQuartermaster = useIsQuartermaster()
 
   const [addOpen, setAddOpen] = useState(false)
-  const [rememberedStation, setRememberedStation] = useState<StationOption | undefined>(undefined)
+  const [rememberedLocation, setRememberedLocation] = useState<LocationOption | undefined>(undefined)
   const [rememberedOwnerId, setRememberedOwnerId] = useState('')
   const [filterValues, setFilterValues] = useState<MaterialFilterFormValues>(emptyFilters)
 
   const activeFilters = {
     material: filterValues.material || undefined,
     ownerUserId: filterValues.ownerUserId || undefined,
-    location: filterValues.station || undefined,
+    location: filterValues.location || undefined,
     qualityMin: filterValues.qualityMin !== 1 ? filterValues.qualityMin : undefined,
     qualityMax: filterValues.qualityMax !== 1000 ? filterValues.qualityMax : undefined,
   }
@@ -47,9 +47,9 @@ export function MaterialsView() {
 
   const currentUserId = session?.authenticated === true ? session.user.id : ''
 
-  function handleAddClose(opts?: { rememberedStation?: StationOption; rememberedOwnerId?: string }) {
+  function handleAddClose(opts?: { rememberedLocation?: LocationOption; rememberedOwnerId?: string }) {
     setAddOpen(false)
-    if (opts?.rememberedStation) setRememberedStation(opts.rememberedStation)
+    if (opts?.rememberedLocation) setRememberedLocation(opts.rememberedLocation)
     if (opts?.rememberedOwnerId) setRememberedOwnerId(opts.rememberedOwnerId)
   }
 
@@ -88,7 +88,7 @@ export function MaterialsView() {
           open={addOpen}
           onClose={handleAddClose}
           currentUserId={currentUserId}
-          rememberedStation={rememberedStation}
+          rememberedLocation={rememberedLocation}
           rememberedOwnerId={rememberedOwnerId}
         />
       )}

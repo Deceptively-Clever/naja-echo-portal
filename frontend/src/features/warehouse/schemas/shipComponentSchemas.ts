@@ -13,7 +13,8 @@ export const shipComponentRowSchema = z.object({
   ownerUserId: z.string().uuid(),
   ownerDisplayName: z.string(),
   location: z.string(),
-  stationId: z.string().uuid().nullable().optional(),
+  locationId: z.string().uuid().nullable().optional(),
+  locationType: z.enum(['Station', 'City']).nullable().optional(),
 })
 
 export const shipComponentListResponseSchema = z.object({

@@ -26,7 +26,7 @@ public sealed class AddMaterialHandlerTests
         public FakeMaterialRepo() => _row = new(KnownRowId, KnownCommodityId, "Titanium", "TTAM", 1m, 500, KnownOwnerId, "Alice", "Bay 1");
 
         public Task<(MaterialRowDto Row, bool IsNew)> AddOrIncrementAsync(
-            Guid commodityId, Guid ownerUserId, string location, decimal quantity, int quality, Guid? stationId, CancellationToken ct)
+            Guid commodityId, Guid ownerUserId, string location, decimal quantity, int quality, Guid? locationId, string? locationType, CancellationToken ct)
         {
             CapturedQuantity = quantity;
             CapturedQuality = quality;
@@ -54,8 +54,8 @@ public sealed class AddMaterialHandlerTests
             throw new NotImplementedException();
 
 
-        public Task<MaterialRowDto> UpdateMaterialAsync(Guid id, Guid ownerUserId, Guid stationId, decimal quantity, CancellationToken ct) => throw new NotImplementedException();
-        public Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct) => Task.CompletedTask;
+        public Task<MaterialRowDto> UpdateMaterialAsync(Guid id, Guid ownerUserId, Guid locationId, string locationType, decimal quantity, CancellationToken ct) => throw new NotImplementedException();
+        public Task UpdateLocationAsync(Guid id, Guid locationId, string locationType, CancellationToken ct) => Task.CompletedTask;
         public Task<bool> ExistsAsync(Guid id, CancellationToken ct) => Task.FromResult(true);
         public Task RemoveAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
     }
@@ -114,7 +114,6 @@ public sealed class AddMaterialHandlerTests
             repo ?? new FakeMaterialRepo(),
             commodityRepo ?? new FakeCommodityRepo(),
             userRepo ?? new FakeUserRepo(),
-            new FakeStationRepo(),
             NullLogger<AddMaterialHandler>.Instance);
 
     [Fact]

@@ -1,5 +1,5 @@
 import { Combobox } from '@/components/ui/combobox'
-import { StationCombobox } from './StationCombobox'
+import { LocationCombobox } from './LocationCombobox'
 
 export interface ShipComponentFilterValues {
   name: string
@@ -7,8 +7,8 @@ export interface ShipComponentFilterValues {
   class: string
   size: string
   grade: string
-  station: string
-  stationId: string
+  location: string
+  locationId: string
 }
 
 interface Props {
@@ -32,7 +32,7 @@ export function ShipComponentsFilters({ values, onFilterChange }: Props) {
         <input
           id="sc-filter-name"
           aria-label="Name"
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+          className="h-9 w-40 rounded-md border border-input bg-background px-3 text-sm text-foreground"
           value={values.name}
           onChange={(e) => update({ name: e.target.value })}
           placeholder="Filter by name…"
@@ -92,12 +92,13 @@ export function ShipComponentsFilters({ values, onFilterChange }: Props) {
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-muted-foreground">Station</label>
-        <StationCombobox
-          value={values.stationId || undefined}
-          onValueChange={(id, name) => update({ stationId: id, station: name })}
-          placeholder="All stations"
+        <label className="text-xs text-muted-foreground">Location</label>
+        <LocationCombobox
+          value={values.locationId || undefined}
+          onValueChange={(loc) => update({ locationId: loc?.id ?? '', location: loc?.name ?? '' })}
+          placeholder="All locations"
           allowClear
+          aria-label="Location"
         />
       </div>
     </div>

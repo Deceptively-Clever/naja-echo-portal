@@ -102,7 +102,7 @@ public sealed class LocationCatalogIntegrationTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task WarehouseInventory_StationId_NullableFK_Accepted()
+    public async Task WarehouseInventory_LocationId_NullablePolymorphic_Accepted()
     {
         var user = new ApplicationUser
         {
@@ -138,29 +138,33 @@ public sealed class LocationCatalogIntegrationTests : IAsyncLifetime
             Location = "Bay 1",
             Quantity = 1,
             Quality = 500,
-            StationId = null,
+            LocationId = null,
+            LocationType = null,
         };
         _db.Set<WarehouseInventoryEntry>().Add(entry);
         await _db.SaveChangesAsync();
 
         var persisted = await _db.Set<WarehouseInventoryEntry>().FindAsync(entry.Id);
-        persisted!.StationId.Should().BeNull();
+        persisted!.LocationId.Should().BeNull();
+        persisted.LocationType.Should().BeNull();
 
-        // Now attach a valid station and verify FK is enforced
+        // Attach a station location (no FK constraint — polymorphic reference)
         var system = AddStarSystem(uexId: 1, name: "Stanton2");
         await _db.SaveChangesAsync();
         var station = AddSpaceStation(system.Id, uexId: 200, name: "ARC-L2");
         await _db.SaveChangesAsync();
 
-        persisted.StationId = station.Id;
+        persisted.LocationId = station.Id;
+        persisted.LocationType = "Station";
         await _db.SaveChangesAsync();
 
         var updated = await _db.Set<WarehouseInventoryEntry>().FindAsync(entry.Id);
-        updated!.StationId.Should().Be(station.Id);
+        updated!.LocationId.Should().Be(station.Id);
+        updated.LocationType.Should().Be("Station");
     }
 
     [Fact]
-    public async Task WarehouseMaterial_StationId_NullableFK_Accepted()
+    public async Task WarehouseMaterial_LocationId_NullablePolymorphic_Accepted()
     {
         var user = new ApplicationUser
         {
@@ -195,24 +199,28 @@ public sealed class LocationCatalogIntegrationTests : IAsyncLifetime
             Location = "Cargo Bay",
             Quantity = 10m,
             Quality = 500,
-            StationId = null,
+            LocationId = null,
+            LocationType = null,
         };
         _db.Set<WarehouseMaterialEntry>().Add(entry);
         await _db.SaveChangesAsync();
 
         var persisted = await _db.Set<WarehouseMaterialEntry>().FindAsync(entry.Id);
-        persisted!.StationId.Should().BeNull();
+        persisted!.LocationId.Should().BeNull();
+        persisted.LocationType.Should().BeNull();
 
-        // Attach a valid station
+        // Attach a station location (no FK constraint — polymorphic reference)
         var system = AddStarSystem(uexId: 2, name: "Odin");
         await _db.SaveChangesAsync();
         var station = AddSpaceStation(system.Id, uexId: 300, name: "CRU-L1");
         await _db.SaveChangesAsync();
 
-        persisted.StationId = station.Id;
+        persisted.LocationId = station.Id;
+        persisted.LocationType = "Station";
         await _db.SaveChangesAsync();
 
         var updated = await _db.Set<WarehouseMaterialEntry>().FindAsync(entry.Id);
-        updated!.StationId.Should().Be(station.Id);
+        updated!.LocationId.Should().Be(station.Id);
+        updated.LocationType.Should().Be("Station");
     }
 }

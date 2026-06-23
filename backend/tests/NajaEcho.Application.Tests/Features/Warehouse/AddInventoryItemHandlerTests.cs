@@ -27,7 +27,7 @@ public sealed class AddInventoryItemHandlerTests
         private readonly InventoryRowDto _row;
         public FakeWarehouseRepo() => _row = new(KnownRowId, KnownItemId, "Test Item", null, null, 1, 500, KnownOwnerId, "Alice", "Bay 1");
 
-        public Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(Guid itemId, Guid ownerUserId, string location, int quantity, int quality, Guid? stationId, CancellationToken ct) =>
+        public Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(Guid itemId, Guid ownerUserId, string location, int quantity, int quality, Guid? locationId, string? locationType, CancellationToken ct) =>
             Task.FromResult((_row with { ItemId = itemId, OwnerUserId = ownerUserId, Location = location, Quantity = quantity, Quality = quality }, NextIsNew));
 
         public Task<IReadOnlyList<InventoryRowDto>> GetInventoryAsync(string? name, string? type, string? subtype, Guid? ownerUserId, string? location, CancellationToken ct) =>
@@ -38,9 +38,9 @@ public sealed class AddInventoryItemHandlerTests
             Task.FromResult<IReadOnlyList<CatalogItemResultDto>>([]);
         public Task<InventoryRowDto> UpdateQuantityAsync(Guid id, int quantity, CancellationToken ct) =>
             throw new NotImplementedException();
-        public Task<InventoryRowDto> UpdateItemAsync(Guid id, Guid ownerUserId, Guid stationId, int quantity, CancellationToken ct) =>
+        public Task<InventoryRowDto> UpdateItemAsync(Guid id, Guid ownerUserId, Guid locationId, string locationType, int quantity, CancellationToken ct) =>
             throw new NotImplementedException();
-        public Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct) => Task.CompletedTask;
+        public Task UpdateLocationAsync(Guid id, Guid locationId, string locationType, CancellationToken ct) => Task.CompletedTask;
         public Task<bool> ExistsAsync(Guid id, CancellationToken ct) => Task.FromResult(true);
         public Task RemoveAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
     }
@@ -123,7 +123,6 @@ public sealed class AddInventoryItemHandlerTests
             userRepo ?? new FakeUserRepo(),
             scRepo ?? new FakeScRepo(),
             attrClient ?? new FakeAttrClient(),
-            new FakeStationRepo(),
             NullLogger<AddInventoryItemHandler>.Instance);
 
     [Fact]

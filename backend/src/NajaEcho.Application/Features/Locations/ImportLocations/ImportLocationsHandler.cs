@@ -9,6 +9,7 @@ public sealed class ImportLocationsHandler(
     IUexLocationClient uexClient,
     IStarSystemRepository starSystemRepo,
     ISpaceStationRepository stationRepo,
+    ICityRepository cityRepo,
     IImportCoordinator coordinator,
     ILogger<ImportLocationsHandler> logger)
 {
@@ -38,7 +39,17 @@ public sealed class ImportLocationsHandler(
 
             var stationCounts = await stationRepo.BulkUpsertAsync(stationDocs, starSystemMap, ct);
 
-            logger.LogInformation("Locations import complete: systems={@SystemCounts} stations={@StationCounts}", systemCounts, stationCounts);
+            var cityDocs = await uexClient.FetchAllCitiesAsync(ct);
+            if (!cityDocs.Any())
+            {
+                throw new EmptySourceException("cities");
+            }
+
+            var cityCounts = await cityRepo.BulkUpsertAsync(cityDocs, starSystemMap, ct);
+
+            logger.LogInformation(
+                "Locations import complete: systems={@SystemCounts} stations={@StationCounts} cities={@CityCounts}",
+                systemCounts, stationCounts, cityCounts);
 
             var systemResult = new EntityImportCounts(
                 systemCounts.added,
@@ -55,7 +66,15 @@ public sealed class ImportLocationsHandler(
                 stationCounts.skipped,
                 stationCounts.added + stationCounts.updated + stationCounts.reactivated + stationCounts.softDeleted);
 
-            return new ImportLocationsResult(systemResult, stationResult);
+            var cityResult = new CityImportCounts(
+                cityCounts.added,
+                cityCounts.updated,
+                cityCounts.reactivated,
+                cityCounts.softDeleted,
+                cityCounts.skipped,
+                cityCounts.added + cityCounts.updated + cityCounts.reactivated + cityCounts.softDeleted);
+
+            return new ImportLocationsResult(systemResult, stationResult, cityResult);
         }
         finally
         {

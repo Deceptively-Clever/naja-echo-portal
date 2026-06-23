@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/apiClient'
+import type { LocationType } from '../schemas/locationSchemas'
 import {
   shipComponentListResponseSchema,
   shipComponentFiltersResponseSchema,
@@ -69,7 +70,8 @@ export async function addShipComponent(body: {
   location: string
   quantity: number
   quality?: number
-  stationId?: string
+  locationId?: string
+  locationType?: LocationType
 }): Promise<InventoryRow> {
   const data = await apiFetch<unknown>('/api/warehouse/ship-components', {
     method: 'POST',

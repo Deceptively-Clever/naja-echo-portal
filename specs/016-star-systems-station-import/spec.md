@@ -15,7 +15,7 @@
 ### Session 2026-06-20
 
 - Q: If the UEX source returns a valid but empty record set, should the import treat this as an error or a no-op? → A: Treat as an error — abort import, show error message, commit no changes.
-- Q: Should the Transfer action open a modal dialog or an inline row control? → A: Modal dialog. If the member has already performed a Transfer in the current session, the combobox defaults to the last station they selected.
+- Q: Should location updates use a dedicated Transfer action or a unified Edit action? → A: Unified Edit modal covering location, quantity, and owner. The Edit modal pre-populates all fields with the row's current values.
 - Q: When a member selects a station from the combobox, should the free-text Location field be auto-populated? → A: The station reference (new field) is the canonical field being populated. The old free-text Location field is deprecated and will be removed in a future update; it is retained in this version for backward compatibility only.
 
 ---
@@ -57,20 +57,21 @@ A member adds a new entry (or edits an existing one) in any of the three warehou
 
 ---
 
-### User Story 3 — Transfer a Warehouse Entry to a New Station Location (Priority: P3)
+### User Story 3 — Edit a Warehouse Entry's Location, Quantity, and Owner (Priority: P3)
 
-A member selects a Transfer action on an existing warehouse row (item, ship component, or material). A modal dialog opens with a station combobox. If the member has already performed a Transfer during the current session, the combobox defaults to the last station they selected. On confirmation, the entry's station reference is updated to the selected station.
+A member selects an Edit action on an existing warehouse row (item, ship component, or material). A modal dialog opens with fields for location (station combobox), quantity, and owner. The member can update any combination of these fields. On confirmation, the entry is updated with the new values.
 
-**Why this priority**: Enables members to update the canonical location of an existing entry without a full edit workflow. Builds on the station catalog and dropdown work already done in P2, adding a focused transfer interaction that keeps the station FK up-to-date as assets move.
+**Why this priority**: Enables members to update key fields of an existing entry without a separate workflow per field. Builds on the station catalog and dropdown work already done in P2, providing a unified edit experience for the fields most likely to change after initial entry.
 
-**Independent Test**: Can be fully tested by triggering Transfer on an existing warehouse row, selecting a different station, confirming, and verifying the entry's stored station reference has changed.
+**Independent Test**: Can be fully tested by triggering Edit on an existing warehouse row, changing the station, quantity, and/or owner, confirming, and verifying all changed fields are persisted correctly.
 
 **Acceptance Scenarios**:
 
-1. **Given** a member views a warehouse row, **When** they select the Transfer action, **Then** a modal dialog opens with a station combobox showing active, non-decommissioned stations.
-2. **Given** a member selects a destination station and confirms, **When** the transfer is saved, **Then** the warehouse row's station reference is updated to the chosen station.
-3. **Given** a member has already performed a Transfer in the current session, **When** they open the Transfer modal for another row, **Then** the station combobox pre-selects the last station they transferred to.
-4. **Given** a member opens the Transfer dialog, **When** they cancel without selecting, **Then** the warehouse row's location is unchanged.
+1. **Given** a member views a warehouse row, **When** they select the Edit action, **Then** a modal dialog opens pre-populated with the row's current location, quantity, and owner.
+2. **Given** a member changes the station in the Edit modal and confirms, **When** the edit is saved, **Then** the warehouse row's station reference is updated to the chosen station.
+3. **Given** a member changes the quantity in the Edit modal and confirms, **When** the edit is saved, **Then** the warehouse row's quantity reflects the new value.
+4. **Given** a member changes the owner in the Edit modal and confirms, **When** the edit is saved, **Then** the warehouse row's owner reflects the new value.
+5. **Given** a member opens the Edit dialog, **When** they cancel without saving, **Then** the warehouse row is unchanged.
 
 ---
 
@@ -80,6 +81,7 @@ A member selects a Transfer action on an existing warehouse row (item, ship comp
 - What happens when a space station references a star system ID not yet present in the local catalog? The record should be skipped with an appropriate count in the "skipped" summary field.
 - What happens when a member adds a warehouse entry without selecting a station? The free-text Location field remains available as a fallback; the station FK column is left null.
 - What happens when the only available stations are all decommissioned or unavailable? The dropdown is empty; the member can still use the free-text Location field.
+- What happens when a member opens the Edit dialog and cancels without saving? The warehouse row is unchanged — no partial updates are applied.
 - What happens when an entry's previously referenced station is subsequently soft-deleted via import? The entry retains its stored reference (no cascade), and the station name continues to display using the last known name.
 
 ---
@@ -98,8 +100,8 @@ A member selects a Transfer action on an existing warehouse row (item, ship comp
 - **FR-008**: All three warehouse features (item inventory, ship components, materials) MUST present a searchable station combobox in their add/edit dialogs for the Location field.
 - **FR-009**: The station combobox MUST display the full station name (e.g., "ARC-L1 Wide Forest Station").
 - **FR-010**: The new nullable station reference column is the canonical Location field for warehouse entries. The existing free-text Location string column is retained in this version for backward compatibility only and is considered deprecated; it will be removed in a future update.
-- **FR-011**: Each warehouse row MUST expose a Transfer action that opens a modal dialog with the station combobox, allowing a member to update the row's station reference.
-- **FR-014**: The Transfer modal MUST default the station combobox to the last station the member selected during the current session, if a prior Transfer has been performed.
+- **FR-011**: Each warehouse row MUST expose an Edit action that opens a modal dialog with fields for location (station combobox), quantity, and owner, allowing a member to update any combination of these fields.
+- **FR-014**: The Edit modal MUST pre-populate all fields with the row's current values when opened.
 - **FR-012**: The import MUST fail with a clear error message and commit no changes if the external catalog source is unreachable or returns an empty record set.
 - **FR-013**: Space station records referencing a star system ID not present in the local catalog MUST be skipped and counted in the "skipped" import summary.
 
@@ -119,7 +121,7 @@ A member selects a Transfer action on an existing warehouse row (item, ship comp
 - **SC-002**: Following a successful import, all three warehouse add/edit dialogs present a non-empty, searchable station list without additional configuration.
 - **SC-003**: Members can type a partial station name in the Location combobox and see a filtered list of matching stations within a single interaction.
 - **SC-004**: A warehouse entry saved with a selected station accurately retains the canonical station reference when retrieved in a subsequent session.
-- **SC-005**: The Transfer action allows a member to change a warehouse entry's station reference in three interactions or fewer (open transfer, select station, confirm).
+- **SC-005**: The Edit action allows a member to update a warehouse entry's location, quantity, and/or owner in a single modal interaction (open edit, change fields, confirm).
 - **SC-006**: An import run with an unreachable source leaves the existing catalog intact — zero rows inserted, updated, or deleted.
 - **SC-007**: Existing warehouse entries with only a deprecated free-text Location value continue to display and function correctly after the database schema change; no existing data is lost or corrupted.
 

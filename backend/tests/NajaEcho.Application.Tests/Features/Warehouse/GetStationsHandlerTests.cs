@@ -2,12 +2,12 @@ using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using NajaEcho.Application.Abstractions;
-using NajaEcho.Application.Features.Warehouse.GetStations;
+using NajaEcho.Application.Features.Warehouse.GetLocations;
 using Xunit;
 
 namespace NajaEcho.Application.Tests.Features.Warehouse;
 
-public sealed class GetStationsHandlerTests
+public sealed class GetLocationsHandlerTests
 {
     private sealed class FakeStationRepo : ISpaceStationRepository
     {
@@ -31,24 +31,59 @@ public sealed class GetStationsHandlerTests
         public Task<bool> ExistsAsync(Guid id, CancellationToken ct) => Task.FromResult(true);
     }
 
-    private static GetStationsHandler CreateHandler(FakeStationRepo repo) =>
-        new(repo, NullLogger<GetStationsHandler>.Instance);
+    private sealed class FakeCityRepo : ICityRepository
+    {
+        public List<CityDto> Cities { get; set; } = [];
+
+        public Task<(int added, int updated, int reactivated, int softDeleted, int skipped)> BulkUpsertAsync(
+            IReadOnlyList<JsonDocument> records, IReadOnlyDictionary<int, Guid> starSystemMap, CancellationToken ct = default)
+            => Task.FromResult((0, 0, 0, 0, 0));
+
+        public Task<IReadOnlyList<CityDto>> SearchActiveCitiesAsync(string? search, int limit, CancellationToken ct)
+        {
+            IReadOnlyList<CityDto> result = [.. Cities];
+            return Task.FromResult(result);
+        }
+    }
+
+    private static GetLocationsHandler CreateHandler(FakeStationRepo stationRepo, FakeCityRepo? cityRepo = null) =>
+        new(stationRepo, cityRepo ?? new FakeCityRepo(), NullLogger<GetLocationsHandler>.Instance);
 
     [Fact]
-    public async Task ReturnsListFromRepository()
+    public async Task ReturnsStationsAndCitiesCombined()
     {
-        var repo = new FakeStationRepo
+        var stationRepo = new FakeStationRepo
         {
-            Stations =
-            [
-                new StationDto(Guid.NewGuid(), "ARC-L1 Wide Forest Station"),
-                new StationDto(Guid.NewGuid(), "CRU-L1 Ambitious Dream Station"),
-            ]
+            Stations = [new StationDto(Guid.NewGuid(), "ARC-L1 Wide Forest Station")]
+        };
+        var cityRepo = new FakeCityRepo
+        {
+            Cities = [new CityDto(Guid.NewGuid(), "Lorville")]
         };
 
-        var result = await CreateHandler(repo).HandleAsync(new GetStationsQuery(null, 25), default);
+        var result = await CreateHandler(stationRepo, cityRepo).HandleAsync(new GetLocationsQuery(null, 25), default);
 
         result.Should().HaveCount(2);
+        result.Should().Contain(l => l.Type == "Station");
+        result.Should().Contain(l => l.Type == "City");
+    }
+
+    [Fact]
+    public async Task ResultsSortedAlphabetically()
+    {
+        var stationRepo = new FakeStationRepo
+        {
+            Stations = [new StationDto(Guid.NewGuid(), "Zeta Station")]
+        };
+        var cityRepo = new FakeCityRepo
+        {
+            Cities = [new CityDto(Guid.NewGuid(), "Alpha City")]
+        };
+
+        var result = await CreateHandler(stationRepo, cityRepo).HandleAsync(new GetLocationsQuery(null, 25), default);
+
+        result[0].Name.Should().Be("Alpha City");
+        result[1].Name.Should().Be("Zeta Station");
     }
 
     [Fact]
@@ -56,7 +91,7 @@ public sealed class GetStationsHandlerTests
     {
         var repo = new FakeStationRepo { Stations = [] };
 
-        await CreateHandler(repo).HandleAsync(new GetStationsQuery("ARC", 25), default);
+        await CreateHandler(repo).HandleAsync(new GetLocationsQuery("ARC", 25), default);
 
         repo.LastSearch.Should().Be("ARC");
     }
@@ -66,7 +101,7 @@ public sealed class GetStationsHandlerTests
     {
         var repo = new FakeStationRepo { Stations = [] };
 
-        await CreateHandler(repo).HandleAsync(new GetStationsQuery(null, 200), default);
+        await CreateHandler(repo).HandleAsync(new GetLocationsQuery(null, 200), default);
 
         repo.LastLimit.Should().Be(100);
     }
@@ -76,7 +111,7 @@ public sealed class GetStationsHandlerTests
     {
         var repo = new FakeStationRepo { Stations = [] };
 
-        await CreateHandler(repo).HandleAsync(new GetStationsQuery(null, 0), default);
+        await CreateHandler(repo).HandleAsync(new GetLocationsQuery(null, 0), default);
 
         repo.LastLimit.Should().Be(1);
     }
@@ -86,7 +121,7 @@ public sealed class GetStationsHandlerTests
     {
         var repo = new FakeStationRepo { Stations = [] };
 
-        var result = await CreateHandler(repo).HandleAsync(new GetStationsQuery(null, 25), default);
+        var result = await CreateHandler(repo).HandleAsync(new GetLocationsQuery(null, 25), default);
 
         result.Should().BeEmpty();
     }

@@ -1,12 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using NajaEcho.Application.Abstractions;
-using NajaEcho.Application.Features.Warehouse.AddInventoryItem;
 using NajaEcho.Application.Features.Warehouse.ChangeInventoryQuantity;
 using NajaEcho.Application.Features.Warehouse.GetInventory;
 using NajaEcho.Application.Features.Warehouse.GetInventoryFilters;
 using NajaEcho.Application.Features.Warehouse.SearchCatalogItems;
 using NajaEcho.Domain.Items;
-using NajaEcho.Domain.Warehouse;
 using NajaEcho.Infrastructure.Persistence;
 
 namespace NajaEcho.Infrastructure.Warehouse;
@@ -26,37 +24,40 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
 
         var rows = await db.Database.SqlQuery<InventoryRow>($"""
             SELECT
-              w.id                                  AS id,
-              w.item_id                             AS item_id,
-              i.name                                AS name,
-              i.section                             AS type,
-              i.category                            AS subtype,
-              w.quantity                            AS quantity,
-              w.quality                             AS quality,
-              w.owner_user_id                       AS owner_user_id,
-              u.display_name                        AS owner_display_name,
-              COALESCE(ss.name, w.location)         AS location,
-              w.station_id                          AS station_id
+              w.id                                          AS id,
+              w.item_id                                     AS item_id,
+              i.name                                        AS name,
+              i.section                                     AS type,
+              i.category                                    AS subtype,
+              w.quantity                                    AS quantity,
+              w.quality                                     AS quality,
+              w.owner_user_id                               AS owner_user_id,
+              u.display_name                                AS owner_display_name,
+              COALESCE(ss.name, ci.name, w.location)        AS location,
+              w.location_id                                 AS location_id,
+              w.location_type                               AS location_type
             FROM warehouse_inventory w
             JOIN sc.items i           ON i.id = w.item_id
             JOIN "AspNetUsers" u      ON u.id = w.owner_user_id
-            LEFT JOIN sc.space_stations ss ON ss.id = w.station_id
+            LEFT JOIN sc.space_stations ss ON ss.id = w.location_id AND w.location_type = 'Station'
+            LEFT JOIN sc.cities ci         ON ci.id = w.location_id AND w.location_type = 'City'
             WHERE ({namePattern}::text IS NULL OR i.name ILIKE {namePattern})
               AND ({type}::text        IS NULL OR i.section   = {type})
               AND ({subtype}::text     IS NULL OR i.category  = {subtype})
               AND ({ownerUserId}::uuid IS NULL OR w.owner_user_id = {ownerUserId})
-              AND ({locationPattern}::text IS NULL OR COALESCE(ss.name, w.location) ILIKE {locationPattern})
+              AND ({locationPattern}::text IS NULL OR COALESCE(ss.name, ci.name, w.location) ILIKE {locationPattern})
             ORDER BY i.name
             """).ToListAsync(ct);
 
         return rows.Select(r => new InventoryRowDto(
             r.Id, r.ItemId, r.Name, r.Type, r.Subtype, r.Quantity, r.Quality,
-            r.OwnerUserId, r.OwnerDisplayName, r.Location, r.StationId)).ToList();
+            r.OwnerUserId, r.OwnerDisplayName, r.Location, r.LocationId, r.LocationType)).ToList();
     }
 
     private sealed record InventoryRow(
         Guid Id, Guid ItemId, string Name, string? Type, string? Subtype,
-        int Quantity, int Quality, Guid OwnerUserId, string OwnerDisplayName, string Location, Guid? StationId);
+        int Quantity, int Quality, Guid OwnerUserId, string OwnerDisplayName, string Location,
+        Guid? LocationId, string? LocationType);
 
     public async Task<InventoryFiltersDto> GetInventoryFiltersAsync(CancellationToken ct)
     {
@@ -116,16 +117,18 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
     // ──────────────────────────────────────────────────────────────────────
 
     public async Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(
-        Guid itemId, Guid ownerUserId, string location, int quantity, int quality, Guid? stationId, CancellationToken ct)
+        Guid itemId, Guid ownerUserId, string location, int quantity, int quality,
+        Guid? locationId, string? locationType, CancellationToken ct)
     {
         var now = DateTimeOffset.UtcNow;
 
         var results = await db.Database.SqlQuery<UpsertResult>($"""
             INSERT INTO warehouse_inventory (
-                id, item_id, owner_user_id, location, quantity, quality, station_id, created_at, updated_at
+                id, item_id, owner_user_id, location, quantity, quality, location_id, location_type, created_at, updated_at
             )
             VALUES (
-                {Guid.NewGuid()}, {itemId}, {ownerUserId}, {location}, {quantity}, {quality}, {stationId}, {now}, {now}
+                {Guid.NewGuid()}, {itemId}, {ownerUserId}, {location}, {quantity}, {quality},
+                {locationId}, {locationType}, {now}, {now}
             )
             ON CONFLICT (item_id, owner_user_id, location)
             DO UPDATE SET
@@ -160,7 +163,7 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
         return await LoadRowDtoAsync(id, ct);
     }
 
-    public async Task<InventoryRowDto> UpdateItemAsync(Guid id, Guid ownerUserId, Guid stationId, int quantity, CancellationToken ct)
+    public async Task<InventoryRowDto> UpdateItemAsync(Guid id, Guid ownerUserId, Guid locationId, string locationType, int quantity, CancellationToken ct)
     {
         var entry = await db.WarehouseInventory.FirstOrDefaultAsync(w => w.Id == id, ct);
         if (entry is null)
@@ -169,7 +172,8 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
         }
 
         entry.OwnerUserId = ownerUserId;
-        entry.StationId = stationId;
+        entry.LocationId = locationId;
+        entry.LocationType = locationType;
         entry.Quantity = quantity;
         entry.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
@@ -177,7 +181,7 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
         return await LoadRowDtoAsync(id, ct);
     }
 
-    public async Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct)
+    public async Task UpdateLocationAsync(Guid id, Guid locationId, string locationType, CancellationToken ct)
     {
         var entry = await db.WarehouseInventory.FirstOrDefaultAsync(w => w.Id == id, ct);
         if (entry is null)
@@ -185,7 +189,8 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
             throw new InventoryRowNotFoundException(id);
         }
 
-        entry.StationId = stationId;
+        entry.LocationId = locationId;
+        entry.LocationType = locationType;
         entry.UpdatedAt = DateTimeOffset.UtcNow;
         await db.SaveChangesAsync(ct);
     }
@@ -207,28 +212,31 @@ public sealed class WarehouseInventoryRepository(AppDbContext db) : IWarehouseIn
 
     private async Task<InventoryRowDto> LoadRowDtoAsync(Guid id, CancellationToken ct)
     {
-        var rows = await db.Database.SqlQuery<InventoryRow>($"""
+        var row = await db.Database.SqlQuery<InventoryRow>($"""
             SELECT
-              w.id                                  AS id,
-              w.item_id                             AS item_id,
-              i.name                                AS name,
-              i.section                             AS type,
-              i.category                            AS subtype,
-              w.quantity                            AS quantity,
-              w.quality                             AS quality,
-              w.owner_user_id                       AS owner_user_id,
-              u.display_name                        AS owner_display_name,
-              COALESCE(ss.name, w.location)         AS location,
-              w.station_id                          AS station_id
+              w.id                                          AS id,
+              w.item_id                                     AS item_id,
+              i.name                                        AS name,
+              i.section                                     AS type,
+              i.category                                    AS subtype,
+              w.quantity                                    AS quantity,
+              w.quality                                     AS quality,
+              w.owner_user_id                               AS owner_user_id,
+              u.display_name                                AS owner_display_name,
+              COALESCE(ss.name, ci.name, w.location)        AS location,
+              w.location_id                                 AS location_id,
+              w.location_type                               AS location_type
             FROM warehouse_inventory w
             JOIN sc.items i           ON i.id = w.item_id
             JOIN "AspNetUsers" u      ON u.id = w.owner_user_id
-            LEFT JOIN sc.space_stations ss ON ss.id = w.station_id
+            LEFT JOIN sc.space_stations ss ON ss.id = w.location_id AND w.location_type = 'Station'
+            LEFT JOIN sc.cities ci         ON ci.id = w.location_id AND w.location_type = 'City'
             WHERE w.id = {id}
             """).FirstAsync(ct);
 
         return new InventoryRowDto(
-            rows.Id, rows.ItemId, rows.Name, rows.Type, rows.Subtype,
-            rows.Quantity, rows.Quality, rows.OwnerUserId, rows.OwnerDisplayName, rows.Location, rows.StationId);
+            row.Id, row.ItemId, row.Name, row.Type, row.Subtype,
+            row.Quantity, row.Quality, row.OwnerUserId, row.OwnerDisplayName, row.Location,
+            row.LocationId, row.LocationType);
     }
 }

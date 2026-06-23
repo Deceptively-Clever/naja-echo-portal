@@ -6,4 +6,5 @@ public interface IUexLocationClient
 {
     Task<IReadOnlyList<JsonDocument>> FetchAllStarSystemsAsync(CancellationToken ct = default);
     Task<IReadOnlyList<JsonDocument>> FetchAllSpaceStationsAsync(CancellationToken ct = default);
+    Task<IReadOnlyList<JsonDocument>> FetchAllCitiesAsync(CancellationToken ct = default);
 }

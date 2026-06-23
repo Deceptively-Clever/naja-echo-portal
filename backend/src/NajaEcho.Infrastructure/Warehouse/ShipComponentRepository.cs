@@ -44,13 +44,15 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
               w.quality                               AS quality,
               w.owner_user_id                         AS owner_user_id,
               u.display_name                          AS owner_display_name,
-              COALESCE(ss.name, w.location)           AS location,
-              w.station_id                            AS station_id
+              COALESCE(ss.name, ci.name, w.location)  AS location,
+              w.location_id                           AS location_id,
+              w.location_type                         AS location_type
             FROM warehouse_inventory w
             JOIN sc.items i                  ON i.id = w.item_id
             LEFT JOIN sc.ship_component_attributes sca ON sca.item_id = i.id
             JOIN "AspNetUsers" u             ON u.id = w.owner_user_id
-            LEFT JOIN sc.space_stations ss   ON ss.id = w.station_id
+            LEFT JOIN sc.space_stations ss   ON ss.id = w.location_id AND w.location_type = 'Station'
+            LEFT JOIN sc.cities ci           ON ci.id = w.location_id AND w.location_type = 'City'
             WHERE LOWER(i.section) IN ({SystemsSectionLower}, {VehicleWeaponsSectionLower})
               AND ({namePattern}::text IS NULL OR i.name ILIKE {namePattern})
               AND ({types}::text[] IS NULL OR i.category ILIKE ANY(SELECT unnest({types}::text[])))
@@ -76,12 +78,13 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
 
         return rows.Select(r => new ShipComponentRowDto(
             r.Id, r.ItemId, r.Name, r.Type, r.Class, r.Size, r.Grade,
-            r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location, r.StationId)).ToList();
+            r.Quantity, r.Quality, r.OwnerUserId, r.OwnerDisplayName, r.Location, r.LocationId, r.LocationType)).ToList();
     }
 
     private sealed record ScRow(
         Guid Id, Guid ItemId, string Name, string? Type, string? Class, int? Size, string? Grade,
-        int Quantity, int Quality, Guid OwnerUserId, string OwnerDisplayName, string Location, Guid? StationId);
+        int Quantity, int Quality, Guid OwnerUserId, string OwnerDisplayName, string Location,
+        Guid? LocationId, string? LocationType);
 
     // ── Filters ──────────────────────────────────────────────────────────
 
@@ -136,9 +139,11 @@ public sealed class ShipComponentRepository(AppDbContext db) : IShipComponentRep
             """).ToListAsync(ct);
 
         var locations = await db.Database.SqlQuery<StringValue>($"""
-            SELECT DISTINCT w.location AS value
+            SELECT DISTINCT COALESCE(ss.name, ci.name, w.location) AS value
             FROM warehouse_inventory w
             JOIN sc.items i ON i.id = w.item_id
+            LEFT JOIN sc.space_stations ss ON ss.id = w.location_id AND w.location_type = 'Station'
+            LEFT JOIN sc.cities ci         ON ci.id = w.location_id AND w.location_type = 'City'
             WHERE LOWER(i.section) IN ({SystemsSectionLower}, {VehicleWeaponsSectionLower})
             ORDER BY value
             """).ToListAsync(ct);
