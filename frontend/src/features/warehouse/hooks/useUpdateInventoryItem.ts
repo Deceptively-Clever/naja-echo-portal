@@ -1,6 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { updateInventoryItem } from '../api/warehouseApi'
 import { warehouseKeys } from './warehouseQueryKeys'
+import type { LocationType } from '../schemas/locationSchemas'
 
 export function useUpdateInventoryItem() {
   const queryClient = useQueryClient()
@@ -8,14 +9,16 @@ export function useUpdateInventoryItem() {
     mutationFn: ({
       id,
       ownerUserId,
-      stationId,
+      locationId,
+      locationType,
       quantity,
     }: {
       id: string
       ownerUserId: string
-      stationId: string
+      locationId: string
+      locationType: LocationType
       quantity: number
-    }) => updateInventoryItem(id, { ownerUserId, stationId, quantity }),
+    }) => updateInventoryItem(id, { ownerUserId, locationId, locationType, quantity }),
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: warehouseKeys.inventory() })
     },

@@ -37,7 +37,14 @@ public static class LocationAdminEndpoints
                     result.SpaceStations.Reactivated,
                     result.SpaceStations.SoftDeleted,
                     result.SpaceStations.Skipped,
-                    result.SpaceStations.Total)));
+                    result.SpaceStations.Total),
+                new CityImportCountsResponse(
+                    result.Cities.Added,
+                    result.Cities.Updated,
+                    result.Cities.Reactivated,
+                    result.Cities.SoftDeleted,
+                    result.Cities.Skipped,
+                    result.Cities.Total)));
         }
         catch (ImportAlreadyInProgressException)
         {

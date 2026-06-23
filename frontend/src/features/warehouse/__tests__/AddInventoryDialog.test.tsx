@@ -38,12 +38,12 @@ describe('AddInventoryDialog', () => {
     expect(screen.getByLabelText(/search catalog/i)).toBeDefined()
   })
 
-  it('renders station combobox, quantity, and quality fields', () => {
+  it('renders location combobox, quantity, and quality fields', () => {
     render(
       <AddInventoryDialog open={true} onClose={() => {}} currentUserId="user-1" />,
       { wrapper: createWrapper() }
     )
-    expect(screen.getByText('Select a station…')).toBeDefined()
+    expect(screen.getByText('Select a location…')).toBeDefined()
     expect(screen.getByLabelText(/quantity/i)).toBeDefined()
     expect(screen.getByLabelText(/quality/i)).toBeDefined()
   })
@@ -92,10 +92,10 @@ describe('AddInventoryDialog', () => {
     expect(closed).toBe(true)
   })
 
-  it('pre-fills station from rememberedStation prop', async () => {
+  it('pre-fills location from rememberedLocation prop', async () => {
     server.use(
-      http.get('/api/warehouse/stations', () =>
-        HttpResponse.json({ stations: [{ id: 'station-bay3', name: 'Bay 3' }] })
+      http.get('/api/warehouse/locations', () =>
+        HttpResponse.json({ locations: [{ id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: 'Bay 3', type: 'Station' }] })
       )
     )
     render(
@@ -103,7 +103,7 @@ describe('AddInventoryDialog', () => {
         open={true}
         onClose={() => {}}
         currentUserId="user-1"
-        rememberedStation={{ id: 'station-bay3', name: 'Bay 3' }}
+        rememberedLocation={{ id: 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', name: 'Bay 3', type: 'Station' }}
       />,
       { wrapper: createWrapper() }
     )

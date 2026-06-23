@@ -1,0 +1,217 @@
+openapi: 3.0.3
+info:
+  title: Cities Import & Unified Locations — NajaEchoPortal
+  version: 1.0.0
+  description: >
+    New and modified HTTP behaviour for feature 018. Extends the feature-016 location import to also
+    import cities (folded into the same admin import endpoint, adding a cities summary block), replaces
+    the member-facing station list with a unified Locations list spanning active stations AND active
+    cities, and changes the warehouse add/update/transfer request bodies from a single `stationId` to a
+    polymorphic `locationId` + `locationType` pair. The two warehouse Transfer routes are renamed from
+    `.../station` to `.../location`. All endpoints require an authenticated session cookie; the import
+    requires the Admin policy and the Transfers require the Quartermaster policy. Errors use RFC 7807
+    application/problem+json.
+
+servers:
+  - url: /
+
+paths:
+  /api/admin/locations/import:
+    post:
+      operationId: importLocations
+      summary: Import star systems, space stations, then cities from the UEX catalog (admin only).
+      description: >
+        Runs the full import in one transactional unit per source: star systems are upserted first,
+        then space stations, then cities — both stations and cities resolve their parent star system
+        from the freshly imported system catalog and SKIP (counted) any record whose parent is
+        null/missing/unknown. Records absent from the source are soft-deleted. An empty or unreachable
+        source (including an empty cities feed) aborts the run and commits no changes (502).
+        UNCHANGED from feature 016 except the response now carries a `cities` counts block.
+      tags: [Admin Locations]
+      security: [{ cookieAuth: [] }]
+      responses:
+        '200':
+          description: Import completed. Per-entity summary counts (systems, stations, cities).
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ImportLocationsResponse' }
+        '401': { description: Not authenticated. }
+        '403': { description: Authenticated but not an admin. }
+        '409':
+          description: An import is already in progress.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '502':
+          description: A UEX source was unreachable or returned an empty data set; no changes committed.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+
+  /api/warehouse/locations:
+    get:
+      operationId: searchLocations
+      summary: Searchable unified list of active stations and active cities (any authenticated member).
+      description: >
+        Replaces `GET /api/warehouse/stations`. Returns active space stations
+        (`status=Active AND is_available AND NOT is_decommissioned`) and active cities
+        (`status=Active AND is_available AND is_visible`) merged into a single FLAT, alphabetical
+        (case-insensitive, by name) list with no type grouping. Each item carries a `type`
+        discriminator so the client can persist the polymorphic reference. `is_available_live` is not
+        used as a filter in this version.
+      tags: [Warehouse]
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - name: search
+          in: query
+          required: false
+          schema: { type: string }
+          description: Case-insensitive substring matched against location name (stations and cities).
+        - name: limit
+          in: query
+          required: false
+          schema: { type: integer, minimum: 1, maximum: 100, default: 25 }
+          description: Max items returned after the merge (clamped 1–100).
+      responses:
+        '200':
+          description: Matching locations, interleaved alphabetically.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LocationListResponse' }
+        '401': { description: Not authenticated. }
+
+  /api/warehouse/items/{id}/location:
+    put:
+      operationId: transferItemLocation
+      summary: Set/replace the location of an item-inventory row (Quartermaster only).
+      description: Renamed from `.../station`. Body carries the polymorphic location reference.
+      tags: [Warehouse]
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TransferLocationRequest' }
+      responses:
+        '204': { description: Location updated. }
+        '400':
+          description: Invalid location reference (e.g. unknown discriminator).
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { description: Not authenticated. }
+        '403': { description: Not a Quartermaster. }
+        '404': { description: Row not found. }
+
+  /api/warehouse/materials/{id}/location:
+    put:
+      operationId: transferMaterialLocation
+      summary: Set/replace the location of a material row (Quartermaster only).
+      description: Renamed from `.../station`. Body carries the polymorphic location reference.
+      tags: [Warehouse]
+      security: [{ cookieAuth: [] }]
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: string, format: uuid } }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TransferLocationRequest' }
+      responses:
+        '204': { description: Location updated. }
+        '400':
+          description: Invalid location reference.
+          content:
+            application/problem+json:
+              schema: { $ref: '#/components/schemas/Problem' }
+        '401': { description: Not authenticated. }
+        '403': { description: Not a Quartermaster. }
+        '404': { description: Row not found. }
+
+components:
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: __Host-session
+
+  schemas:
+    ImportLocationsResponse:
+      type: object
+      required: [starSystems, spaceStations, cities]
+      description: >
+        Per-source import summary. `starSystems` and `spaceStations` are UNCHANGED from feature 016;
+        `cities` is added by this feature.
+      properties:
+        starSystems: { $ref: '#/components/schemas/EntityImportCounts' }
+        spaceStations: { $ref: '#/components/schemas/CatalogImportCounts' }
+        cities: { $ref: '#/components/schemas/CatalogImportCounts' }
+
+    EntityImportCounts:
+      type: object
+      description: Counts for a source without a skip path (star systems).
+      required: [added, updated, reactivated, softDeleted, total]
+      properties:
+        added: { type: integer }
+        updated: { type: integer }
+        reactivated: { type: integer }
+        softDeleted: { type: integer }
+        total: { type: integer }
+
+    CatalogImportCounts:
+      type: object
+      description: Counts for a source with a skip path (stations, cities). `skipped` = records with a missing/unknown parent star system.
+      required: [added, updated, reactivated, softDeleted, skipped, total]
+      properties:
+        added: { type: integer }
+        updated: { type: integer }
+        reactivated: { type: integer }
+        softDeleted: { type: integer }
+        skipped: { type: integer }
+        total: { type: integer }
+
+    LocationListResponse:
+      type: object
+      required: [locations]
+      properties:
+        locations:
+          type: array
+          items: { $ref: '#/components/schemas/LocationOption' }
+
+    LocationOption:
+      type: object
+      required: [id, name, type]
+      properties:
+        id: { type: string, format: uuid, description: Catalog row id (a station id or a city id). }
+        name: { type: string }
+        type:
+          $ref: '#/components/schemas/LocationType'
+
+    LocationType:
+      type: string
+      enum: [Station, City]
+      description: Polymorphic discriminator for a warehouse location reference.
+
+    TransferLocationRequest:
+      type: object
+      required: [locationId, locationType]
+      description: >
+        Polymorphic location reference. Also the shape of the optional `location` block now accepted on
+        the existing add/update entry bodies (replacing the prior `stationId` field): callers send
+        `locationId` + `locationType` together, or omit both to clear the reference.
+      properties:
+        locationId: { type: string, format: uuid }
+        locationType:
+          $ref: '#/components/schemas/LocationType'
+
+    Problem:
+      type: object
+      description: RFC 7807 problem document.
+      properties:
+        type: { type: string }
+        title: { type: string }
+        status: { type: integer }
+        detail: { type: string }
+</content>

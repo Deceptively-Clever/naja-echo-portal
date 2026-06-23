@@ -1,13 +1,13 @@
 import { Combobox } from '@/components/ui/combobox'
 import { Button } from '@/components/ui/button'
-import { StationCombobox } from './StationCombobox'
+import { LocationCombobox } from './LocationCombobox'
 import type { MaterialFiltersResponse, MaterialFilterFormValues } from '../schemas/materialSchemas'
 
 const DEFAULT_VALUES: MaterialFilterFormValues = {
   material: '',
   ownerUserId: '',
-  station: '',
-  stationId: '',
+  location: '',
+  locationId: '',
   qualityMin: 1,
   qualityMax: 1000,
 }
@@ -30,7 +30,7 @@ export function MaterialsFilters({ filters, values, onFilterChange }: Props) {
         <input
           id="filter-material"
           aria-label="Material"
-          className="h-9 rounded-md border border-input bg-background px-3 text-sm text-foreground"
+          className="h-9 w-40 rounded-md border border-input bg-background px-3 text-sm text-foreground"
           value={values.material}
           onChange={(e) => update({ material: e.target.value })}
           placeholder="Filter by name or code…"
@@ -51,12 +51,13 @@ export function MaterialsFilters({ filters, values, onFilterChange }: Props) {
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-xs text-muted-foreground">Station</label>
-        <StationCombobox
-          value={values.stationId || undefined}
-          onValueChange={(id, name) => update({ stationId: id, station: name })}
-          placeholder="All stations"
+        <label className="text-xs text-muted-foreground">Location</label>
+        <LocationCombobox
+          value={values.locationId || undefined}
+          onValueChange={(loc) => update({ locationId: loc?.id ?? '', location: loc?.name ?? '' })}
+          placeholder="All locations"
           allowClear
+          aria-label="Location"
         />
       </div>
 

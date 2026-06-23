@@ -6,4 +6,5 @@ public sealed record AddMaterialCommand(
     string Location,
     decimal Quantity,
     int Quality = 500,
-    Guid? StationId = null);
+    Guid? LocationId = null,
+    string? LocationType = null);

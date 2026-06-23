@@ -9,15 +9,15 @@ import { InventoryTable } from '../components/InventoryTable'
 import { InventoryFilters, type FilterValues } from '../components/InventoryFilters'
 import { AddInventoryDialog } from '../components/AddInventoryDialog'
 import { Skeleton } from '@/components/ui/skeleton'
-import type { StationOption } from '../schemas/stationSchemas'
+import type { LocationOption } from '../schemas/locationSchemas'
 
 const emptyFilters: FilterValues = {
   name: '',
   type: '',
   subtype: '',
   ownerUserId: '',
-  station: '',
-  stationId: '',
+  location: '',
+  locationId: '',
 }
 
 export function WarehouseItemsView() {
@@ -26,7 +26,7 @@ export function WarehouseItemsView() {
 
   const [filterValues, setFilterValues] = useState<FilterValues>(emptyFilters)
   const [addOpen, setAddOpen] = useState(false)
-  const [rememberedStation, setRememberedStation] = useState<StationOption | undefined>(undefined)
+  const [rememberedLocation, setRememberedLocation] = useState<LocationOption | undefined>(undefined)
   const [rememberedOwnerId, setRememberedOwnerId] = useState('')
 
   const activeFilters = {
@@ -34,7 +34,7 @@ export function WarehouseItemsView() {
     type: filterValues.type || undefined,
     subtype: filterValues.subtype || undefined,
     ownerUserId: filterValues.ownerUserId || undefined,
-    location: filterValues.station || undefined,
+    location: filterValues.location || undefined,
   }
 
   const { data: inventoryData, isLoading } = useInventory(activeFilters)
@@ -47,9 +47,9 @@ export function WarehouseItemsView() {
   const currentUserId =
     session?.authenticated === true ? session.user.id : ''
 
-  function handleAddClose(opts?: { rememberedStation?: StationOption; rememberedOwnerId?: string }) {
+  function handleAddClose(opts?: { rememberedLocation?: LocationOption; rememberedOwnerId?: string }) {
     setAddOpen(false)
-    if (opts?.rememberedStation) setRememberedStation(opts.rememberedStation)
+    if (opts?.rememberedLocation) setRememberedLocation(opts.rememberedLocation)
     if (opts?.rememberedOwnerId) setRememberedOwnerId(opts.rememberedOwnerId)
   }
 
@@ -88,10 +88,11 @@ export function WarehouseItemsView() {
 
       {isQuartermaster && (
         <AddInventoryDialog
+          key={String(addOpen)}
           open={addOpen}
           onClose={handleAddClose}
           currentUserId={currentUserId}
-          rememberedStation={rememberedStation}
+          rememberedLocation={rememberedLocation}
           rememberedOwnerId={rememberedOwnerId}
         />
       )}

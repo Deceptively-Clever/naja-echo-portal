@@ -1,4 +1,3 @@
-using System.Text.Json;
 using FluentAssertions;
 using Microsoft.Extensions.Logging.Abstractions;
 using NajaEcho.Application.Abstractions;
@@ -14,16 +13,18 @@ namespace NajaEcho.Application.Tests.Features.Warehouse;
 public sealed class TransferInventoryItemHandlerTests
 {
     private static readonly Guid KnownRowId = Guid.NewGuid();
-    private static readonly Guid KnownStationId = Guid.NewGuid();
+    private static readonly Guid KnownLocationId = Guid.NewGuid();
+    private const string KnownLocationType = "Station";
 
     private sealed class FakeWarehouseRepo : IWarehouseInventoryRepository
     {
         public bool RowExists { get; set; } = true;
-        public Guid? LastUpdatedStationId { get; private set; }
+        public Guid? LastUpdatedLocationId { get; private set; }
+        public string? LastUpdatedLocationType { get; private set; }
         public Guid? LastUpdatedRowId { get; private set; }
 
         public Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(
-            Guid itemId, Guid ownerUserId, string location, int quantity, int quality, Guid? stationId, CancellationToken ct)
+            Guid itemId, Guid ownerUserId, string location, int quantity, int quality, Guid? locationId, string? locationType, CancellationToken ct)
             => throw new NotImplementedException();
 
         public Task<IReadOnlyList<InventoryRowDto>> GetInventoryAsync(
@@ -40,12 +41,14 @@ public sealed class TransferInventoryItemHandlerTests
         public Task<InventoryRowDto> UpdateQuantityAsync(Guid id, int quantity, CancellationToken ct)
             => throw new NotImplementedException();
 
-        public Task<InventoryRowDto> UpdateItemAsync(Guid id, Guid ownerUserId, Guid stationId, int quantity, CancellationToken ct) =>
+        public Task<InventoryRowDto> UpdateItemAsync(Guid id, Guid ownerUserId, Guid locationId, string locationType, int quantity, CancellationToken ct) =>
             throw new NotImplementedException();
-        public Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct)
+
+        public Task UpdateLocationAsync(Guid id, Guid locationId, string locationType, CancellationToken ct)
         {
             LastUpdatedRowId = id;
-            LastUpdatedStationId = stationId;
+            LastUpdatedLocationId = locationId;
+            LastUpdatedLocationType = locationType;
             return Task.CompletedTask;
         }
 
@@ -56,37 +59,19 @@ public sealed class TransferInventoryItemHandlerTests
             => throw new NotImplementedException();
     }
 
-    private sealed class FakeStationRepo : ISpaceStationRepository
-    {
-        public bool StationExists { get; set; } = true;
-
-        public Task<(int, int, int, int, int)> BulkUpsertAsync(
-            IReadOnlyList<JsonDocument> records, IReadOnlyDictionary<int, Guid> starSystemMap, CancellationToken ct)
-            => Task.FromResult((0, 0, 0, 0, 0));
-
-        public Task<IReadOnlyList<StationDto>> SearchActiveStationsAsync(string? search, int limit, CancellationToken ct)
-            => Task.FromResult<IReadOnlyList<StationDto>>([]);
-
-        public Task<bool> ExistsAsync(Guid id, CancellationToken ct)
-            => Task.FromResult(StationExists);
-    }
-
-    private static TransferInventoryItemHandler CreateHandler(
-        FakeWarehouseRepo? repo = null,
-        FakeStationRepo? stationRepo = null) =>
-        new(repo ?? new FakeWarehouseRepo(),
-            stationRepo ?? new FakeStationRepo(),
-            NullLogger<TransferInventoryItemHandler>.Instance);
+    private static TransferInventoryItemHandler CreateHandler(FakeWarehouseRepo? repo = null) =>
+        new(repo ?? new FakeWarehouseRepo(), NullLogger<TransferInventoryItemHandler>.Instance);
 
     [Fact]
-    public async Task Transfer_WithValidRowAndStation_SetsStationId()
+    public async Task Transfer_WithValidRow_UpdatesLocation()
     {
         var repo = new FakeWarehouseRepo { RowExists = true };
 
-        await CreateHandler(repo).HandleAsync(new TransferInventoryItemCommand(KnownRowId, KnownStationId), default);
+        await CreateHandler(repo).HandleAsync(new TransferInventoryItemCommand(KnownRowId, KnownLocationId, KnownLocationType), default);
 
         repo.LastUpdatedRowId.Should().Be(KnownRowId);
-        repo.LastUpdatedStationId.Should().Be(KnownStationId);
+        repo.LastUpdatedLocationId.Should().Be(KnownLocationId);
+        repo.LastUpdatedLocationType.Should().Be(KnownLocationType);
     }
 
     [Fact]
@@ -94,30 +79,19 @@ public sealed class TransferInventoryItemHandlerTests
     {
         var repo = new FakeWarehouseRepo { RowExists = false };
 
-        var act = () => CreateHandler(repo).HandleAsync(new TransferInventoryItemCommand(KnownRowId, KnownStationId), default);
+        var act = () => CreateHandler(repo).HandleAsync(new TransferInventoryItemCommand(KnownRowId, KnownLocationId, KnownLocationType), default);
 
         await act.Should().ThrowAsync<InventoryRowNotFoundException>();
     }
 
     [Fact]
-    public async Task Transfer_WithInvalidStationId_ThrowsInvalidOperationException()
+    public async Task Transfer_WithCityLocationType_UpdatesLocation()
     {
-        var stationRepo = new FakeStationRepo { StationExists = false };
+        var repo = new FakeWarehouseRepo { RowExists = true };
 
-        var act = () => CreateHandler(stationRepo: stationRepo)
-            .HandleAsync(new TransferInventoryItemCommand(KnownRowId, KnownStationId), default);
+        await CreateHandler(repo).HandleAsync(new TransferInventoryItemCommand(KnownRowId, KnownLocationId, "City"), default);
 
-        await act.Should().ThrowAsync<InvalidOperationException>();
-    }
-
-    [Fact]
-    public async Task Transfer_DoesNotModifyLocationField()
-    {
-        var repo = new FakeWarehouseRepo();
-
-        await CreateHandler(repo).HandleAsync(new TransferInventoryItemCommand(KnownRowId, KnownStationId), default);
-
-        repo.LastUpdatedStationId.Should().Be(KnownStationId);
+        repo.LastUpdatedLocationType.Should().Be("City");
         repo.LastUpdatedRowId.Should().Be(KnownRowId);
     }
 }

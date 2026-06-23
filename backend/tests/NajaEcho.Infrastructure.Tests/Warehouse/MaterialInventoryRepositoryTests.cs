@@ -144,7 +144,7 @@ public sealed class MaterialInventoryRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();
-        await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 500, null, CancellationToken.None);
+        await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 500, null, null, CancellationToken.None);
 
         var result = await repo.GetMaterialsAsync(null, null, null, null, null, default);
 
@@ -162,12 +162,12 @@ public sealed class MaterialInventoryRepositoryTests : IAsyncLifetime
 
         var repo = MakeRepo();
         // Same commodity (Alpha), same owner (Alice), two qualities -> quality desc within name
-        await repo.AddOrIncrementAsync(alpha.Id, alice.Id, "Bay 1", 1m, 300, null, CancellationToken.None);
-        await repo.AddOrIncrementAsync(alpha.Id, alice.Id, "Bay 1", 1m, 700, null, CancellationToken.None);
+        await repo.AddOrIncrementAsync(alpha.Id, alice.Id, "Bay 1", 1m, 300, null, null, CancellationToken.None);
+        await repo.AddOrIncrementAsync(alpha.Id, alice.Id, "Bay 1", 1m, 700, null, null, CancellationToken.None);
         // Same commodity (Alpha), same quality, different owners -> owner name asc
-        await repo.AddOrIncrementAsync(alpha.Id, bob.Id, "Bay 1", 1m, 300, null, CancellationToken.None);
+        await repo.AddOrIncrementAsync(alpha.Id, bob.Id, "Bay 1", 1m, 300, null, null, CancellationToken.None);
         // Different commodity (Zeta) sorts after Alpha
-        await repo.AddOrIncrementAsync(zeta.Id, alice.Id, "Bay 1", 1m, 500, null, CancellationToken.None);
+        await repo.AddOrIncrementAsync(zeta.Id, alice.Id, "Bay 1", 1m, 500, null, null, CancellationToken.None);
 
         var result = await repo.GetMaterialsAsync(null, null, null, null, null, default);
 
@@ -194,8 +194,8 @@ public sealed class MaterialInventoryRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();
-        await repo.AddOrIncrementAsync(titanium.Id, user.Id, "Bay 1", 1m, 500, null, CancellationToken.None);
-        await repo.AddOrIncrementAsync(quantanium.Id, user.Id, "Bay 1", 1m, 500, null, CancellationToken.None);
+        await repo.AddOrIncrementAsync(titanium.Id, user.Id, "Bay 1", 1m, 500, null, null, CancellationToken.None);
+        await repo.AddOrIncrementAsync(quantanium.Id, user.Id, "Bay 1", 1m, 500, null, null, CancellationToken.None);
 
         var byName = await repo.GetMaterialsAsync("titan", null, null, null, null, default);
         byName.Should().ContainSingle().Which.MaterialName.Should().Be("Titanium");
@@ -213,8 +213,8 @@ public sealed class MaterialInventoryRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();
-        await repo.AddOrIncrementAsync(commodity.Id, alice.Id, "Bay 1", 1m, 500, null, CancellationToken.None);
-        await repo.AddOrIncrementAsync(commodity.Id, bob.Id, "Bay 1", 1m, 500, null, CancellationToken.None);
+        await repo.AddOrIncrementAsync(commodity.Id, alice.Id, "Bay 1", 1m, 500, null, null, CancellationToken.None);
+        await repo.AddOrIncrementAsync(commodity.Id, bob.Id, "Bay 1", 1m, 500, null, null, CancellationToken.None);
 
         var result = await repo.GetMaterialsAsync(null, alice.Id, null, null, null, default);
 
@@ -229,8 +229,8 @@ public sealed class MaterialInventoryRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();
-        await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 500, null, CancellationToken.None);
-        await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Dock 3", 1m, 600, null, CancellationToken.None);
+        await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 500, null, null, CancellationToken.None);
+        await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Dock 3", 1m, 600, null, null, CancellationToken.None);
 
         var result = await repo.GetMaterialsAsync(null, null, "Bay 1", null, null, default);
 
@@ -245,9 +245,9 @@ public sealed class MaterialInventoryRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();
-        await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 100, null, CancellationToken.None);
-        await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 500, null, CancellationToken.None);
-        await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 1000, null, CancellationToken.None);
+        await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 100, null, null, CancellationToken.None);
+        await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 500, null, null, CancellationToken.None);
+        await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 1000, null, null, CancellationToken.None);
 
         var result = await repo.GetMaterialsAsync(null, null, null, 100, 500, default);
 
@@ -264,9 +264,9 @@ public sealed class MaterialInventoryRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();
-        await repo.AddOrIncrementAsync(titanium.Id, alice.Id, "Bay 1", 1m, 500, null, CancellationToken.None);
-        await repo.AddOrIncrementAsync(titanium.Id, bob.Id, "Bay 1", 1m, 500, null, CancellationToken.None);
-        await repo.AddOrIncrementAsync(titanium.Id, alice.Id, "Dock 3", 1m, 500, null, CancellationToken.None);
+        await repo.AddOrIncrementAsync(titanium.Id, alice.Id, "Bay 1", 1m, 500, null, null, CancellationToken.None);
+        await repo.AddOrIncrementAsync(titanium.Id, bob.Id, "Bay 1", 1m, 500, null, null, CancellationToken.None);
+        await repo.AddOrIncrementAsync(titanium.Id, alice.Id, "Dock 3", 1m, 500, null, null, CancellationToken.None);
 
         var result = await repo.GetMaterialsAsync("titan", alice.Id, "Bay 1", 1, 1000, default);
 
@@ -283,7 +283,7 @@ public sealed class MaterialInventoryRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();
-        await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 500, null, CancellationToken.None);
+        await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 500, null, null, CancellationToken.None);
 
         var result = await repo.GetMaterialsAsync("", null, "", null, null, default);
 
@@ -300,7 +300,7 @@ public sealed class MaterialInventoryRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();
-        var (row, isNew) = await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1.5m, 500, null, CancellationToken.None);
+        var (row, isNew) = await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1.5m, 500, null, null, CancellationToken.None);
 
         isNew.Should().BeTrue();
         row.Quantity.Should().Be(1.5m);
@@ -315,8 +315,8 @@ public sealed class MaterialInventoryRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();
-        await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 500, null, CancellationToken.None);
-        var (row, isNew) = await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 2m, 500, null, CancellationToken.None);
+        await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 500, null, null, CancellationToken.None);
+        var (row, isNew) = await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 2m, 500, null, null, CancellationToken.None);
 
         isNew.Should().BeFalse();
         row.Quantity.Should().Be(3m);
@@ -333,9 +333,9 @@ public sealed class MaterialInventoryRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();
-        await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 300, null, CancellationToken.None);
+        await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 300, null, null, CancellationToken.None);
         // Different quality -> distinct key, not an increment of the first row
-        var (row, isNew) = await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 700, null, CancellationToken.None);
+        var (row, isNew) = await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 700, null, null, CancellationToken.None);
 
         isNew.Should().BeTrue();
         row.Quality.Should().Be(700);
@@ -354,7 +354,7 @@ public sealed class MaterialInventoryRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();
-        var (row, _) = await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 700, null, CancellationToken.None);
+        var (row, _) = await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 700, null, null, CancellationToken.None);
 
         var updated = await repo.UpdateQuantityAsync(row.Id, 9.5m, default);
 
@@ -380,7 +380,7 @@ public sealed class MaterialInventoryRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();
-        var (row, _) = await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 500, null, CancellationToken.None);
+        var (row, _) = await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 500, null, null, CancellationToken.None);
 
         Func<Task> act = () => _db.Database.ExecuteSqlInterpolatedAsync($"""
             UPDATE warehouse_material_inventory SET quantity = 0 WHERE id = {row.Id}
@@ -399,7 +399,7 @@ public sealed class MaterialInventoryRepositoryTests : IAsyncLifetime
         await _db.SaveChangesAsync();
 
         var repo = MakeRepo();
-        var (row, _) = await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 500, null, CancellationToken.None);
+        var (row, _) = await repo.AddOrIncrementAsync(commodity.Id, user.Id, "Bay 1", 1m, 500, null, null, CancellationToken.None);
 
         await repo.RemoveAsync(row.Id, default);
 

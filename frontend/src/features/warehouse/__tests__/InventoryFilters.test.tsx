@@ -13,7 +13,7 @@ const mockFilters = {
   ],
 }
 
-const emptyValues = { name: '', type: '', subtype: '', ownerUserId: '', station: '', stationId: '' }
+const emptyValues = { name: '', type: '', subtype: '', ownerUserId: '', location: '', locationId: '' }
 
 describe('InventoryFilters', () => {
   it('renders name filter input', () => {
@@ -53,11 +53,11 @@ describe('InventoryFilters', () => {
     expect(screen.getByRole('option', { name: 'Bob' })).toBeDefined()
   })
 
-  it('renders station filter combobox', () => {
+  it('renders location filter combobox', () => {
     render(<InventoryFilters filters={mockFilters} values={emptyValues} onFilterChange={() => {}} />, {
       wrapper: createWrapper(),
     })
-    expect(screen.getByText('All stations')).toBeDefined()
+    expect(screen.getByText('All locations')).toBeDefined()
   })
 
   it('calls onFilterChange when name is typed', async () => {

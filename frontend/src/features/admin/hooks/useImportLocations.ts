@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { importLocations } from '../api/locationsApi'
-import { stationKeys } from '@/features/warehouse/hooks/stationKeys'
+import { locationKeys } from '@/features/warehouse/hooks/locationKeys'
 import type { ImportLocationsResponse } from '../schemas/locationSchemas'
 
 export function useImportLocations() {
@@ -9,7 +9,7 @@ export function useImportLocations() {
   return useMutation<ImportLocationsResponse, Error, void>({
     mutationFn: () => importLocations(),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: stationKeys.all })
+      void queryClient.invalidateQueries({ queryKey: locationKeys.all })
     },
   })
 }

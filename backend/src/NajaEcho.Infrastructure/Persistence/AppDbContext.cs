@@ -30,6 +30,7 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
     public DbSet<PendingCharacterRegistration> PendingCharacterRegistrations => Set<PendingCharacterRegistration>();
     public DbSet<StarSystem> StarSystems => Set<StarSystem>();
     public DbSet<SpaceStation> SpaceStations => Set<SpaceStation>();
+    public DbSet<City> Cities => Set<City>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -49,5 +50,6 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options)
         modelBuilder.ApplyConfiguration(new PendingCharacterRegistrationConfiguration());
         modelBuilder.ApplyConfiguration(new StarSystemConfiguration());
         modelBuilder.ApplyConfiguration(new SpaceStationConfiguration());
+        modelBuilder.ApplyConfiguration(new CityConfiguration());
     }
 }

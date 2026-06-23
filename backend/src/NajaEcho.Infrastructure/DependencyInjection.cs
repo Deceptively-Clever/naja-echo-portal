@@ -22,7 +22,6 @@ using NajaEcho.Application.Features.ItemCategories.RefreshCategories;
 using NajaEcho.Application.Features.Items.ImportItems;
 using NajaEcho.Application.Features.Warehouse.GetInventory;
 using NajaEcho.Application.Features.Warehouse.GetInventoryFilters;
-using NajaEcho.Application.Features.Warehouse.GetStations;
 using NajaEcho.Application.Features.Warehouse.Materials.AddMaterial;
 using NajaEcho.Application.Features.Warehouse.Materials.ChangeMaterialQuantity;
 using NajaEcho.Application.Features.Warehouse.Materials.GetMaterialFilters;
@@ -45,6 +44,7 @@ using NajaEcho.Application.Features.Characters.GetRegistration;
 using NajaEcho.Application.Features.Characters.StartRegistration;
 using NajaEcho.Application.Features.Characters.VerifyCharacter;
 using NajaEcho.Application.Features.Locations.ImportLocations;
+using NajaEcho.Application.Features.Warehouse.GetLocations;
 using NajaEcho.Application.Features.Warehouse.TransferInventoryItem;
 using NajaEcho.Application.Features.Warehouse.Materials.TransferMaterial;
 using NajaEcho.Application.Features.Warehouse.Materials.UpdateMaterial;
@@ -94,7 +94,7 @@ public static class DependencyInjection
         services.AddScoped<GetShipsHandler>();
         services.AddScoped<GetShipByIdHandler>();
 
-        // Locations (Star Systems & Space Stations)
+        // Locations (Star Systems, Space Stations & Cities)
         services.AddHttpClient<IUexLocationClient, UexLocationClient>(client =>
         {
             var baseUrl = configuration["UexVehicleClient:BaseUrl"] ?? "https://api.uexcorp.uk/2.0/";
@@ -102,7 +102,9 @@ public static class DependencyInjection
         });
         services.AddScoped<IStarSystemRepository, StarSystemRepository>();
         services.AddScoped<ISpaceStationRepository, SpaceStationRepository>();
+        services.AddScoped<ICityRepository, CityRepository>();
         services.AddScoped<ImportLocationsHandler>();
+        services.AddScoped<GetLocationsHandler>();
 
         // Hangar
         services.AddScoped<IHangarRepository, HangarRepository>();
@@ -151,7 +153,6 @@ public static class DependencyInjection
         services.AddScoped<IWarehouseInventoryRepository, WarehouseInventoryRepository>();
         services.AddScoped<GetInventoryHandler>();
         services.AddScoped<GetInventoryFiltersHandler>();
-        services.AddScoped<GetStationsHandler>();
         services.AddScoped<SearchCatalogItemsHandler>();
         services.AddScoped<AddInventoryItemHandler>();
         services.AddScoped<ChangeInventoryQuantityHandler>();

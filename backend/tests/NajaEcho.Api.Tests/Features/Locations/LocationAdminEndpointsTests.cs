@@ -61,6 +61,9 @@ public sealed class LocationAdminEndpointsTests : IClassFixture<WebApplicationFa
                 services.RemoveAll<ISpaceStationRepository>();
                 services.AddSingleton<ISpaceStationRepository, FakeStationRepoForAdmin>();
 
+                services.RemoveAll<ICityRepository>();
+                services.AddSingleton<ICityRepository, FakeCityRepoForAdmin>();
+
                 services.AddAuthentication()
                     .AddScheme<AuthenticationSchemeOptions, LocationTestAuthHandler>(
                         LocationTestAuthHandler.SchemeName, _ => { });
@@ -119,6 +122,7 @@ public sealed class LocationAdminEndpointsTests : IClassFixture<WebApplicationFa
         var body = await response.Content.ReadAsStringAsync();
         body.Should().Contain("starSystems");
         body.Should().Contain("spaceStations");
+        body.Should().Contain("cities");
     }
 
     [Fact]
@@ -161,6 +165,7 @@ internal sealed class FakeLocationUexClient : IUexLocationClient
 {
     public IReadOnlyList<JsonDocument> StarSystems { get; set; } = [JsonDocument.Parse("{}")];
     public IReadOnlyList<JsonDocument> SpaceStations { get; set; } = [JsonDocument.Parse("{}")];
+    public IReadOnlyList<JsonDocument> Cities { get; set; } = [JsonDocument.Parse("{}")];
     public bool ShouldThrow { get; set; }
 
     public Task<IReadOnlyList<JsonDocument>> FetchAllStarSystemsAsync(CancellationToken ct = default)
@@ -173,6 +178,12 @@ internal sealed class FakeLocationUexClient : IUexLocationClient
     {
         if (ShouldThrow) throw new HttpRequestException("Unreachable");
         return Task.FromResult(SpaceStations);
+    }
+
+    public Task<IReadOnlyList<JsonDocument>> FetchAllCitiesAsync(CancellationToken ct = default)
+    {
+        if (ShouldThrow) throw new HttpRequestException("Unreachable");
+        return Task.FromResult(Cities);
     }
 }
 
@@ -191,6 +202,16 @@ internal sealed class FakeStarSystemRepo : IStarSystemRepository
 
     public Task<IReadOnlyDictionary<int, Guid>> GetActiveUexIdToIdMapAsync(CancellationToken ct = default)
         => Task.FromResult<IReadOnlyDictionary<int, Guid>>(new Dictionary<int, Guid>());
+}
+
+internal sealed class FakeCityRepoForAdmin : ICityRepository
+{
+    public Task<(int added, int updated, int reactivated, int softDeleted, int skipped)> BulkUpsertAsync(
+        IReadOnlyList<JsonDocument> records, IReadOnlyDictionary<int, Guid> starSystemMap, CancellationToken ct = default)
+        => Task.FromResult((0, 0, 0, 0, 0));
+
+    public Task<IReadOnlyList<NajaEcho.Application.Abstractions.CityDto>> SearchActiveCitiesAsync(string? search, int limit, CancellationToken ct = default)
+        => Task.FromResult<IReadOnlyList<NajaEcho.Application.Abstractions.CityDto>>([]);
 }
 
 internal sealed class FakeStationRepoForAdmin : ISpaceStationRepository

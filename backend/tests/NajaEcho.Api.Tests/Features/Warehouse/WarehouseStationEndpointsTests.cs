@@ -16,12 +16,12 @@ using Xunit;
 namespace NajaEcho.Api.Tests.Features.Warehouse;
 
 [Collection("ApiTests")]
-public sealed class WarehouseStationEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+public sealed class WarehouseLocationEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
 {
     private readonly WebApplicationFactory<Program> _factory;
     private static readonly Guid MemberId = Guid.NewGuid();
 
-    public WarehouseStationEndpointsTests(WebApplicationFactory<Program> factory)
+    public WarehouseLocationEndpointsTests(WebApplicationFactory<Program> factory)
     {
         _factory = factory.WithWebHostBuilder(b =>
         {
@@ -37,14 +37,17 @@ public sealed class WarehouseStationEndpointsTests : IClassFixture<WebApplicatio
 
             b.ConfigureTestServices(services =>
             {
-                services.ReplaceWithInMemoryDb("StationEndpointTestDb_" + Guid.NewGuid());
+                services.ReplaceWithInMemoryDb("LocationEndpointTestDb_" + Guid.NewGuid());
 
                 services.RemoveAll<IExternalLoginService>();
-                services.AddSingleton<IExternalLoginService, StationEndpointFakeLoginService>();
+                services.AddSingleton<IExternalLoginService, LocationEndpointFakeLoginService>();
 
                 services.RemoveAll<ISpaceStationRepository>();
-                services.AddSingleton<FakeStationSearchRepo>();
-                services.AddSingleton<ISpaceStationRepository>(sp => sp.GetRequiredService<FakeStationSearchRepo>());
+                services.AddSingleton<FakeLocationStationRepo>();
+                services.AddSingleton<ISpaceStationRepository>(sp => sp.GetRequiredService<FakeLocationStationRepo>());
+
+                services.RemoveAll<ICityRepository>();
+                services.AddSingleton<ICityRepository, FakeLocationCityRepo>();
 
                 services.AddAuthentication()
                     .AddScheme<Microsoft.AspNetCore.Authentication.AuthenticationSchemeOptions, WarehouseTestAuthHandler>(
@@ -71,32 +74,32 @@ public sealed class WarehouseStationEndpointsTests : IClassFixture<WebApplicatio
     }
 
     [Fact]
-    public async Task GetStations_Unauthenticated_Returns401()
+    public async Task GetLocations_Unauthenticated_Returns401()
     {
-        var response = await CreateClient().GetAsync("/api/warehouse/stations");
+        var response = await CreateClient().GetAsync("/api/warehouse/locations");
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
     [Fact]
-    public async Task GetStations_AsAuthenticatedMember_Returns200WithStationList()
+    public async Task GetLocations_AsAuthenticatedMember_Returns200WithLocationList()
     {
-        var repo = _factory.Services.GetRequiredService<FakeStationSearchRepo>();
+        var repo = _factory.Services.GetRequiredService<FakeLocationStationRepo>();
         repo.Stations = [new StationDto(Guid.NewGuid(), "ARC-L1 Wide Forest Station")];
 
-        var response = await CreateMemberClient().GetAsync("/api/warehouse/stations");
+        var response = await CreateMemberClient().GetAsync("/api/warehouse/locations");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var body = await response.Content.ReadAsStringAsync();
-        body.Should().Contain("stations");
+        body.Should().Contain("locations");
     }
 
     [Fact]
-    public async Task GetStations_WithSearchParam_PassesSearchToRepo()
+    public async Task GetLocations_WithSearchParam_PassesSearchToRepo()
     {
-        var repo = _factory.Services.GetRequiredService<FakeStationSearchRepo>();
+        var repo = _factory.Services.GetRequiredService<FakeLocationStationRepo>();
         repo.Stations = [new StationDto(Guid.NewGuid(), "ARC-L1 Wide Forest Station")];
 
-        var response = await CreateMemberClient().GetAsync("/api/warehouse/stations?search=ARC&limit=5");
+        var response = await CreateMemberClient().GetAsync("/api/warehouse/locations?search=ARC&limit=5");
 
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         repo.LastSearch.Should().Be("ARC");
@@ -104,7 +107,7 @@ public sealed class WarehouseStationEndpointsTests : IClassFixture<WebApplicatio
     }
 }
 
-internal sealed class FakeStationSearchRepo : ISpaceStationRepository
+internal sealed class FakeLocationStationRepo : ISpaceStationRepository
 {
     public string? LastSearch { get; private set; }
     public int LastLimit { get; private set; }
@@ -126,7 +129,20 @@ internal sealed class FakeStationSearchRepo : ISpaceStationRepository
         => Task.FromResult(true);
 }
 
-internal sealed class StationEndpointFakeLoginService : IExternalLoginService
+internal sealed class FakeLocationCityRepo : ICityRepository
+{
+    public Task<(int added, int updated, int reactivated, int softDeleted, int skipped)> BulkUpsertAsync(
+        IReadOnlyList<JsonDocument> records, IReadOnlyDictionary<int, Guid> starSystemMap, CancellationToken ct = default)
+        => Task.FromResult((0, 0, 0, 0, 0));
+
+    public Task<IReadOnlyList<CityDto>> SearchActiveCitiesAsync(string? search, int limit, CancellationToken ct = default)
+    {
+        IReadOnlyList<CityDto> result = [];
+        return Task.FromResult(result);
+    }
+}
+
+internal sealed class LocationEndpointFakeLoginService : IExternalLoginService
 {
     public Task<LocalUser> FindOrCreateAsync(DiscordProfile profile, CancellationToken ct = default) =>
         Task.FromResult(new LocalUser(Guid.NewGuid(), profile.DisplayName, profile.Username));

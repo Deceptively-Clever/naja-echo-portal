@@ -15,21 +15,23 @@ using Xunit;
 
 namespace NajaEcho.Application.Tests.Features.Warehouse;
 
-public sealed class AddInventoryItemStationTests
+public sealed class AddInventoryItemLocationTests
 {
     private static readonly Guid KnownItemId = Guid.NewGuid();
     private static readonly Guid KnownOwnerId = Guid.NewGuid();
     private static readonly Guid KnownRowId = Guid.NewGuid();
-    private static readonly Guid KnownStationId = Guid.NewGuid();
+    private static readonly Guid KnownLocationId = Guid.NewGuid();
 
     private sealed class CapturingWarehouseRepo : IWarehouseInventoryRepository
     {
-        public Guid? CapturedStationId { get; private set; } = Guid.Empty;
+        public Guid? CapturedLocationId { get; private set; }
+        public string? CapturedLocationType { get; private set; }
 
         public Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(
-            Guid itemId, Guid ownerUserId, string location, int quantity, int quality, Guid? stationId, CancellationToken ct)
+            Guid itemId, Guid ownerUserId, string location, int quantity, int quality, Guid? locationId, string? locationType, CancellationToken ct)
         {
-            CapturedStationId = stationId;
+            CapturedLocationId = locationId;
+            CapturedLocationType = locationType;
             var row = new InventoryRowDto(KnownRowId, itemId, "Test Item", null, null, quantity, quality, ownerUserId, "Alice", location);
             return Task.FromResult((row, true));
         }
@@ -42,28 +44,11 @@ public sealed class AddInventoryItemStationTests
             Task.FromResult<IReadOnlyList<CatalogItemResultDto>>([]);
         public Task<InventoryRowDto> UpdateQuantityAsync(Guid id, int quantity, CancellationToken ct) =>
             throw new NotImplementedException();
-        public Task<InventoryRowDto> UpdateItemAsync(Guid id, Guid ownerUserId, Guid stationId, int quantity, CancellationToken ct) =>
+        public Task<InventoryRowDto> UpdateItemAsync(Guid id, Guid ownerUserId, Guid locationId, string locationType, int quantity, CancellationToken ct) =>
             throw new NotImplementedException();
-        public Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct) => Task.CompletedTask;
+        public Task UpdateLocationAsync(Guid id, Guid locationId, string locationType, CancellationToken ct) => Task.CompletedTask;
         public Task<bool> ExistsAsync(Guid id, CancellationToken ct) => Task.FromResult(true);
         public Task RemoveAsync(Guid id, CancellationToken ct) => throw new NotImplementedException();
-    }
-
-    private sealed class TrackingStationRepo : ISpaceStationRepository
-    {
-        public bool StationExists { get; set; } = true;
-        public int ExistsCallCount { get; private set; }
-
-        public Task<bool> ExistsAsync(Guid id, CancellationToken ct = default)
-        {
-            ExistsCallCount++;
-            return Task.FromResult(StationExists);
-        }
-
-        public Task<(int, int, int, int, int)> BulkUpsertAsync(IReadOnlyList<JsonDocument> records, IReadOnlyDictionary<int, Guid> starSystemMap, CancellationToken ct = default) =>
-            Task.FromResult((0, 0, 0, 0, 0));
-        public Task<IReadOnlyList<StationDto>> SearchActiveStationsAsync(string? search, int limit, CancellationToken ct = default) =>
-            Task.FromResult<IReadOnlyList<StationDto>>([]);
     }
 
     private sealed class FakeItemRepo : IItemRepository
@@ -113,52 +98,48 @@ public sealed class AddInventoryItemStationTests
             Task.FromResult<IReadOnlyList<JsonDocument>>([]);
     }
 
-    private static AddInventoryItemHandler MakeHandler(
-        CapturingWarehouseRepo? repo = null,
-        TrackingStationRepo? stationRepo = null) =>
+    private static AddInventoryItemHandler MakeHandler(CapturingWarehouseRepo? repo = null) =>
         new(
             repo ?? new CapturingWarehouseRepo(),
             new FakeItemRepo(),
             new FakeUserRepo(),
             new FakeScRepo(),
             new FakeAttrClient(),
-            stationRepo ?? new TrackingStationRepo(),
             NullLogger<AddInventoryItemHandler>.Instance);
 
     [Fact]
-    public async Task AddItem_WithValidStationId_PersistsStationId()
+    public async Task AddItem_WithStationLocationId_PersistsLocationId()
     {
         var repo = new CapturingWarehouseRepo();
-        var stationRepo = new TrackingStationRepo { StationExists = true };
 
-        await MakeHandler(repo, stationRepo).HandleAsync(
-            new AddInventoryItemCommand(KnownItemId, KnownOwnerId, "Bay 1", 1, StationId: KnownStationId), default);
+        await MakeHandler(repo).HandleAsync(
+            new AddInventoryItemCommand(KnownItemId, KnownOwnerId, "Bay 1", 1, LocationId: KnownLocationId, LocationType: "Station"), default);
 
-        repo.CapturedStationId.Should().Be(KnownStationId);
-        stationRepo.ExistsCallCount.Should().Be(1);
+        repo.CapturedLocationId.Should().Be(KnownLocationId);
+        repo.CapturedLocationType.Should().Be("Station");
     }
 
     [Fact]
-    public async Task AddItem_WithInvalidStationId_ThrowsException()
+    public async Task AddItem_WithCityLocationId_PersistsLocationId()
     {
-        var stationRepo = new TrackingStationRepo { StationExists = false };
+        var repo = new CapturingWarehouseRepo();
 
-        var act = () => MakeHandler(stationRepo: stationRepo).HandleAsync(
-            new AddInventoryItemCommand(KnownItemId, KnownOwnerId, "Bay 1", 1, StationId: Guid.NewGuid()), default);
+        await MakeHandler(repo).HandleAsync(
+            new AddInventoryItemCommand(KnownItemId, KnownOwnerId, "Bay 1", 1, LocationId: KnownLocationId, LocationType: "City"), default);
 
-        await act.Should().ThrowAsync<Exception>("station does not exist");
+        repo.CapturedLocationId.Should().Be(KnownLocationId);
+        repo.CapturedLocationType.Should().Be("City");
     }
 
     [Fact]
-    public async Task AddItem_WithNullStationId_PersistsNullAndSkipsExistsCheck()
+    public async Task AddItem_WithNullLocationId_PersistsNull()
     {
         var repo = new CapturingWarehouseRepo();
-        var stationRepo = new TrackingStationRepo();
 
-        await MakeHandler(repo, stationRepo).HandleAsync(
-            new AddInventoryItemCommand(KnownItemId, KnownOwnerId, "Bay 1", 1, StationId: null), default);
+        await MakeHandler(repo).HandleAsync(
+            new AddInventoryItemCommand(KnownItemId, KnownOwnerId, "Bay 1", 1, LocationId: null, LocationType: null), default);
 
-        repo.CapturedStationId.Should().BeNull();
-        stationRepo.ExistsCallCount.Should().Be(0);
+        repo.CapturedLocationId.Should().BeNull();
+        repo.CapturedLocationType.Should().BeNull();
     }
 }

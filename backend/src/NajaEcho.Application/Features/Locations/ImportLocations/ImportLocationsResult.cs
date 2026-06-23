@@ -5,4 +5,10 @@ public record EntityImportCounts(int Added, int Updated, int Reactivated, int So
 public record StationImportCounts(int Added, int Updated, int Reactivated, int SoftDeleted, int Skipped, int Total)
     : EntityImportCounts(Added, Updated, Reactivated, SoftDeleted, Total);
 
-public sealed record ImportLocationsResult(EntityImportCounts StarSystems, StationImportCounts SpaceStations);
+public record CityImportCounts(int Added, int Updated, int Reactivated, int SoftDeleted, int Skipped, int Total)
+    : EntityImportCounts(Added, Updated, Reactivated, SoftDeleted, Total);
+
+public sealed record ImportLocationsResult(
+    EntityImportCounts StarSystems,
+    StationImportCounts SpaceStations,
+    CityImportCounts Cities);

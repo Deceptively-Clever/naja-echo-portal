@@ -37,12 +37,15 @@ export function ShipComponentsTable({ rows, isQuartermaster, onRemove }: Props) 
 
   return (
     <>
-      <EditShipComponentDialog
-        open={!!editRow}
-        onOpenChange={(o) => { if (!o) setEditRow(null) }}
-        row={editRow}
-        onSuccess={() => setEditRow(null)}
-      />
+      {editRow && (
+        <EditShipComponentDialog
+          key={editRow.id}
+          open={!!editRow}
+          onOpenChange={(o) => { if (!o) setEditRow(null) }}
+          row={editRow}
+          onSuccess={() => setEditRow(null)}
+        />
+      )}
     <Table>
       <TableHeader>
         <TableRow>
@@ -54,7 +57,7 @@ export function ShipComponentsTable({ rows, isQuartermaster, onRemove }: Props) 
           <TableHead>Qty</TableHead>
           <TableHead>Quality</TableHead>
           <TableHead>Owner</TableHead>
-          <TableHead>Station</TableHead>
+          <TableHead>Location</TableHead>
           {isQuartermaster && <TableHead>Actions</TableHead>}
         </TableRow>
       </TableHeader>

@@ -103,8 +103,8 @@ public sealed class WarehouseTransferEndpointsTests : IClassFixture<WebApplicati
     public async Task TransferItem_Unauthenticated_Returns401()
     {
         var response = await CreateClient().PutAsJsonAsync(
-            $"/api/warehouse/items/{KnownRowId}/station",
-            new { stationId = KnownStationId });
+            $"/api/warehouse/items/{KnownRowId}/location",
+            new { locationId = KnownStationId, locationType = "Station" });
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
 
@@ -112,8 +112,8 @@ public sealed class WarehouseTransferEndpointsTests : IClassFixture<WebApplicati
     public async Task TransferItem_AuthenticatedNonQuartermaster_Returns403()
     {
         var response = await CreateMemberClient().PutAsJsonAsync(
-            $"/api/warehouse/items/{KnownRowId}/station",
-            new { stationId = KnownStationId });
+            $"/api/warehouse/items/{KnownRowId}/location",
+            new { locationId = KnownStationId, locationType = "Station" });
         response.StatusCode.Should().Be(HttpStatusCode.Forbidden);
     }
 
@@ -125,8 +125,8 @@ public sealed class WarehouseTransferEndpointsTests : IClassFixture<WebApplicati
         _factory.Services.GetRequiredService<FakeTransferStationRepo>().StationExists = true;
 
         var response = await CreateQuartermasterClient().PutAsJsonAsync(
-            $"/api/warehouse/items/{KnownRowId}/station",
-            new { stationId = KnownStationId });
+            $"/api/warehouse/items/{KnownRowId}/location",
+            new { locationId = KnownStationId, locationType = "Station" });
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
@@ -139,24 +139,23 @@ public sealed class WarehouseTransferEndpointsTests : IClassFixture<WebApplicati
         _factory.Services.GetRequiredService<FakeTransferStationRepo>().StationExists = true;
 
         var response = await CreateQuartermasterClient().PutAsJsonAsync(
-            $"/api/warehouse/items/{Guid.NewGuid()}/station",
-            new { stationId = KnownStationId });
+            $"/api/warehouse/items/{Guid.NewGuid()}/location",
+            new { locationId = KnownStationId, locationType = "Station" });
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
     [Fact]
-    public async Task TransferItem_InvalidStationId_Returns400()
+    public async Task TransferItem_AsQuartermaster_NewLocation_Returns204()
     {
         var repo = _factory.Services.GetRequiredService<FakeTransferWarehouseRepo>();
         repo.RowExists = true;
-        _factory.Services.GetRequiredService<FakeTransferStationRepo>().StationExists = false;
 
         var response = await CreateQuartermasterClient().PutAsJsonAsync(
-            $"/api/warehouse/items/{KnownRowId}/station",
-            new { stationId = Guid.NewGuid() });
+            $"/api/warehouse/items/{KnownRowId}/location",
+            new { locationId = Guid.NewGuid(), locationType = "City" });
 
-        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
 
     // ── PUT /api/warehouse/materials/{id}/station ─────────────────────────
@@ -169,8 +168,8 @@ public sealed class WarehouseTransferEndpointsTests : IClassFixture<WebApplicati
         _factory.Services.GetRequiredService<FakeTransferStationRepo>().StationExists = true;
 
         var response = await CreateQuartermasterClient().PutAsJsonAsync(
-            $"/api/warehouse/materials/{KnownRowId}/station",
-            new { stationId = KnownStationId });
+            $"/api/warehouse/materials/{KnownRowId}/location",
+            new { locationId = KnownStationId, locationType = "Station" });
 
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
@@ -183,8 +182,8 @@ public sealed class WarehouseTransferEndpointsTests : IClassFixture<WebApplicati
         _factory.Services.GetRequiredService<FakeTransferStationRepo>().StationExists = true;
 
         var response = await CreateQuartermasterClient().PutAsJsonAsync(
-            $"/api/warehouse/materials/{Guid.NewGuid()}/station",
-            new { stationId = KnownStationId });
+            $"/api/warehouse/materials/{Guid.NewGuid()}/location",
+            new { locationId = KnownStationId, locationType = "Station" });
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
@@ -195,7 +194,8 @@ internal sealed class FakeTransferWarehouseRepo : IWarehouseInventoryRepository
     public bool RowExists { get; set; } = true;
 
     public Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(
-        Guid itemId, Guid ownerUserId, string location, int quantity, int quality, Guid? stationId, CancellationToken ct)
+        Guid itemId, Guid ownerUserId, string location, int quantity, int quality,
+        Guid? locationId, string? locationType, CancellationToken ct)
         => throw new NotImplementedException();
 
     public Task<IReadOnlyList<InventoryRowDto>> GetInventoryAsync(
@@ -211,10 +211,10 @@ internal sealed class FakeTransferWarehouseRepo : IWarehouseInventoryRepository
     public Task<InventoryRowDto> UpdateQuantityAsync(Guid id, int quantity, CancellationToken ct)
         => throw new NotImplementedException();
 
-    public Task<InventoryRowDto> UpdateItemAsync(Guid id, Guid ownerUserId, Guid stationId, int quantity, CancellationToken ct)
+    public Task<InventoryRowDto> UpdateItemAsync(Guid id, Guid ownerUserId, Guid locationId, string locationType, int quantity, CancellationToken ct)
         => throw new NotImplementedException();
 
-    public Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct)
+    public Task UpdateLocationAsync(Guid id, Guid locationId, string locationType, CancellationToken ct)
     {
         if (!RowExists) throw new InventoryRowNotFoundException(id);
         return Task.CompletedTask;
@@ -232,7 +232,8 @@ internal sealed class FakeTransferMaterialRepo : IMaterialInventoryRepository
     public bool RowExists { get; set; } = true;
 
     public Task<(MaterialRowDto Row, bool IsNew)> AddOrIncrementAsync(
-        Guid commodityId, Guid ownerUserId, string location, decimal quantity, int quality, Guid? stationId, CancellationToken ct)
+        Guid commodityId, Guid ownerUserId, string location, decimal quantity, int quality,
+        Guid? locationId, string? locationType, CancellationToken ct)
         => throw new NotImplementedException();
 
     public Task<IReadOnlyList<MaterialRowDto>> GetMaterialsAsync(
@@ -248,10 +249,10 @@ internal sealed class FakeTransferMaterialRepo : IMaterialInventoryRepository
     public Task<MaterialRowDto> UpdateQuantityAsync(Guid id, decimal quantity, CancellationToken ct)
         => throw new NotImplementedException();
 
-    public Task<MaterialRowDto> UpdateMaterialAsync(Guid id, Guid ownerUserId, Guid stationId, decimal quantity, CancellationToken ct)
+    public Task<MaterialRowDto> UpdateMaterialAsync(Guid id, Guid ownerUserId, Guid locationId, string locationType, decimal quantity, CancellationToken ct)
         => throw new NotImplementedException();
 
-    public Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct)
+    public Task UpdateLocationAsync(Guid id, Guid locationId, string locationType, CancellationToken ct)
     {
         if (!RowExists) throw new MaterialRowNotFoundException(id);
         return Task.CompletedTask;

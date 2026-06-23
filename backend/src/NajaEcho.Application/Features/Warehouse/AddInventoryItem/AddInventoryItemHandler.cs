@@ -10,7 +10,6 @@ public sealed class AddInventoryItemHandler(
     IUserRepository userRepository,
     IShipComponentRepository shipComponentRepository,
     IUexItemAttributeClient uexAttributeClient,
-    ISpaceStationRepository stationRepository,
     ILogger<AddInventoryItemHandler> logger)
 {
     public async Task<(InventoryRowDto Row, bool IsNew)> HandleAsync(AddInventoryItemCommand command, CancellationToken ct)
@@ -44,21 +43,16 @@ public sealed class AddInventoryItemHandler(
             throw new OwnerNotFoundException(command.OwnerUserId);
         }
 
-        if (command.StationId.HasValue)
-        {
-            var stationExists = await stationRepository.ExistsAsync(command.StationId.Value, ct);
-            if (!stationExists)
-            {
-                throw new InvalidOperationException($"Station with id {command.StationId} not found.");
-            }
-        }
-
-        logger.LogInformation("AddInventoryItem itemId={ItemId} ownerUserId={OwnerUserId} location={Location} quantity={Quantity} quality={Quality} stationId={StationId}",
-            command.ItemId, command.OwnerUserId, location, command.Quantity, command.Quality, command.StationId);
+        logger.LogInformation(
+            "AddInventoryItem itemId={ItemId} ownerUserId={OwnerUserId} location={Location} quantity={Quantity} quality={Quality} locationId={LocationId} locationType={LocationType}",
+            command.ItemId, command.OwnerUserId, location, command.Quantity, command.Quality,
+            command.LocationId, command.LocationType);
 
         await TryFetchAndCacheAttributesAsync(command.ItemId, item.UexId, ct);
 
-        var (row, isNew) = await repository.AddOrIncrementAsync(command.ItemId, command.OwnerUserId, location, command.Quantity, command.Quality, command.StationId, ct);
+        var (row, isNew) = await repository.AddOrIncrementAsync(
+            command.ItemId, command.OwnerUserId, location, command.Quantity, command.Quality,
+            command.LocationId, command.LocationType, ct);
 
         logger.LogInformation("AddInventoryItem {Action} rowId={RowId} quantity={Quantity}",
             isNew ? "created" : "incremented", row.Id, row.Quantity);

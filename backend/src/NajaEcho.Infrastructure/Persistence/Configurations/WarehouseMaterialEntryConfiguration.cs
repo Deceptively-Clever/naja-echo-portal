@@ -12,6 +12,9 @@ public sealed class WarehouseMaterialEntryConfiguration : IEntityTypeConfigurati
         {
             t.HasCheckConstraint("ck_warehouse_material_inventory_quantity", "quantity > 0");
             t.HasCheckConstraint("ck_warehouse_material_inventory_quality", "quality >= 1 AND quality <= 1000");
+            t.HasCheckConstraint(
+                "ck_warehouse_material_inventory_location_type",
+                "location_type IN ('Station', 'City')");
         });
         builder.HasKey(w => w.Id);
 
@@ -21,7 +24,8 @@ public sealed class WarehouseMaterialEntryConfiguration : IEntityTypeConfigurati
         builder.Property(w => w.Location).HasColumnName("location").HasMaxLength(200).IsRequired();
         builder.Property(w => w.Quantity).HasColumnName("quantity").HasColumnType("decimal(18,3)").IsRequired();
         builder.Property(w => w.Quality).HasColumnName("quality").HasDefaultValue(500).IsRequired();
-        builder.Property(w => w.StationId).HasColumnName("station_id");
+        builder.Property(w => w.LocationId).HasColumnName("location_id");
+        builder.Property(w => w.LocationType).HasColumnName("location_type").HasMaxLength(16);
         builder.Property(w => w.CreatedAt).HasColumnName("created_at").IsRequired();
         builder.Property(w => w.UpdatedAt).HasColumnName("updated_at").IsRequired();
 
@@ -31,17 +35,12 @@ public sealed class WarehouseMaterialEntryConfiguration : IEntityTypeConfigurati
 
         builder.HasIndex(w => w.CommodityId).HasDatabaseName("ix_warehouse_material_inventory_commodity_id");
         builder.HasIndex(w => w.OwnerUserId).HasDatabaseName("ix_warehouse_material_inventory_owner_user_id");
+        builder.HasIndex(w => w.LocationId).HasDatabaseName("ix_warehouse_material_inventory_location_id");
 
         builder.HasOne<NajaEcho.Domain.Commodities.Commodity>()
             .WithMany()
             .HasForeignKey(w => w.CommodityId)
             .HasConstraintName("fk_warehouse_material_inventory_commodity_id")
             .OnDelete(DeleteBehavior.Restrict);
-
-        builder.HasOne(w => w.Station)
-            .WithMany()
-            .HasForeignKey(w => w.StationId)
-            .OnDelete(DeleteBehavior.Restrict)
-            .IsRequired(false);
     }
 }

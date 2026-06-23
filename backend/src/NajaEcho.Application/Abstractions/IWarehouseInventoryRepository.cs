@@ -20,13 +20,14 @@ public interface IWarehouseInventoryRepository
     /// Returns the resulting row and whether it was newly created (true) or incremented (false).
     /// </summary>
     Task<(InventoryRowDto Row, bool IsNew)> AddOrIncrementAsync(
-        Guid itemId, Guid ownerUserId, string location, int quantity, int quality, Guid? stationId, CancellationToken ct);
+        Guid itemId, Guid ownerUserId, string location, int quantity, int quality,
+        Guid? locationId, string? locationType, CancellationToken ct);
 
     Task<InventoryRowDto> UpdateQuantityAsync(Guid id, int quantity, CancellationToken ct);
 
-    Task<InventoryRowDto> UpdateItemAsync(Guid id, Guid ownerUserId, Guid stationId, int quantity, CancellationToken ct);
+    Task<InventoryRowDto> UpdateItemAsync(Guid id, Guid ownerUserId, Guid locationId, string locationType, int quantity, CancellationToken ct);
 
-    Task UpdateStationAsync(Guid id, Guid stationId, CancellationToken ct);
+    Task UpdateLocationAsync(Guid id, Guid locationId, string locationType, CancellationToken ct);
 
     Task<bool> ExistsAsync(Guid id, CancellationToken ct);
 

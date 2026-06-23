@@ -29,11 +29,11 @@ const mockRows = [
 ]
 
 describe('MaterialsTable', () => {
-  it('renders the Material, Owner, Station, Quantity, and Quality columns', () => {
+  it('renders the Material, Owner, Location, Quantity, and Quality columns', () => {
     render(<MaterialsTable rows={mockRows} />, { wrapper: createWrapper() })
     expect(screen.getByText('Material')).toBeDefined()
     expect(screen.getByText('Owner')).toBeDefined()
-    expect(screen.getByText('Station')).toBeDefined()
+    expect(screen.getByText('Location')).toBeDefined()
     expect(screen.getByText('Quantity')).toBeDefined()
     expect(screen.getByText('Quality')).toBeDefined()
   })
