@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -23,25 +23,16 @@ interface Props {
 }
 
 export function EditInventoryDialog({ open, onOpenChange, row, onSuccess }: Props) {
-  const [ownerUserId, setOwnerUserId] = useState<string>('')
-  const [location, setLocation] = useState<LocationOption | undefined>(undefined)
-  const [quantity, setQuantity] = useState<string>('')
+  const [ownerUserId, setOwnerUserId] = useState<string>(row?.ownerUserId ?? '')
+  const [location, setLocation] = useState<LocationOption | undefined>(
+    row?.locationId && row?.locationType
+      ? { id: row.locationId, name: row.location, type: row.locationType as 'Station' | 'City' }
+      : undefined
+  )
+  const [quantity, setQuantity] = useState<string>(row ? String(row.quantity) : '')
 
   const filters = useInventoryFilters()
   const mutation = useUpdateInventoryItem()
-
-  useEffect(() => {
-    if (open && row) {
-      setOwnerUserId(row.ownerUserId)
-      setLocation(
-        row.locationId && row.locationType
-          ? { id: row.locationId, name: row.location, type: row.locationType as 'Station' | 'City' }
-          : undefined
-      )
-      setQuantity(String(row.quantity))
-      mutation.reset()
-    }
-  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleConfirm = async () => {
     if (!row || !ownerUserId || !location || !quantity) return

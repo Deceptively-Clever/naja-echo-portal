@@ -75,6 +75,7 @@ export function InventoryTable({ rows, isQuartermaster, onRemove }: Props) {
       </Table>
       {editRow && (
         <EditInventoryDialog
+          key={editRow.id}
           open={!!editRow}
           onOpenChange={(o) => {
             if (!o) setEditRow(null)

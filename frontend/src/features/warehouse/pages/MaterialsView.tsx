@@ -85,6 +85,7 @@ export function MaterialsView() {
 
       {isQuartermaster && (
         <AddMaterialDialog
+          key={String(addOpen)}
           open={addOpen}
           onClose={handleAddClose}
           currentUserId={currentUserId}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { LocationCombobox } from './LocationCombobox'
@@ -17,7 +17,7 @@ interface Props {
 
 export function TransferLocationDialog({ open, onOpenChange, rowId, entityType, onSuccess }: Props) {
   const { lastLocation, setLastLocation } = useLastTransferLocation()
-  const [selectedLocation, setSelectedLocation] = useState<LocationOption | undefined>(undefined)
+  const [selectedLocation, setSelectedLocation] = useState<LocationOption | undefined>(lastLocation)
 
   const transferItem = useTransferItemLocation()
   const transferMaterial = useTransferMaterialLocation()
@@ -25,13 +25,6 @@ export function TransferLocationDialog({ open, onOpenChange, rowId, entityType, 
   const mutation = entityType === 'item' ? transferItem : transferMaterial
   const isPending = mutation.isPending
   const mutationError = mutation.error
-
-  useEffect(() => {
-    if (open) {
-      setSelectedLocation(lastLocation)
-      mutation.reset()
-    }
-  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleConfirm = async () => {
     if (!selectedLocation) return

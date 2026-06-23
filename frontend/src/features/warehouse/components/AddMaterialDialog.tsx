@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogFooter, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -34,18 +34,6 @@ export function AddMaterialDialog({
   const [quantity, setQuantity] = useState(1)
   const [quality, setQuality] = useState(500)
   const [error, setError] = useState('')
-
-  useEffect(() => {
-    if (open) {
-      setSearch('')
-      setSelectedCommodity(null)
-      setOwnerUserId(rememberedOwnerId || currentUserId)
-      setLocation(rememberedLocation)
-      setQuantity(1)
-      setQuality(500)
-      setError('')
-    }
-  }, [open]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const debouncedSearch = useDebounce(search, 300)
 

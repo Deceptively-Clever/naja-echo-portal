@@ -88,6 +88,7 @@ export function WarehouseItemsView() {
 
       {isQuartermaster && (
         <AddInventoryDialog
+          key={String(addOpen)}
           open={addOpen}
           onClose={handleAddClose}
           currentUserId={currentUserId}

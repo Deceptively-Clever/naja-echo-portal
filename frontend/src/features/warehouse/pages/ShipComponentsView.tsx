@@ -77,6 +77,7 @@ export function ShipComponentsView() {
       )}
       {isQuartermaster && (
         <AddInventoryDialog
+          key={String(addOpen)}
           scope="ship-components"
           open={addOpen}
           onClose={() => setAddOpen(false)}

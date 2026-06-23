@@ -39,6 +39,7 @@ export function ShipComponentsTable({ rows, isQuartermaster, onRemove }: Props) 
     <>
       {editRow && (
         <EditShipComponentDialog
+          key={editRow.id}
           open={!!editRow}
           onOpenChange={(o) => { if (!o) setEditRow(null) }}
           row={editRow}

@@ -40,6 +40,7 @@ export function MaterialsTable({ rows, isQuartermaster = false, onRemove, hasAct
     <>
       {editRow && (
         <EditMaterialDialog
+          key={editRow.id}
           open={!!editRow}
           onOpenChange={(o) => { if (!o) setEditRow(null) }}
           row={editRow}

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useState } from 'react'
 import { ChevronsUpDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -31,20 +31,19 @@ export function LocationCombobox({
 
   // Keep the last known LocationOption so the button always shows a name even when
   // the current search results don't include the selected id (e.g. not in first 25).
-  const lastSelectedRef = useRef<LocationOption | undefined>(undefined)
+  const [lastSelected, setLastSelected] = useState<LocationOption | undefined>(undefined)
   const selectedInResults = locations.find((l) => l.id === value)
-  if (selectedInResults) lastSelectedRef.current = selectedInResults
-  const displayName = selectedInResults?.name ?? (value ? lastSelectedRef.current?.name : undefined)
+  const displayName = selectedInResults?.name ?? (value ? lastSelected?.name : undefined)
 
   const handleSelect = (location: LocationOption) => {
-    lastSelectedRef.current = location
+    setLastSelected(location)
     onValueChange(location)
     setOpen(false)
     setSearch('')
   }
 
   const handleClear = () => {
-    lastSelectedRef.current = undefined
+    setLastSelected(undefined)
     onValueChange(null)
     setOpen(false)
     setSearch('')
